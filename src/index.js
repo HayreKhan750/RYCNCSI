@@ -3,11 +3,32 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { UserProvider } from './contexts/UserContext';
+import { RatingsProvider } from './contexts/RatingsContext';
+import { ProfileProvider } from './contexts/ProfileContext';
+import { NotificationsProvider } from './contexts/NotificationsContext';
+import { MfaProvider } from './contexts/MfaContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <AuthProvider>
+        <UserProvider>
+          <ProfileProvider>
+            <RatingsProvider>
+              <NotificationsProvider>
+                <MfaProvider>
+                  <App />
+                </MfaProvider>
+              </NotificationsProvider>
+            </RatingsProvider>
+          </ProfileProvider>
+        </UserProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
 

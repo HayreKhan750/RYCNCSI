@@ -1,0 +1,315 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { db } from '../../firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
+import { useAuth } from '../../context/AuthContext';
+import scheduleData from '../../assets/my-file.optimized.json';
+import '../RatingFeedback.css';
+
+const profanityBlocked = (text) => {
+  if (!text) return false;
+  const bad = ['damn','hell','shit','fuck'];
+  const lower = text.toLowerCase();
+  return bad.some(w => lower.includes(w));
+};
+
+export default function RateInstructor() {
+  const { user } = useAuth();
+  const [departments, setDepartments] = useState([]); // from schedule JSON
+  const [instructors, setInstructors] = useState([]); // derived from selected course
+  const [sections, setSections] = useState([]); // courses for selected department
+  const [coursesById, setCoursesById] = useState({});
+
+  const [deptId, setDeptId] = useState(''); // department name
+  const [courseId, setCourseId] = useState(''); // course key
+  const [instructorId, setInstructorId] = useState(''); // instructor key (email or name)
+
+  const [ratings, setRatings] = useState({
+    clarity: 0,
+    engagement: 0,
+    organization: 0,
+    fairness: 0,
+    punctuality: 0,
+  });
+  const [comment, setComment] = useState('');
+  const [tags, setTags] = useState([]);
+  const tagOptions = ['Helpful','Strict','Engaging','Clear','Organized','Challenging','Approachable'];
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
+  // load departments from schedule JSON once
+  useEffect(() => {
+    const schedule = Array.isArray(scheduleData?.schedule) ? scheduleData.schedule : [];
+    const depts = schedule.map((d) => ({
+      id: d.department,
+      name: d.department,
+      courses: Array.isArray(d.courses) ? d.courses : [],
+    }));
+    setDepartments(depts);
+  }, []);
+
+  // load courses when dept changes (from JSON)
+  useEffect(() => {
+    setInstructors([]);
+    setInstructorId('');
+    setSections([]);
+    setCourseId('');
+    if (!deptId) return;
+
+    const dept = departments.find((d) => d.id === deptId);
+    if (!dept) return;
+
+    const courseMap = {};
+    const secs = [];
+
+    (Array.isArray(dept.courses) ? dept.courses : []).forEach((course) => {
+      const courseKey = `${dept.id}|${course.course_code || course.course_title}`;
+      courseMap[courseKey] = {
+        id: courseKey,
+        code: course.course_code,
+        title: course.course_title,
+        raw: course,
+      };
+      secs.push({ id: courseKey, courseId: courseKey });
+    });
+
+    setSections(secs);
+    setCoursesById(courseMap);
+  }, [deptId, departments]);
+
+  // load instructors for selected course (from JSON)
+  useEffect(() => {
+    setInstructors([]);
+    setInstructorId('');
+    if (!deptId || !courseId) return;
+
+    const course = coursesById[courseId]?.raw;
+    if (!course) return;
+
+    let instructorsArr;
+    if (Array.isArray(course.instructor)) {
+      instructorsArr = course.instructor;
+    } else if (course.instructor) {
+      instructorsArr = [{ name: course.instructor, email: null }];
+    } else {
+      instructorsArr = [];
+    }
+
+    const list = instructorsArr.map((inst) => {
+      const key = (inst.email || inst.name || '').toLowerCase();
+      return {
+        id: key,
+        displayName: inst.name,
+        email: inst.email || null,
+      };
+    }).filter((i) => i.id);
+
+    setInstructors(list);
+  }, [deptId, courseId, coursesById]);
+
+  const overall = useMemo(() => {
+    const vals = Object.values(ratings).filter(Boolean);
+    if (vals.length === 0) return 0;
+    return Math.round((vals.reduce((a,b)=>a+b,0) / vals.length) * 10) / 10;
+  }, [ratings]);
+
+  const setStar = (key, val) => setRatings(prev => ({ ...prev, [key]: val }));
+
+  const selectedCourse = courseId ? coursesById[courseId] : null;
+
+  const validate = () => {
+    if (!deptId) return 'Please select a department';
+    if (!courseId) return 'Please select a course';
+    if (!instructorId) return 'Please select an instructor';
+    if (Object.values(ratings).some(v => v === 0)) return 'Please rate all criteria (1-5)';
+    if (comment && comment.length < 5) return 'Comment is too short';
+    if (profanityBlocked(comment)) return 'Please remove inappropriate words from your comment';
+    return '';
+  };
+
+  const submit = async () => {
+    setError('');
+    setSuccess('');
+    const v = validate();
+    if (v) { setError(v); return; }
+    setLoading(true);
+    try {
+      // duplicate guard
+      const dupQ = query(
+        collection(db, 'feedbacks'),
+        where('studentId','==', user.uid),
+        where('instructorId','==', instructorId),
+        where('courseId','==', courseId)
+      );
+      const dupSnap = await getDocs(dupQ);
+      if (!dupSnap.empty) {
+        setError('You have already rated this instructor for this course.');
+        setLoading(false);
+        return;
+      }
+
+      const instructor = instructors.find(i => i.id === instructorId);
+      const dept = departments.find(d => d.id === deptId);
+      const payload = {
+        studentId: user.uid,
+        deptId,
+        deptName: dept?.name || null,
+        instructorId,
+        instructorName: instructor?.displayName || null,
+        courseId,
+        courseCode: selectedCourse?.code || null,
+        courseTitle: selectedCourse?.title || null,
+        ratings,
+        overall,
+        comment,
+        tags,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      await addDoc(collection(db, 'feedbacks'), payload);
+      setSuccess('Feedback submitted successfully');
+      setShowToast(true);
+      setTimeout(()=> setShowToast(false), 2000);
+      // reset
+      setRatings({ clarity:0, engagement:0, organization:0, fairness:0, punctuality:0 });
+      setComment('');
+      setTags([]);
+      setCourseId('');
+    } catch (e) {
+      setError(e.message || 'Failed to submit feedback');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rating-feedback-container">
+      <h2>Rate Instructor</h2>
+
+      {/* Filters */}
+      <div className="section-selector">
+        <label>Department</label>
+        <select className="section-dropdown" value={deptId} onChange={e=>setDeptId(e.target.value)}>
+          <option value="">-- Select Department --</option>
+          {departments.map(d => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="section-selector">
+        <label>Course</label>
+        <select className="section-dropdown" value={courseId} onChange={e=>setCourseId(e.target.value)} disabled={!deptId}>
+          <option value="">-- Select Course --</option>
+          {sections.map(s => {
+            const c = coursesById[s.courseId];
+            if (!c) return null;
+            return (
+              <option key={s.id} value={c.id}>{c.code} — {c.title}</option>
+            );
+          })}
+        </select>
+      </div>
+
+      <div className="section-selector">
+        <label>Instructor</label>
+        <select className="section-dropdown" value={instructorId} onChange={e=>setInstructorId(e.target.value)} disabled={!courseId}>
+          <option value="">-- Select Instructor --</option>
+          {instructors.map(i => (
+            <option key={i.id} value={i.id}>{i.displayName}</option>
+          ))}
+        </select>
+      </div>
+
+      {selectedCourse && (
+        <div className="rating-form">
+          <h3>{selectedCourse.title}</h3>
+          <div className="form-group">
+            <label>Overall: {overall || 0}★</label>
+          </div>
+
+          <div className="form-group">
+            <label>Clarity</label>
+            <StarRow value={ratings.clarity} onSelect={(v)=>setStar('clarity', v)} />
+          </div>
+          <div className="form-group">
+            <label>Engagement</label>
+            <StarRow value={ratings.engagement} onSelect={(v)=>setStar('engagement', v)} />
+          </div>
+          <div className="form-group">
+            <label>Organization</label>
+            <StarRow value={ratings.organization} onSelect={(v)=>setStar('organization', v)} />
+          </div>
+          <div className="form-group">
+            <label>Fairness</label>
+            <StarRow value={ratings.fairness} onSelect={(v)=>setStar('fairness', v)} />
+          </div>
+          <div className="form-group">
+            <label>Punctuality</label>
+            <StarRow value={ratings.punctuality} onSelect={(v)=>setStar('punctuality', v)} />
+          </div>
+
+          <div className="form-group">
+            <label>Comment (optional)</label>
+            <textarea
+              className="feedback-textarea"
+              rows={4}
+              value={comment}
+              onChange={e=>setComment(e.target.value)}
+              placeholder="Share your experience..."
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Tags (optional)</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {tagOptions.map(t => {
+                const checked = tags.includes(t);
+                return (
+                  <label key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={checked} onChange={() => {
+                      setTags(prev => checked ? prev.filter(x => x !== t) : [...prev, t]);
+                    }} />
+                    {t}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button className="save-button" disabled={loading} onClick={submit}>{loading ? 'Submitting…' : 'Submit'}</button>
+            <button className="cancel-button" disabled={loading} onClick={()=>{ setCourseId(''); setComment(''); setRatings({ clarity:0, engagement:0, organization:0, fairness:0, punctuality:0 }); }}>Cancel</button>
+          </div>
+
+          {error && <div className="error" style={{ marginTop: 8 }}>{error}</div>}
+          {success && <div className="success" style={{ marginTop: 8 }}>{success}</div>}
+        </div>
+      )}
+
+      {showToast && (
+        <div style={{ position: 'fixed', bottom: 20, right: 20, background: '#10b981', color: '#fff', padding: '10px 14px', borderRadius: 10, boxShadow: '0 6px 16px rgba(0,0,0,0.2)' }}>
+          Feedback submitted successfully
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StarRow({ value, onSelect }) {
+  return (
+    <div className="star-rating">
+      {[1,2,3,4,5].map(s => (
+        <span key={s} className={`star ${s <= value ? 'filled' : ''}`} onClick={()=>onSelect(s)}>★</span>
+      ))}
+    </div>
+  );
+}

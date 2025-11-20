@@ -1,25 +1,54 @@
-import logo from './logo.svg';
 import './App.css';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './routes/ProtectedRoute';
+import AdminRoute from './routes/AdminRoute';
+import Login from './components/Login';
+import MfaPrompt from './components/auth/MfaPrompt';
+import MfaEnroll from './components/auth/MfaEnroll';
+import EmailOtpPrompt from './components/auth/EmailOtpPrompt';
+import Signup from './pages/Signup';
+import Dashboard from './components/Dashboard';
+import AdminImporter from './pages/AdminImporter';
+import VerifyEmail from './components/VerifyEmail';
+import ForgotPassword from './components/ForgotPassword';
 
-function App() {
+export default function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/mfa" element={<MfaPrompt />} />
+        <Route path="/mfa-enroll" element={<MfaEnroll />} />
+        <Route path="/email-otp" element={<EmailOtpPrompt />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/admin/import"
+          element={
+            <AdminRoute>
+              <AdminImporter />
+            </AdminRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }
-
-export default App;
