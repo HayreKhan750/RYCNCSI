@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db, storage } from '../firebase';
+import { collection, getDocs, query, where, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import scheduleData from '../assets/my-file.optimized.json';
 import './Profile.css';
 
@@ -12,11 +13,23 @@ export default function InstructorProfile() {
   const [activeSection, setActiveSection] = useState('courses');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Profile info from Firestore users collection
+  const [profile, setProfile] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    department: '',
+    bio: '',
+  });
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+
   // Load instructor's courses and ratings
   useEffect(() => {
-    if (!user?.email) {
+    if (!user?.uid || !user?.email) {
       setMyCourses([]);
       setMyRatings([]);
+      setProfile(null);
       return;
     }
 
@@ -63,13 +76,34 @@ export default function InstructorProfile() {
 
     setMyCourses(courses);
 
-    // Load ratings for this instructor from Firestore `feedbacks`
-    const loadRatings = async () => {
+    const loadProfileAndRatings = async () => {
       if (!db) {
+        setProfile(null);
         setMyRatings([]);
         return;
       }
+
       try {
+        // Load instructor profile from users collection
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        const userData = userSnap.exists() ? userSnap.data() : {};
+        const mergedProfile = {
+          name: userData.name || user.displayName || user.email,
+          email: user.email,
+          department: userData.department || '',
+          bio: userData.bio || '',
+          profilePictureUrl: userData.profilePictureUrl || '',
+          role: userData.role || 'instructor',
+        };
+        setProfile(mergedProfile);
+        setProfileForm({
+          name: mergedProfile.name,
+          department: mergedProfile.department,
+          bio: mergedProfile.bio,
+        });
+
+        // Load ratings for this instructor from Firestore `feedbacks`
         const q = query(
           collection(db, 'feedbacks'),
           where('instructorId', '==', loginEmail),
@@ -84,22 +118,46 @@ export default function InstructorProfile() {
             rating: typeof data.overall === 'number' ? data.overall : 0,
             feedback: data.comment || '',
             timestamp: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+            tags: Array.isArray(data.tags) ? data.tags : [],
+            likes: typeof data.likes === 'number' ? data.likes : 0,
           };
         });
         setMyRatings(rows);
       } catch (e) {
-        // On error, just show no ratings rather than breaking the profile
+        setProfile(null);
         setMyRatings([]);
       }
     };
 
-    loadRatings();
+    loadProfileAndRatings();
   }, [user]);
 
   // Calculate statistics
   const averageRating = myRatings.length > 0
     ? (myRatings.reduce((sum, r) => sum + (r.rating || 0), 0) / myRatings.length).toFixed(2)
     : 0;
+
+  const totalRatings = myRatings.length;
+
+  // Aggregate tags and popular reviews
+  const tagCounts = myRatings.reduce((acc, r) => {
+    (r.tags || []).forEach((tag) => {
+      const key = String(tag).trim();
+      if (!key) return;
+      acc[key] = (acc[key] || 0) + 1;
+    });
+    return acc;
+  }, {});
+
+  const topTags = Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([tag, count]) => ({ tag, count }));
+
+  const popularReviews = [...myRatings]
+    .filter((r) => r.feedback)
+    .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+    .slice(0, 3);
 
   const filteredCourses = myCourses.filter(course => {
     if (!searchTerm) return true;
@@ -121,23 +179,84 @@ export default function InstructorProfile() {
     );
   });
 
+  const handleProfileInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfileImageFile(e.target.files[0]);
+    }
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!user?.uid || !db) return;
+    setSavingProfile(true);
+
+    try {
+      let profilePictureUrl = profile?.profilePictureUrl || '';
+
+      if (profileImageFile && storage) {
+        const storageRef = ref(storage, `profilePictures/${user.uid}`);
+        await uploadBytes(storageRef, profileImageFile);
+        profilePictureUrl = await getDownloadURL(storageRef);
+      }
+
+      const userRef = doc(db, 'users', user.uid);
+      const payload = {
+        name: profileForm.name || profile?.name || user.email,
+        email: user.email,
+        role: profile?.role || 'instructor',
+        department: profileForm.department || '',
+        bio: profileForm.bio || '',
+        profilePictureUrl,
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(userRef, payload, { merge: true });
+      setProfile((prev) => ({ ...(prev || {}), ...payload }));
+      setEditingProfile(false);
+      setProfileImageFile(null);
+    } catch (err) {
+      // Silently fail for now; could add UI error message
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   return (
     <div className="profile-container">
       <div className="profile-header">
         <div className="profile-avatar instructor">
-          <span>{user?.displayName?.charAt(0)?.toUpperCase() || 'I'}</span>
+          {profile?.profilePictureUrl ? (
+            <img
+              src={profile.profilePictureUrl}
+              alt={profile.name}
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+            />
+          ) : (
+            <span>{(profile?.name || user?.displayName || user?.email || 'I').charAt(0).toUpperCase()}</span>
+          )}
         </div>
         <div className="profile-info">
-          <h2>{user?.displayName || 'Instructor'}</h2>
-          <p className="profile-email">{user?.email}</p>
+          <h2>{profile?.name || user?.displayName || 'Instructor'}</h2>
+          <p className="profile-email">{profile?.email || user?.email}</p>
+          {profile?.department && (
+            <p className="profile-id">Department: {profile.department}</p>
+          )}
           <p className="profile-role">Role: Instructor</p>
+          {profile?.bio && !editingProfile && (
+            <p style={{ marginTop: '8px', maxWidth: '600px' }}>{profile.bio}</p>
+          )}
           <div className="profile-stats">
             <div className="stat-item">
               <span className="stat-value">{myCourses.length}</span>
               <span className="stat-label">Courses</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{myRatings.length}</span>
+              <span className="stat-value">{totalRatings}</span>
               <span className="stat-label">Ratings</span>
             </div>
             <div className="stat-item">
@@ -146,6 +265,82 @@ export default function InstructorProfile() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="profile-content" style={{ marginBottom: '20px' }}>
+        <h3>My Profile</h3>
+        {!editingProfile ? (
+          <div>
+            <p><strong>Name:</strong> {profile?.name || user?.displayName || 'Instructor'}</p>
+            <p><strong>Email:</strong> {profile?.email || user?.email}</p>
+            <p><strong>Department:</strong> {profile?.department || 'Not set'}</p>
+            <p><strong>Bio:</strong> {profile?.bio || 'Add a short bio to tell students about yourself.'}</p>
+            <button
+              className="enroll-button"
+              style={{ marginTop: '10px' }}
+              onClick={() => setEditingProfile(true)}
+            >
+              Edit Profile
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSaveProfile} style={{ display: 'grid', gap: '10px', maxWidth: '600px' }}>
+            <div>
+              <label><strong>Name</strong></label>
+              <input
+                type="text"
+                name="name"
+                value={profileForm.name}
+                onChange={handleProfileInputChange}
+                className="search-input"
+              />
+            </div>
+            <div>
+              <label><strong>Department</strong></label>
+              <input
+                type="text"
+                name="department"
+                value={profileForm.department}
+                onChange={handleProfileInputChange}
+                className="search-input"
+              />
+            </div>
+            <div>
+              <label><strong>Bio</strong></label>
+              <textarea
+                name="bio"
+                value={profileForm.bio}
+                onChange={handleProfileInputChange}
+                className="search-input"
+                rows={3}
+              />
+            </div>
+            <div>
+              <label><strong>Profile Picture</strong></label>
+              <input type="file" accept="image/*" onChange={handleProfileImageChange} />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button type="submit" className="enroll-button" disabled={savingProfile}>
+                {savingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                type="button"
+                className="unenroll-button"
+                onClick={() => {
+                  setEditingProfile(false);
+                  setProfileForm({
+                    name: profile?.name || user?.displayName || '',
+                    department: profile?.department || '',
+                    bio: profile?.bio || '',
+                  });
+                  setProfileImageFile(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       <div className="profile-tabs">
@@ -165,7 +360,7 @@ export default function InstructorProfile() {
           className={`profile-tab ${activeSection === 'analytics' ? 'active' : ''}`}
           onClick={() => setActiveSection('analytics')}
         >
-          Analytics
+          Performance & Insights
         </button>
       </div>
 

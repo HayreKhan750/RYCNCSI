@@ -268,6 +268,13 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="header-actions">
+          <button
+            className="icon-btn"
+            title="Settings"
+            onClick={() => navigate('/settings')}
+          >
+            ⚙
+          </button>
           <button className="icon-btn" title={`Notifications${unreadCount ? ` (${unreadCount})` : ''}`} onClick={requestNotificationsPermission}>
             🔔{unreadCount ? <span style={{ marginLeft: 6, background:'#ef4444', color:'#fff', borderRadius: 8, padding: '0 6px', fontSize: 12 }}>{unreadCount}</span> : null}
           </button>

@@ -11,6 +11,7 @@ import Dashboard from './components/Dashboard';
 import AdminImporter from './pages/AdminImporter';
 import VerifyEmail from './components/VerifyEmail';
 import ForgotPassword from './components/ForgotPassword';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -39,6 +40,14 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/import"
           element={
