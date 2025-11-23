@@ -32,65 +32,35 @@ export function useInstructorProfile(user, routeInstructorId) {
     const loadData = async () => {
       setLoading(true);
       try {
-        // 1. Calculate Courses from Schedule Data
-        const courses = [];
-        const schedule = Array.isArray(scheduleData?.schedule) ? scheduleData.schedule : [];
+        let profileData = null;
+        let emailForMatching = '';
 
-        schedule.forEach((dept) => {
-          const deptName = dept.department;
-          const deptCourses = Array.isArray(dept.courses) ? dept.courses : [];
-
-          deptCourses.forEach((course) => {
-            let instructorsArr;
-            if (Array.isArray(course.instructor)) {
-              instructorsArr = course.instructor;
-            } else if (course.instructor) {
-              instructorsArr = [{ name: course.instructor, email: null }];
-            } else {
-              instructorsArr = [];
-            }
-
-            const teachesHere = instructorsArr.some((inst) => {
-              const key = (inst?.email || inst?.name || '').toLowerCase();
-              return key && key === instructorKey;
-            });
-
-            if (teachesHere) {
-              courses.push({
-                id: `${deptName || 'dept'}-${course.course_code || course.course_title}`,
-                department: deptName,
-                courseTitle: course.course_title,
-                courseCode: course.course_code,
-                lectureHours: course.lecture_hours,
-                period: course.period,
-                room: course.room,
-                studentCount: course.student_count,
-                instructors: instructorsArr,
-              });
-            }
-          });
-        });
-        setMyCourses(courses);
-
-        // 2. Fetch Profile
+        // 1. Fetch Profile First
         if (db) {
-          const userRef = doc(db, 'users', user.uid);
+          // If routeInstructorId is provided, it's likely a UID. 
+          // If not, use current user's UID.
+          const targetUid = routeInstructorId || user.uid;
+          
+          const userRef = doc(db, 'users', targetUid);
           const userSnap = await getDoc(userRef);
           const userData = userSnap.exists() ? userSnap.data() : {};
-          const mergedProfile = {
-            name: userData.name || user.displayName || user.email,
-            email: user.email,
+          
+          profileData = {
+            name: userData.name || userData.displayName || user.displayName || 'Instructor',
+            email: userData.email || user.email,
             department: userData.department || '',
             bio: userData.bio || '',
-            profilePictureUrl: userData.profilePictureUrl || '',
+            profilePictureUrl: userData.profilePictureUrl || user.photoURL || '',
             role: userData.role || 'instructor',
+            uid: targetUid
           };
-          setProfile(mergedProfile);
+          setProfile(profileData);
+          emailForMatching = profileData.email;
 
-          // 3. Fetch Ratings
+          // 2. Fetch Ratings (from 'ratings' collection)
           const q = query(
-            collection(db, 'feedbacks'),
-            where('instructorId', '==', instructorKey)
+            collection(db, 'ratings'),
+            where('instructorId', '==', targetUid) // Match by UID
           );
           const snap = await getDocs(q);
           const rows = snap.docs.map((d) => {
@@ -99,8 +69,8 @@ export function useInstructorProfile(user, routeInstructorId) {
               id: d.id,
               courseTitle: data.courseTitle || null,
               courseNo: data.courseCode || null,
-              rating: typeof data.overall === 'number' ? data.overall : 0,
-              feedback: data.comment || '',
+              rating: typeof data.ratingValue === 'number' ? data.ratingValue : 0, // ratingValue from ratingService
+              feedback: data.feedback || '',
               timestamp: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
               tags: Array.isArray(data.tags) ? data.tags : [],
               likes: typeof data.likes === 'number' ? data.likes : 0,
@@ -108,12 +78,57 @@ export function useInstructorProfile(user, routeInstructorId) {
           });
           setMyRatings(rows);
 
-          // 4. Calculate Stats
+          // 3. Calculate Stats
           const avg = rows.length > 0
             ? (rows.reduce((sum, r) => sum + (r.rating || 0), 0) / rows.length).toFixed(2)
             : 0;
-          const totalStudents = courses.reduce((sum, c) => sum + (c.studentCount || 0), 0);
           
+          // 4. Calculate Courses from Schedule Data using Email
+          const courses = [];
+          const schedule = Array.isArray(scheduleData?.schedule) ? scheduleData.schedule : [];
+
+          schedule.forEach((dept) => {
+            const deptName = dept.department;
+            const deptCourses = Array.isArray(dept.courses) ? dept.courses : [];
+
+            deptCourses.forEach((course) => {
+              let instructorsArr;
+              if (Array.isArray(course.instructor)) {
+                instructorsArr = course.instructor;
+              } else if (course.instructor) {
+                instructorsArr = [{ name: course.instructor, email: null }];
+              } else {
+                instructorsArr = [];
+              }
+
+              const teachesHere = instructorsArr.some((inst) => {
+                // Match by Email if available, otherwise Name (less reliable)
+                if (emailForMatching && inst.email) {
+                    return inst.email.toLowerCase() === emailForMatching.toLowerCase();
+                }
+                // Fallback to name matching if needed, or if email missing in JSON
+                return (inst.name || '').toLowerCase().includes((profileData.name || '').toLowerCase());
+              });
+
+              if (teachesHere) {
+                courses.push({
+                  id: `${deptName || 'dept'}-${course.course_code || course.course_title}`,
+                  department: deptName,
+                  courseTitle: course.course_title,
+                  courseCode: course.course_code,
+                  lectureHours: course.lecture_hours,
+                  period: course.period,
+                  room: course.room,
+                  studentCount: course.student_count,
+                  instructors: instructorsArr,
+                });
+              }
+            });
+          });
+          setMyCourses(courses);
+          
+          const totalStudents = courses.reduce((sum, c) => sum + (c.studentCount || 0), 0);
+
           setStats({
             averageRating: avg,
             totalRatings: rows.length,
@@ -140,7 +155,7 @@ export function useInstructorProfile(user, routeInstructorId) {
     };
 
     loadData();
-  }, [user, instructorKey, routeInstructorId]);
+  }, [user, routeInstructorId]);
 
   const updateProfile = async (newProfileData, imageFile) => {
      if (!user?.uid || !db) return;

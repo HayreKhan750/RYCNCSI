@@ -1,5 +1,7 @@
 import React from 'react';
 import { useDashboardData } from './useDashboardData';
+import TopInstructors from '../student/TopInstructors';
+import PopularReviewers from '../student/PopularReviewers';
 
 export default function DashboardHome({ user, navigateTo }) {
   const { stats, topInstructors, activeReviewers, recentActivity, loading } = useDashboardData(user);
@@ -56,43 +58,58 @@ export default function DashboardHome({ user, navigateTo }) {
       </div>
 
       {/* Widgets */}
-      <div className="widgets-grid">
-        {/* Top Instructors */}
-        <div className="widget-section glass-card" style={{padding: 20}}>
-          <h3>🏆 Top Rated Instructors</h3>
-          <div className="list-container">
-            {topInstructors.map(inst => (
-              <div key={inst.id} className="list-item">
-                <div className="avatar-small" style={{background: '#e0e7ff', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                  {inst.photo ? <img src={inst.photo} alt={inst.name} className="avatar-small"/> : inst.name[0]}
-                </div>
-                <div className="item-info">
-                  <h4>{inst.name}</h4>
-                  <p>⭐ {inst.avgRating} Average Rating</p>
-                </div>
-                <button className="action-btn-small">View</button>
-              </div>
-            ))}
-            {topInstructors.length === 0 && <p style={{padding:20, textAlign:'center', opacity:0.6}}>No data yet.</p>}
-          </div>
+      <div className="widgets-grid" style={{display:'flex', flexDirection:'column', gap: 30}}>
+        
+        {/* Top Instructors Discovery */}
+        <div className="widget-section">
+           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
+              <h3 style={{margin:0, fontSize:'1.2rem', opacity:0.9}}>🏆 Top Instructors (Discovery)</h3>
+              <button 
+                className="text-btn" 
+                onClick={() => navigateTo('rate')} 
+                style={{
+                  color:'var(--neon-primary)', 
+                  background:'none', 
+                  border:'none', 
+                  cursor:'pointer',
+                  fontSize:'0.95rem',
+                  fontWeight:500,
+                  transition:'opacity 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.opacity = '0.7'}
+                onMouseLeave={(e) => e.target.style.opacity = '1'}
+              >
+                See More →
+              </button>
+           </div>
+           <TopInstructors instructors={topInstructors.slice(0, 3)} />
         </div>
 
-        {/* Recent Activity */}
-        <div className="widget-section glass-card" style={{padding: 20}}>
-          <h3>⚡ Recent Activity</h3>
-          <div className="list-container">
-             {recentActivity.map(act => (
-               <div key={act.id} className="list-item">
-                 <div className="item-info">
-                   <h4>Rated {act.instructorName || 'Course'}</h4>
-                   <p>"{act.feedback?.substring(0, 30)}..."</p>
-                 </div>
-                 <span style={{fontSize:12, opacity:0.5}}>{act.rating}★</span>
-               </div>
-             ))}
-             {recentActivity.length === 0 && <p style={{padding:20, textAlign:'center', opacity:0.6}}>No recent activity.</p>}
+        {/* Top Reviewers */}
+        <div className="widget-section">
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 15}}>
+              <h3 style={{margin:0, fontSize:'1.2rem', opacity:0.9}}>🌟 Top Reviewers</h3>
+              <button 
+                className="text-btn" 
+                onClick={() => navigateTo('profile')} 
+                style={{
+                  color:'var(--neon-secondary)', 
+                  background:'none', 
+                  border:'none', 
+                  cursor:'pointer',
+                  fontSize:'0.95rem',
+                  fontWeight:500,
+                  transition:'opacity 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.opacity = '0.7'}
+                onMouseLeave={(e) => e.target.style.opacity = '1'}
+              >
+                See More →
+              </button>
           </div>
+          <PopularReviewers reviewers={activeReviewers.slice(0, 3)} />
         </div>
+
       </div>
     </div>
   );

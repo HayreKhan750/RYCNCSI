@@ -68,7 +68,7 @@ export function useStudentProfile(user) {
         const totalRatings = ratingsRows.length;
         const totalComments = ratingsRows.filter((r) => r.comment && r.comment.trim()).length;
         const avgGiven = totalRatings
-          ? (ratingsRows.reduce((sum, r) => sum + (r.overall || 0), 0) / totalRatings).toFixed(1)
+          ? (ratingsRows.reduce((sum, r) => sum + (r.rating || 0), 0) / totalRatings).toFixed(1)
           : 0;
         setStats({ totalRatings, totalComments, avgGiven });
 
@@ -82,10 +82,10 @@ export function useStudentProfile(user) {
             instructorName: r.instructorName || r.instructorId,
             deptName: r.deptName || null,
             count: 0,
-            lastRating: r.overall || 0,
+            lastRating: r.rating || 0,
           };
           existing.count += 1;
-          existing.lastRating = r.overall || existing.lastRating; // Simplification
+          existing.lastRating = r.rating || existing.lastRating; // Simplification
           instMap.set(key, existing);
         });
         setRatedInstructors(Array.from(instMap.values()));
@@ -102,7 +102,7 @@ export function useStudentProfile(user) {
         // Note: Ideally this would be a dedicated 'stats' collection query or simpler
         const topInstQ = query(
             collection(db, 'feedbacks'),
-            orderBy('overall', 'desc'),
+            orderBy('rating', 'desc'),
             limit(50)
         );
         const topInstSnap = await getDocs(topInstQ);
@@ -120,7 +120,7 @@ export function useStudentProfile(user) {
                 });
             }
             const rec = topInstMap.get(data.instructorId);
-            rec.ratingSum += data.overall || 0;
+            rec.ratingSum += data.rating || 0;
             rec.count++;
         });
         const topInstList = Array.from(topInstMap.values())

@@ -47,20 +47,22 @@ export function useAdminData() {
       // For this demo, we assume client-side counting is okay or use estimated counts
       const studentSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
       const instructorSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'instructor')));
-      const ratingSnap = await getDocs(collection(db, 'feedbacks')); // Assuming feedbacks are ratings
       
-      // Mock flagged count or real query if 'flagged' field exists
-      // const flaggedSnap = await getCountFromServer(query(collection(db, 'feedbacks'), where('flagged', '==', true)));
+      // Fetch ratings (feedbacks)
+      const ratingSnap = await getDocs(query(collection(db, 'ratings'), orderBy('createdAt', 'desc')));
+      
+      const allRatings = ratingSnap.docs.map(d => ({id: d.id, ...d.data()}));
+      const flaggedCount = allRatings.filter(r => r.status === 'FLAGGED').length;
 
       setStats({
         totalStudents: studentSnap.size,
         totalInstructors: instructorSnap.size,
         totalRatings: ratingSnap.size,
-        flaggedCount: 5 // Mock for demo
+        flaggedCount: flaggedCount
       });
 
       setUsers([...studentSnap.docs.map(d => ({id: d.id, ...d.data()})), ...instructorSnap.docs.map(d => ({id: d.id, ...d.data()}))]);
-      setRatings(ratingSnap.docs.map(d => ({id: d.id, ...d.data()})));
+      setRatings(allRatings);
 
       // Fetch Logs
       const logsSnap = await getDocs(query(collection(db, 'admin_logs'), orderBy('timestamp', 'desc'), limit(20)));
@@ -89,14 +91,46 @@ export function useAdminData() {
 
   const deleteRating = async (id) => {
     if(!window.confirm("Delete this rating?")) return;
-    await deleteDoc(doc(db, 'feedbacks', id));
+    await deleteDoc(doc(db, 'ratings', id));
     await logAction('DELETE_RATING', id, 'Removed abusive content');
     setRatings(prev => prev.filter(r => r.id !== id));
+  };
+
+  const updateRatingStatus = async (id, status) => {
+    try {
+      await updateDoc(doc(db, 'ratings', id), { status });
+      await logAction('UPDATE_STATUS', id, `Marked as ${status}`);
+      setRatings(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  };
+
+  const flagRating = async (id) => {
+    try {
+      await updateDoc(doc(db, 'ratings', id), { status: 'FLAGGED' });
+      await logAction('FLAG_RATING', id, 'Flagged content');
+      setRatings(prev => prev.map(r => r.id === id ? { ...r, status: 'FLAGGED' } : r));
+    } catch (error) {
+      console.error("Error flagging rating:", error);
+    }
   };
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
-  return { loading, stats, users, ratings, logs, deleteUser, approveInstructor, deleteRating, refresh: fetchDashboardData };
+  return { 
+    loading, 
+    stats, 
+    users, 
+    ratings, 
+    logs, 
+    deleteUser, 
+    approveInstructor, 
+    deleteRating, 
+    updateRatingStatus, 
+    flagRating, 
+    refresh: fetchDashboardData 
+  };
 }

@@ -7,8 +7,11 @@ import AdminUsers from './AdminUsers';
 import AdminContent from './AdminContent';
 import './AdminPanel.css';
 
+import { useTheme } from '../../contexts/ThemeContext';
+
 export default function AdminEntry() {
   const { user, userData } = useUser();
+  const { theme, toggleTheme } = useTheme();
   const { 
     loading: dataLoading, 
     stats, 
@@ -17,23 +20,12 @@ export default function AdminEntry() {
     logs, 
     deleteUser, 
     approveInstructor, 
-    deleteRating 
+    deleteRating,
+    updateRatingStatus,
+    flagRating
   } = useAdminData();
 
   const [activePage, setActivePage] = useState('dashboard');
-  const [themeMode, setThemeMode] = useState('dark');
-
-  // Theme initialization
-  useEffect(() => {
-      const saved = localStorage.getItem('admin-theme');
-      if(saved) setThemeMode(saved);
-  }, []);
-
-  const toggleTheme = () => {
-      const newMode = themeMode === 'dark' ? 'light' : 'dark';
-      setThemeMode(newMode);
-      localStorage.setItem('admin-theme', newMode);
-  };
 
   // Access Control
   // Assuming AdminRoute wraps this component in App.js, but double check here for safety
@@ -51,7 +43,7 @@ export default function AdminEntry() {
 
   if (dataLoading) {
       return (
-          <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background: themeMode === 'dark' ? '#09090b' : '#f8fafc', color: themeMode === 'dark' ? 'white' : 'black'}}>
+          <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background: theme === 'dark' ? '#09090b' : '#f8fafc', color: theme === 'dark' ? 'white' : 'black'}}>
               Loading Control Panel...
           </div>
       );
@@ -63,7 +55,13 @@ export default function AdminEntry() {
               return <AdminUsers users={users} onDelete={deleteUser} onApprove={approveInstructor} />;
           case 'content':
           case 'logs': // Combined content/logs logic for now or split if preferred
-              return <AdminContent ratings={ratings} logs={logs} onDeleteRating={deleteRating} />;
+              return <AdminContent 
+                        ratings={ratings} 
+                        logs={logs} 
+                        onDeleteRating={deleteRating} 
+                        updateRatingStatus={updateRatingStatus}
+                        flagRating={flagRating}
+                     />;
           case 'settings':
               return <div className="adm-glass" style={{padding:40, textAlign:'center'}}>Settings Module Placeholder</div>;
           case 'dashboard':
@@ -76,7 +74,7 @@ export default function AdminEntry() {
     <AdminLayout 
       activePage={activePage} 
       onNavigate={setActivePage} 
-      themeMode={themeMode} 
+      themeMode={theme} 
       toggleTheme={toggleTheme}
       user={user}
     >

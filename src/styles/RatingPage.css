@@ -1,24 +1,28 @@
 /* RatingPage.css */
+/* Inherits variables from StudentDashboard.css */
+
 .rating-page-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   font-family: 'Inter', sans-serif;
   color: inherit;
+  min-height: 100vh;
 }
 
+/* Glassmorphism Card - Matches Dashboard */
 .glass-card {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--card-light);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-  transition: transform 0.3s ease;
+  border: var(--glass-border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .glass-card {
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--card-dark);
   border: 1px solid rgba(255, 255, 255, 0.05);
   color: white;
 }
@@ -29,6 +33,11 @@
   margin-bottom: 30px;
   position: relative;
   overflow: hidden;
+  background: var(--card-light);
+}
+
+.dark .instructor-header {
+  background: var(--card-dark);
 }
 
 .instructor-header::before {
@@ -62,8 +71,9 @@
 .instructor-info h1 {
   margin: 0 0 5px;
   font-size: 2.5rem;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: var(--primary-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -73,6 +83,8 @@
   margin-bottom: 15px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  color: #6366f1;
+  font-weight: 600;
 }
 
 .rating-badge {
@@ -163,7 +175,7 @@
   padding: 16px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--primary-gradient);
   color: white;
   font-size: 1.1rem;
   font-weight: bold;
@@ -196,4 +208,26 @@
 
 .review-card:hover {
   transform: translateY(-3px);
+}
+
+/* Back Button */
+.back-dashboard-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 500;
+  backdrop-filter: blur(5px);
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.back-dashboard-btn:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateX(-2px);
 }

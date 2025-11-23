@@ -3,6 +3,7 @@ import {
   collection, 
   doc, 
   addDoc, 
+  setDoc,
   updateDoc, 
   getDoc, 
   getDocs, 
@@ -13,11 +14,42 @@ import {
   runTransaction,
   increment,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  limit
 } from 'firebase/firestore';
 
-const RATINGS_COLLECTION = 'ratings';
-const INSTRUCTORS_COLLECTION = 'users'; // Assuming instructors are in 'users' collection with role 'instructor'
+const RATINGS_COLLECTION = 'feedbacks';
+const INSTRUCTORS_COLLECTION = 'users';
+
+/**
+ * Helper to ensure instructor exists in Firestore (for unregistered instructors)
+ */
+export const ensureInstructorExists = async (instructorData) => {
+  if (!instructorData.email && !instructorData.name) throw new Error("Instructor data missing");
+
+  // Try to find by email first
+  if (instructorData.email) {
+      const q = query(collection(db, INSTRUCTORS_COLLECTION), where('email', '==', instructorData.email));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) return snapshot.docs[0].id;
+  }
+
+  // If not found, create a new "Unregistered" instructor
+  const newInstructorRef = doc(collection(db, INSTRUCTORS_COLLECTION));
+  await setDoc(newInstructorRef, {
+      displayName: instructorData.name || 'Unknown Instructor',
+      email: instructorData.email || null,
+      department: instructorData.department || 'General',
+      role: 'instructor',
+      isRegistered: false,
+      createdAt: new Date().toISOString(),
+      photoURL: null,
+      ratingCount: 0,
+      averageRating: 0
+  });
+
+  return newInstructorRef.id;
+};
 
 /**
  * Submit a new rating or update an existing one.
@@ -44,26 +76,35 @@ export const submitRating = async (instructorId, studentId, ratingData, existing
       let newRatingCount = currentRatingCount;
       let newTotalRating = currentTotalRating;
 
+      // Extract rating value (support both rating and ratingValue)
+      const newScore = ratingData.rating || ratingData.ratingValue || 0;
+
       if (existingRatingId) {
         // Updating existing rating
         const existingRatingDoc = await transaction.get(ratingRef);
         if (!existingRatingDoc.exists()) throw new Error("Rating not found");
         
-        const oldRatingValue = existingRatingDoc.data().ratingValue;
-        newTotalRating = currentTotalRating - oldRatingValue + ratingData.ratingValue;
+        const oldData = existingRatingDoc.data();
+        const oldScore = oldData.rating || oldData.ratingValue || 0;
+        
+        newTotalRating = currentTotalRating - oldScore + newScore;
       } else {
         // New rating
         newRatingCount += 1;
-        newTotalRating += ratingData.ratingValue;
+        newTotalRating += newScore;
       }
 
       const newAverageRating = newRatingCount > 0 ? newTotalRating / newRatingCount : 0;
 
-      // Set rating document
+      // Set rating document with standardized fields
       transaction.set(ratingRef, {
         instructorId,
         studentId,
         ...ratingData,
+        rating: newScore, // Standardize on 'rating'
+        ratingValue: newScore, // Keep for backward compatibility if needed
+        instructorName: instructorData.displayName || 'Unknown Instructor', // Denormalize name
+        deptName: instructorData.department || 'General', // Denormalize dept
         updatedAt: serverTimestamp(),
         ...(existingRatingId ? {} : { createdAt: serverTimestamp(), likes: 0, dislikes: 0, replies: [] })
       }, { merge: true });
@@ -128,8 +169,6 @@ export const getStudentRatingForInstructor = async (studentId, instructorId) => 
  */
 export const toggleLikeReview = async (ratingId, userId, isLike = true) => {
   const ratingRef = doc(db, RATINGS_COLLECTION, ratingId);
-  // This is a simplified logic. In a real app, you'd track who liked what to prevent double liking.
-  // For now, we just increment/decrement.
   try {
     await updateDoc(ratingRef, {
       [isLike ? 'likes' : 'dislikes']: increment(1)
@@ -155,3 +194,8 @@ export const replyToReview = async (ratingId, replyData) => {
     console.error("Error replying to review:", error);
   }
 };
+
+// Placeholder functions for admin moderation (to avoid breaking imports if used elsewhere)
+export const flagReview = async () => {};
+export const deleteReview = async () => {};
+export const markReviewAsReviewed = async () => {};

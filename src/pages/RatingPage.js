@@ -7,11 +7,14 @@ import { submitRating, getInstructorRatings, getStudentRatingForInstructor } fro
 import StarRating from '../components/rating/StarRating';
 import TagSelector from '../components/rating/TagSelector';
 import ReviewList from '../components/rating/ReviewList';
+import { useTheme } from '../contexts/ThemeContext';
+import '../components/student-dashboard/StudentDashboard.css';
 import '../styles/RatingPage.css';
 
 const RatingPage = () => {
   const { instructorId } = useParams();
   const { user } = useUser();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
 
   const [instructor, setInstructor] = useState(null);
@@ -89,9 +92,13 @@ const RatingPage = () => {
   if (!instructor) return <div className="rating-page-error">Instructor not found</div>;
 
   return (
-    <div className="rating-page-container">
+    <div className={`dashboard-wrapper ${isDark ? 'dark' : 'light'}`}>
+      <div className="rating-page-container">
       {/* Header Section */}
       <div className="instructor-header glass-card">
+        <button className="back-dashboard-btn" onClick={() => navigate('/dashboard')}>
+            ← Back to Dashboard
+        </button>
         <div className="header-content">
           <div className="instructor-avatar-large">
             <img src={instructor.photoURL || `https://ui-avatars.com/api/?name=${instructor.displayName}&size=128`} alt={instructor.displayName} />
@@ -152,6 +159,7 @@ const RatingPage = () => {
           </div>
           <ReviewList reviews={reviews} setReviews={setReviews} />
         </div>
+      </div>
       </div>
     </div>
   );

@@ -83,15 +83,16 @@ export function useDashboardData(user) {
         
         setTopInstructors(topList);
 
-        // 3. Most Active Reviewers
+        // 3. Most Active Reviewers - with real names
         const reviewerStats = {};
         globalSnap.docs.forEach(d => {
             const data = d.data();
             if (!data.studentId) return;
             if (!reviewerStats[data.studentId]) {
                 reviewerStats[data.studentId] = {
-                    id: data.studentId,
-                    name: 'Student', // Name would need user fetch
+                    studentId: data.studentId,
+                    name: data.studentName || 'Student', // Use denormalized name if available
+                    department: data.studentDepartment || null,
                     count: 0,
                     helpfulVotes: Math.floor(Math.random() * 50) // Mock data if not stored
                 };
@@ -99,9 +100,39 @@ export function useDashboardData(user) {
             reviewerStats[data.studentId].count += 1;
         });
 
+        // Fetch actual names from users collection for top reviewers
+        const topReviewerIds = Object.values(reviewerStats)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10)
+            .map(r => r.studentId);
+
+        // Batch fetch user data
+        const userPromises = topReviewerIds.map(async (uid) => {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', uid));
+                if (userDoc.exists()) {
+                    return { uid, data: userDoc.data() };
+                }
+                return { uid, data: null };
+            } catch (err) {
+                console.error(`Error fetching user ${uid}:`, err);
+                return { uid, data: null };
+            }
+        });
+
+        const userResults = await Promise.all(userPromises);
+        
+        // Update reviewer stats with real names
+        userResults.forEach(({ uid, data }) => {
+            if (data && reviewerStats[uid]) {
+                reviewerStats[uid].name = data.displayName || data.email?.split('@')[0] || 'Student';
+                reviewerStats[uid].department = data.department || 'CNCS';
+            }
+        });
+
         const activeList = Object.values(reviewerStats)
             .sort((a, b) => b.count - a.count)
-            .slice(0, 3);
+            .slice(0, 10);
         setActiveReviewers(activeList);
 
         // 4. Recent Activity (User's own)

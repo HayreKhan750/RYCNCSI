@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default function AdminDashboard({ stats }) {
-  // Mock Chart Data
+  // Mock Chart Data - In a real app, this would come from historical logs or a separate stats collection
   const trendData = [40, 65, 50, 80, 95, 70, 85];
   
   return (
@@ -11,12 +11,12 @@ export default function AdminDashboard({ stats }) {
         <div className="adm-glass adm-stat-card">
            <div className="stat-label">Total Students</div>
            <div className="stat-val" style={{color: 'var(--adm-accent)'}}>{stats.totalStudents}</div>
-           <div className="status-badge success" style={{display:'inline-block'}}>+12% this week</div>
+           <div className="status-badge success" style={{display:'inline-block'}}>Active</div>
         </div>
         <div className="adm-glass adm-stat-card">
            <div className="stat-label">Instructors</div>
            <div className="stat-val" style={{color: '#a78bfa'}}>{stats.totalInstructors}</div>
-           <div className="status-badge warning" style={{display:'inline-block'}}>3 Pending</div>
+           <div className="status-badge warning" style={{display:'inline-block'}}>Verified</div>
         </div>
         <div className="adm-glass adm-stat-card">
            <div className="stat-label">Total Ratings</div>
@@ -63,13 +63,20 @@ export default function AdminDashboard({ stats }) {
 
           <div className="adm-glass" style={{padding:24, height:350}}>
               <h3 style={{margin:'0 0 20px'}}>User Distribution</h3>
-              <div style={{height:'100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+              <div style={{height:'100%', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:'20px'}}>
                   <div style={{
                       width: 180, height: 180, borderRadius:'50%', 
-                      background: 'conic-gradient(var(--adm-accent) 0% 70%, #a78bfa 70% 90%, #34d399 90% 100%)',
+                      background: `conic-gradient(var(--adm-accent) 0% ${(stats.totalStudents / (stats.totalStudents + stats.totalInstructors || 1)) * 100}%, #a78bfa 0% 100%)`,
                       position: 'relative'
                   }}>
-                      <div style={{position:'absolute', inset:30, background:'var(--adm-card-dark)', borderRadius:'50%'}}></div>
+                      <div style={{position:'absolute', inset:30, background:'var(--adm-card-dark)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column'}}>
+                         <div style={{fontSize:'2rem', fontWeight:'bold'}}>{stats.totalStudents + stats.totalInstructors}</div>
+                         <div style={{fontSize:'0.8rem', opacity:0.7}}>Total Users</div>
+                      </div>
+                  </div>
+                  <div style={{display:'flex', gap:'15px', fontSize:'0.8rem'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:'5px'}}><span style={{width:10, height:10, background:'var(--adm-accent)', borderRadius:'50%'}}></span> Students</div>
+                    <div style={{display:'flex', alignItems:'center', gap:'5px'}}><span style={{width:10, height:10, background:'#a78bfa', borderRadius:'50%'}}></span> Instructors</div>
                   </div>
               </div>
           </div>
