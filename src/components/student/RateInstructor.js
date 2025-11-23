@@ -8,7 +8,7 @@ import {
   addDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import scheduleData from '../../assets/my-file.optimized.json';
 import '../RatingFeedback.css';
 

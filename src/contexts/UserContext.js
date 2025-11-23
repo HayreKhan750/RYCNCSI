@@ -137,6 +137,16 @@ export const UserProvider = ({ children }) => {
     isStudent: userRole === 'student',
     isInstructor: userRole === 'instructor',
     isAdmin: userRole === 'admin',
+    logout: async () => {
+      try {
+        await auth.signOut();
+        setUser(null);
+        setUserData(null);
+        setUserRole(null);
+      } catch (error) {
+        console.error("Error signing out:", error);
+      }
+    }
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

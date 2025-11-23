@@ -13,7 +13,7 @@ import {
   limit,
   startAfter,
 } from 'firebase/firestore';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function MyRatings() {
   const { user } = useAuth();

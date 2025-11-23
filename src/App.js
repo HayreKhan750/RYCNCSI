@@ -2,16 +2,25 @@ import './App.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
-import Login from './components/Login';
+// Old Auth components - to be replaced
+// import Login from './components/Login';
+// import Signup from './pages/Signup';
+// import VerifyEmail from './components/VerifyEmail';
+// import ForgotPassword from './components/ForgotPassword';
+
+// New Auth System Entry
+import AuthEntry from './components/auth-system/AuthEntry';
+
+// Admin Panel Entry
+import AdminPanelEntry from './components/admin-panel/AdminEntry';
+
 import MfaPrompt from './components/auth/MfaPrompt';
 import MfaEnroll from './components/auth/MfaEnroll';
 import EmailOtpPrompt from './components/auth/EmailOtpPrompt';
-import Signup from './pages/Signup';
 import Dashboard from './components/Dashboard';
 import AdminImporter from './pages/AdminImporter';
-import VerifyEmail from './components/VerifyEmail';
-import ForgotPassword from './components/ForgotPassword';
 import Settings from './pages/Settings';
+import InstructorProfile from './components/InstructorProfile';
 
 export default function App() {
   return (
@@ -33,13 +42,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<AuthEntry />} />
+        <Route path="/signup" element={<AuthEntry />} />
+        <Route path="/verify" element={<AuthEntry />} />
+        <Route path="/forgot-password" element={<AuthEntry />} />
+
+        {/* MFA related routes (keep existing) */}
         <Route path="/mfa" element={<MfaPrompt />} />
         <Route path="/mfa-enroll" element={<MfaEnroll />} />
         <Route path="/email-otp" element={<EmailOtpPrompt />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/verify" element={<VerifyEmail />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        
         <Route
           path="/settings"
           element={
@@ -49,11 +61,27 @@ export default function App() {
           }
         />
         <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPanelEntry />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/admin/import"
           element={
             <AdminRoute>
               <AdminImporter />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/instructor/:id"
+          element={
+            <ProtectedRoute>
+              <InstructorProfile />
+            </ProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />

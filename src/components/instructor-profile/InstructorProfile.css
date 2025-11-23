@@ -1,0 +1,346 @@
+/* InstructorProfile.css */
+:root {
+  --neon-blue: #00f3ff;
+  --neon-purple: #bc13fe;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: blur(16px);
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --card-radius: 24px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-page-container {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, #1a1a2e, #16213e, #0f3460);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+  padding: 40px 20px;
+  transition: var(--transition);
+}
+
+.light-mode {
+  background: radial-gradient(circle at top left, #fdfbfb, #ebedee);
+  --text-main: #1a1a2e;
+  --text-muted: rgba(0, 0, 0, 0.6);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(0, 0, 0, 0.05);
+}
+
+/* Glassmorphism Utilities */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--card-radius);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: var(--transition);
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(0, 243, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 1. Header Section */
+.profile-header {
+  position: relative;
+  padding: 40px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+
+.profile-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.05), rgba(188, 19, 254, 0.05));
+  pointer-events: none;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  z-index: 2;
+  position: relative;
+}
+
+.avatar-glow {
+  position: absolute;
+  top: -10px; left: -10px; right: -10px; bottom: -10px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--neon-blue), var(--neon-purple), var(--neon-blue));
+  animation: spin 4s linear infinite;
+  filter: blur(10px);
+  z-index: 1;
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.header-content h1 {
+  font-size: 3rem;
+  margin: 0;
+  background: linear-gradient(to right, #fff, #a5f3fc);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+.light-mode .header-content h1 { 
+    background: linear-gradient(to right, #1a1a2e, #3b82f6);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.dept-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(188, 19, 254, 0.2);
+  color: #e879f9;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 10px 0;
+  border: 1px solid rgba(188, 19, 254, 0.3);
+}
+
+.edit-profile-btn {
+  margin-left: auto;
+  padding: 12px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(188, 19, 254, 0.4);
+  transition: var(--transition);
+}
+
+.edit-profile-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
+}
+
+/* 2. Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.metric-card {
+  padding: 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--text-main);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 8px;
+}
+
+/* 3. Charts & Badges */
+.mid-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+@media (max-width: 1024px) { .mid-section { grid-template-columns: 1fr; } }
+
+.chart-wrapper {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Badges */
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+
+.badge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: var(--transition);
+}
+
+.badge-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.badge-icon { font-size: 2rem; margin-bottom: 8px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
+.badge-name { font-size: 0.8rem; font-weight: 600; }
+
+/* 4. Feedback */
+.feedback-section-title {
+  font-size: 2rem;
+  margin-bottom: 24px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-item {
+  padding: 24px;
+}
+
+.review-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.student-name { font-weight: bold; font-size: 1.1rem; color: var(--neon-blue); }
+.review-date { font-size: 0.85rem; color: var(--text-muted); margin-left: 10px; }
+
+.star-display { color: #fbbf24; letter-spacing: 2px; text-shadow: 0 0 10px rgba(251, 191, 36, 0.4); }
+
+.review-text { font-size: 1rem; line-height: 1.6; opacity: 0.9; margin-bottom: 16px; }
+
+.review-tags-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.review-tag { 
+    padding: 4px 12px; 
+    border-radius: 20px; 
+    font-size: 0.75rem; 
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.review-actions-bar {
+  display: flex;
+  gap: 20px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.action-link { cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+.action-link:hover { color: var(--neon-blue); }
+
+/* Nested Replies */
+.replies-container {
+  margin-top: 20px;
+  padding-left: 30px;
+  border-left: 2px solid var(--neon-purple);
+}
+
+.reply-item {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.reply-author { font-weight: bold; color: var(--neon-purple); font-size: 0.9rem; }
+.reply-text { font-size: 0.9rem; margin-top: 4px; }
+
+.reply-input-area {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.modern-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: white;
+  font-family: inherit;
+}
+.light-mode .modern-input { background: white; color: black; border-color: #ddd; }
+.modern-input:focus { outline: none; border-color: var(--neon-blue); }
+
+.send-reply-btn {
+  padding: 10px 20px;
+  background: var(--neon-blue);
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #000;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s;
+}
+
+.edit-modal {
+  width: 90%;
+  max-width: 500px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+  padding: 30px;
+  color: white;
+}
+.light-mode .edit-modal { background: white; color: black; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-header { flex-direction: column; text-align: center; }
+  .header-content h1 { font-size: 2rem; }
+  .edit-profile-btn { margin: 20px auto 0; }
+}
