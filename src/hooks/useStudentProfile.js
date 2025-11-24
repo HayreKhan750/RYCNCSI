@@ -12,10 +12,42 @@ import {
   setDoc,
   updateDoc,
   serverTimestamp,
-  startAfter
+  startAfter,
+  documentId
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { fetchUserFlags, fetchUserReactions } from '../utils/feedbackInteractions';
+import scheduleData from '../assets/my-file.optimized.json';
+
+// Helper to build instructor lookup map from schedule data
+const getInstructorMap = () => {
+  const map = new Map();
+  if (!scheduleData?.schedule) return map;
+  
+  scheduleData.schedule.forEach(dept => {
+    if (dept.courses) {
+      dept.courses.forEach(course => {
+        if (course.instructor) {
+          const instructors = Array.isArray(course.instructor) ? course.instructor : [{ name: course.instructor, email: null }];
+          instructors.forEach(inst => {
+            const key = (inst.email || inst.name || '').toLowerCase();
+            if (key && inst.name) {
+              map.set(key, inst.name);
+            }
+            // Also map name directly for robustness
+            if (inst.name) {
+                map.set(inst.name.toLowerCase(), inst.name);
+                map.set(inst.name, inst.name);
+            }
+          });
+        }
+      });
+    }
+  });
+  return map;
+};
+
+const STATIC_INSTRUCTOR_MAP = getInstructorMap();
 
 export function useStudentProfile(user) {
   const [profile, setProfile] = useState(null);
@@ -61,7 +93,14 @@ export function useStudentProfile(user) {
           limit(50)
         );
         const ratingsSnap = await getDocs(ratingsQ);
-        const ratingsRows = ratingsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const ratingsRows = ratingsSnap.docs.map((d) => {
+            const data = d.data();
+            // Enrich with static name if missing
+            if (data.instructorId && STATIC_INSTRUCTOR_MAP.has(data.instructorId)) {
+                data.instructorName = STATIC_INSTRUCTOR_MAP.get(data.instructorId);
+            }
+            return { id: d.id, ...data };
+        });
         setMyRatings(ratingsRows);
 
         // 3. Calculate Stats
@@ -77,9 +116,15 @@ export function useStudentProfile(user) {
         ratingsRows.forEach((r) => {
           const key = r.instructorId || r.instructorName || 'unknown';
           if (!key || key === 'unknown') return;
+          
+          let name = r.instructorName;
+          if (!name && r.instructorId && STATIC_INSTRUCTOR_MAP.has(r.instructorId)) {
+              name = STATIC_INSTRUCTOR_MAP.get(r.instructorId);
+          }
+          
           const existing = instMap.get(key) || {
             instructorId: r.instructorId,
-            instructorName: r.instructorName || r.instructorId,
+            instructorName: name || r.instructorId,
             deptName: r.deptName || null,
             count: 0,
             lastRating: r.rating || 0,
@@ -99,7 +144,6 @@ export function useStudentProfile(user) {
         setUserFlags(flags);
 
         // 6. Fetch Top Instructors (Platform-wide)
-        // Note: Ideally this would be a dedicated 'stats' collection query or simpler
         const topInstQ = query(
             collection(db, 'feedbacks'),
             orderBy('rating', 'desc'),
@@ -113,8 +157,8 @@ export function useStudentProfile(user) {
             if(!topInstMap.has(data.instructorId)) {
                 topInstMap.set(data.instructorId, {
                     instructorId: data.instructorId,
-                    instructorName: data.instructorName,
-                    deptName: data.deptName,
+                    instructorName: data.instructorName || 'Instructor',
+                    deptName: data.deptName || 'General',
                     ratingSum: 0,
                     count: 0
                 });
@@ -127,11 +171,8 @@ export function useStudentProfile(user) {
             .map(i => ({...i, avgRating: (i.ratingSum / i.count).toFixed(1)}))
             .sort((a, b) => b.avgRating - a.avgRating)
             .slice(0, 5);
-        setTopInstructors(topInstList);
-
 
         // 7. Fetch Popular Reviewers (Platform-wide)
-        // Simplification: Get recent feedbacks and group by student
         const popularQ = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'), limit(100));
         const popularSnap = await getDocs(popularQ);
         const reviewerMap = new Map();
@@ -141,14 +182,75 @@ export function useStudentProfile(user) {
             if(!reviewerMap.has(data.studentId)) {
                 reviewerMap.set(data.studentId, {
                     studentId: data.studentId,
-                    name: 'Student', // Would need to fetch user doc for name if not stored in feedback
+                    name: 'Student', 
+                    department: 'Student',
                     count: 0
                 });
             }
             reviewerMap.get(data.studentId).count++;
         });
-        // For demo, we might not fetch names to save reads, or assume anonymous if not stored
-        setPopularReviewers(Array.from(reviewerMap.values()).sort((a,b) => b.count - a.count).slice(0,5));
+        const popRevList = Array.from(reviewerMap.values()).sort((a,b) => b.count - a.count).slice(0,5);
+
+        // 8. Enrich with Names from Users Collection
+        const userIdsToFetch = new Set();
+        topInstList.forEach(i => { if(i.instructorId) userIdsToFetch.add(i.instructorId); });
+        popRevList.forEach(r => { if(r.studentId) userIdsToFetch.add(r.studentId); });
+
+        if (userIdsToFetch.size > 0) {
+            const ids = Array.from(userIdsToFetch);
+            // Firestore 'in' query supports up to 10 values. Chunk if needed, but top 5+5=10 fits.
+            const chunks = [];
+            for (let i = 0; i < ids.length; i += 10) {
+                chunks.push(ids.slice(i, i + 10));
+            }
+
+            const userNames = {};
+            const userDepts = {};
+
+            for (const chunk of chunks) {
+                const usersQ = query(collection(db, 'users'), where(documentId(), 'in', chunk));
+                const usersSnap = await getDocs(usersQ);
+                usersSnap.forEach(doc => {
+                    const d = doc.data();
+                    const name = d.name || d.displayName || d.email || 'Unknown';
+                    userNames[doc.id] = name;
+                    userDepts[doc.id] = d.department || 'General';
+                });
+            }
+
+            // Update lists
+            topInstList.forEach(i => {
+                // Try to find name in static map first (from JSON)
+                if (STATIC_INSTRUCTOR_MAP.has(i.instructorId)) {
+                    i.instructorName = STATIC_INSTRUCTOR_MAP.get(i.instructorId);
+                } else if (i.instructorId && STATIC_INSTRUCTOR_MAP.has(i.instructorId.toLowerCase())) {
+                    i.instructorName = STATIC_INSTRUCTOR_MAP.get(i.instructorId.toLowerCase());
+                }
+                // Then try users collection (if it was a UID)
+                else if (userNames[i.instructorId]) {
+                    i.instructorName = userNames[i.instructorId];
+                    i.deptName = userDepts[i.instructorId] || i.deptName;
+                }
+            });
+            popRevList.forEach(r => {
+                 if (userNames[r.studentId]) {
+                    r.name = userNames[r.studentId];
+                    r.department = userDepts[r.studentId];
+                }
+            });
+        } else {
+             // If no user fetch needed (or failed), still try static map
+             topInstList.forEach(i => {
+                if (STATIC_INSTRUCTOR_MAP.has(i.instructorId)) {
+                    i.instructorName = STATIC_INSTRUCTOR_MAP.get(i.instructorId);
+                } else if (i.instructorId && STATIC_INSTRUCTOR_MAP.has(i.instructorId.toLowerCase())) {
+                    i.instructorName = STATIC_INSTRUCTOR_MAP.get(i.instructorId.toLowerCase());
+                }
+             });
+        }
+
+        setTopInstructors(topInstList);
+        setPopularReviewers(popRevList);
 
       } catch (err) {
         console.error("Error fetching student profile data:", err);

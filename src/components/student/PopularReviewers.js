@@ -7,27 +7,34 @@ export default function PopularReviewers({ reviewers }) {
   if (!reviewers?.length) return <div className="glass-panel" style={{padding:20, textAlign:'center', opacity:0.6}}>No data yet.</div>;
 
   return (
-    <div className="instructors-grid" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))'}}>
+    <div className="discovery-grid-premium">
       {reviewers.map((reviewer, index) => (
-        <div key={reviewer.studentId} className="instructor-card glass-panel" style={{alignItems:'flex-start', textAlign:'left'}}>
-           <div style={{display:'flex', alignItems:'center', gap: 15, marginBottom: 15}}>
-               <div className="instructor-avatar-small" style={{width: 50, height: 50, fontSize: '1.2rem', margin:0}}>
+        <div key={reviewer.studentId} className="premium-card reviewer-card">
+           <div className="card-content-row">
+               <div className="premium-avatar-small">
                   {(reviewer.name || 'S').charAt(0)}
                </div>
-               <div>
-                   <h4 style={{margin:0}}>{reviewer.name || 'Student'}</h4>
-                   <p style={{margin:0, fontSize:'0.8rem', opacity:0.6}}>{reviewer.department || 'Student'}</p>
+               <div className="reviewer-info">
+                   <h4 className="reviewer-name">{reviewer.name || 'Student'}</h4>
+                   <p className="reviewer-dept">{reviewer.department || 'Student'}</p>
                </div>
            </div>
            
-           <div className="stats-row" style={{display:'flex', gap: 15, fontSize:'0.9rem', width:'100%', justifyContent:'space-between', opacity: 0.8}}>
-               <span>📝 {reviewer.count} Reviews</span>
-               <span>👍 {reviewer.helpfulVotes || 0} Helpful</span>
+           <div className="stats-grid-premium">
+               <div className="stat-item-premium">
+                   <span className="stat-icon">📝</span>
+                   <span className="stat-val">{reviewer.count}</span>
+                   <span className="stat-lbl">Reviews</span>
+               </div>
+               <div className="stat-item-premium">
+                   <span className="stat-icon">👍</span>
+                   <span className="stat-val">{reviewer.helpfulVotes || 0}</span>
+                   <span className="stat-lbl">Helpful</span>
+               </div>
            </div>
 
            <button 
-              className="view-profile-btn" 
-              style={{marginTop: 15, fontSize:'0.9rem', padding: 8}}
+              className="view-profile-btn-premium small-btn" 
               onClick={() => navigate(`/student/${reviewer.studentId}`)} 
            >
               View Profile

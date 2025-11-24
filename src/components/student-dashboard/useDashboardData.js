@@ -10,6 +10,37 @@ import {
   doc,
   getDoc
 } from 'firebase/firestore';
+import scheduleData from '../../assets/my-file.optimized.json';
+
+// Helper to build instructor lookup map from schedule data
+const getInstructorMap = () => {
+  const map = new Map();
+  if (!scheduleData?.schedule) return map;
+  
+  scheduleData.schedule.forEach(dept => {
+    if (dept.courses) {
+      dept.courses.forEach(course => {
+        if (course.instructor) {
+          const instructors = Array.isArray(course.instructor) ? course.instructor : [{ name: course.instructor, email: null }];
+          instructors.forEach(inst => {
+            const key = (inst.email || inst.name || '').toLowerCase();
+            if (key && inst.name) {
+              map.set(key, inst.name);
+            }
+            // Also map name directly for robustness
+            if (inst.name) {
+                map.set(inst.name.toLowerCase(), inst.name);
+                map.set(inst.name, inst.name);
+            }
+          });
+        }
+      });
+    }
+  });
+  return map;
+};
+
+const STATIC_INSTRUCTOR_MAP = getInstructorMap();
 
 export function useDashboardData(user) {
   const [stats, setStats] = useState({
@@ -59,10 +90,19 @@ export function useDashboardData(user) {
         globalSnap.docs.forEach(d => {
           const data = d.data();
           if (!data.instructorId) return;
+          
+          let name = data.instructorName || 'Unknown';
+          // Try to find name in static map first (from JSON)
+          if (STATIC_INSTRUCTOR_MAP.has(data.instructorId)) {
+              name = STATIC_INSTRUCTOR_MAP.get(data.instructorId);
+          } else if (data.instructorId && STATIC_INSTRUCTOR_MAP.has(data.instructorId.toLowerCase())) {
+              name = STATIC_INSTRUCTOR_MAP.get(data.instructorId.toLowerCase());
+          }
+
           if (!instructorStats[data.instructorId]) {
             instructorStats[data.instructorId] = {
               id: data.instructorId,
-              name: data.instructorName || 'Unknown',
+              instructorName: name,
               photo: data.instructorPhoto || null,
               totalRating: 0,
               count: 0,

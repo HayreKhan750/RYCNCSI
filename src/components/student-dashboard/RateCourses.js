@@ -59,11 +59,34 @@ export default function RateCourses({ user }) {
           ...doc.data()
         }));
 
-        // 3. Merge Data
+        // 3. Fetch all feedbacks to calculate ratings
+        const ratingsQ = query(collection(db, 'feedbacks'));
+        const ratingsSnap = await getDocs(ratingsQ);
+        const ratingMap = {}; // instructorId -> { total, count }
+        
+        ratingsSnap.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.instructorId && data.rating) {
+                // instructorId in feedbacks is the generated key (email or name)
+                const key = data.instructorId.toLowerCase();
+                if (!ratingMap[key]) {
+                    ratingMap[key] = { total: 0, count: 0 };
+                }
+                ratingMap[key].total += data.rating;
+                ratingMap[key].count += 1;
+            }
+        });
+
+        // 4. Merge Data
         const mergedInstructors = [];
         const processedFirestoreIds = new Set();
 
         jsonInstructorsMap.forEach((val, key) => {
+            // Calculate rating from map
+            const lookupKey = key.toLowerCase();
+            const stats = ratingMap[lookupKey] || { total: 0, count: 0 };
+            const avgRating = stats.count > 0 ? stats.total / stats.count : 0;
+
             // Try to find in Firestore by Email
             let match = firestoreInstructors.find(f => f.email && f.email.toLowerCase() === val.email);
             
@@ -79,7 +102,9 @@ export default function RateCourses({ user }) {
                     ...match,
                     displayName: match.displayName || val.name,
                     department: match.department || val.department,
-                    isRegistered: true
+                    isRegistered: true,
+                    averageRating: avgRating,
+                    ratingCount: stats.count
                 });
             } else {
                 mergedInstructors.push({
@@ -87,22 +112,41 @@ export default function RateCourses({ user }) {
                     displayName: val.name,
                     id: null, // No Firestore ID yet
                     isRegistered: false,
-                    averageRating: 0,
-                    ratingCount: 0
+                    averageRating: avgRating,
+                    ratingCount: stats.count
                 });
             }
         });
 
-        // Add remaining Firestore instructors
+        // Add remaining Firestore instructors (who might not be in JSON but are registered)
         firestoreInstructors.forEach(f => {
             if (!processedFirestoreIds.has(f.id)) {
+                // For these, we might not have a link to the JSON key easily unless we know their email matches a key
+                // But if they are not in JSON map, maybe they don't have ratings from the JSON-based system?
+                // Or maybe they have ratings under their UID? 
+                // For now, assume 0 or check if their email matches a key in ratingMap
+                let avgRating = 0;
+                let ratingCount = 0;
+                if (f.email) {
+                     const stats = ratingMap[f.email.toLowerCase()];
+                     if (stats) {
+                         avgRating = stats.total / stats.count;
+                         ratingCount = stats.count;
+                     }
+                }
+
                 mergedInstructors.push({
                     ...f,
                     courses: [],
-                    isRegistered: true
+                    isRegistered: true,
+                    averageRating: avgRating,
+                    ratingCount
                 });
             }
         });
+
+        // Sort by rating descending
+        mergedInstructors.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
 
         setInstructors(mergedInstructors);
         setFilteredInstructors(mergedInstructors);
@@ -148,65 +192,82 @@ export default function RateCourses({ user }) {
       }
   };
 
-  if (loading) return <div style={{padding:40, textAlign:'center'}}>Loading instructors...</div>;
+  if (loading) return <div style={{padding:40, textAlign:'center', color:'white'}}>Loading instructors...</div>;
 
   return (
-    <div className="rate-courses-page">
-      <input 
-        type="text" 
-        placeholder="🔍 Search instructor or department..." 
-        className="search-bar-large"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
+    <div className="rate-courses-page premium-container" style={{padding: '40px 20px', maxWidth: '1200px', margin: '0 auto'}}>
+      <div style={{textAlign: 'center', marginBottom: '40px'}}>
+          <h2 style={{fontSize: '3rem', fontWeight: '800', marginBottom: '10px', background: 'linear-gradient(to right, #fff, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Rate Instructors</h2>
+          <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '1.1rem'}}>Find and rate your instructors to help the community.</p>
+      </div>
 
-      <div className="courses-grid-layout">
+      <div style={{position: 'relative', maxWidth: '600px', margin: '0 auto 50px'}}>
+        <input 
+          type="text" 
+          placeholder="🔍 Search instructor or department..." 
+          className="premium-input"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+              width: '100%', 
+              padding: '16px 24px', 
+              borderRadius: '50px', 
+              background: 'rgba(255,255,255,0.05)', 
+              border: '1px solid rgba(255,255,255,0.1)', 
+              color: 'white', 
+              fontSize: '1.1rem', 
+              boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+              outline: 'none',
+              backdropFilter: 'blur(10px)'
+          }}
+        />
+      </div>
+
+      <div className="discovery-grid-premium" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px'}}>
         {filteredInstructors.map((inst, index) => (
-          <div key={inst.id || `json-${index}`} className="glass-card instructor-card-lg">
-            <div className="card-banner"></div>
-            <div className="card-avatar-wrapper">
-               {inst.photoURL ? (
-                 <img src={inst.photoURL} alt={inst.displayName} style={{width:'100%', height:'100%', objectFit:'cover'}} />
-               ) : (
-                 <div style={{width:'100%', height:'100%', background:'#e0e7ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 24, fontWeight:'bold', color:'#6366f1'}}>
-                   {(inst.displayName || 'T').charAt(0)}
-                 </div>
-               )}
-            </div>
-            <div className="card-content">
-              <span className="dept">{inst.department || 'General'}</span>
-              <h3>{inst.displayName || 'Unknown Instructor'}</h3>
-              <div className="rating-badge-sm" style={{justifyContent:'center', margin:'10px 0'}}>
-                 <span>⭐ {inst.averageRating?.toFixed(1) || 'New'}</span>
-                 <span style={{opacity:0.7, fontSize:'0.8rem'}}> ({inst.ratingCount || 0})</span>
-              </div>
-              
-              {!inst.isRegistered && (
-                  <div style={{fontSize:'12px', color:'#6366f1', marginBottom:'10px', textAlign:'center', fontWeight:'bold'}}>
+          <div key={inst.id || `json-${index}`} className="premium-card" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', textAlign: 'center'}}>
+             <div className="avatar-container" style={{marginBottom: '20px'}}>
+                <div className="premium-avatar" style={{width: '80px', height: '80px', fontSize: '2rem'}}>
+                  {(inst.displayName || 'T').charAt(0)}
+                </div>
+             </div>
+
+             <div className="instructor-info-premium" style={{width: '100%'}}>
+                <p className="dept-name-premium" style={{marginBottom: '8px'}}>{inst.department || 'General'}</p>
+                <h4 className="instructor-name-gradient" style={{fontSize: '1.3rem', marginBottom: '16px'}}>{inst.displayName || 'Unknown Instructor'}</h4>
+                
+                <div className="rating-pill" style={{margin: '0 auto 20px'}}>
+                   <span className="star-icon">★</span>
+                   <span className="rating-score">{inst.averageRating?.toFixed(1) || '0.0'}</span>
+                   <span className="rating-count">({inst.ratingCount || 0})</span>
+                </div>
+                
+                {!inst.isRegistered && (
+                  <div className="engagement-badge" style={{marginBottom: '20px', background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', borderColor: 'rgba(99, 102, 241, 0.2)'}}>
                       Available for Rating
                   </div>
-              )}
+                )}
+             </div>
 
-              <div style={{display:'flex', gap:'10px', marginTop:'15px'}}>
+             <div style={{display:'flex', gap:'10px', width: '100%', marginTop: 'auto'}}>
                 {inst.isRegistered && (
-                    <button className="rate-btn secondary" onClick={() => navigate(`/instructor/${inst.id}`)}>View Profile</button>
+                    <button className="view-profile-btn-premium" style={{flex: 1, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)'}} onClick={() => navigate(`/instructor/${inst.id}`)}>Profile</button>
                 )}
                 <button 
-                    className="rate-btn" 
+                    className="view-profile-btn-premium" 
                     onClick={() => handleRateClick(inst)}
                     disabled={processingId === (inst.email || inst.name)}
-                    style={{width: inst.isRegistered ? 'auto' : '100%'}}
+                    style={{flex: 1, background: 'linear-gradient(135deg, var(--neon-primary), var(--neon-secondary))', border: 'none', color: 'white'}}
                 >
-                    {processingId === (inst.email || inst.name) ? 'Preparing...' : 'Rate Now'}
+                    {processingId === (inst.email || inst.name) ? '...' : 'Rate'}
                 </button>
-              </div>
-            </div>
+             </div>
           </div>
         ))}
       </div>
 
       {filteredInstructors.length === 0 && (
-          <div style={{textAlign:'center', padding: 40, opacity: 0.6}}>No instructors found.</div>
+          <div style={{textAlign:'center', padding: 60, opacity: 0.6, fontSize: '1.2rem'}}>No instructors found matching your search.</div>
       )}
     </div>
   );
