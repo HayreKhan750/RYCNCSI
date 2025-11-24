@@ -3,7 +3,7 @@ import React from 'react';
 export default function ProfileHeader({ profile, stats, onEdit }) {
   return (
     <div className="profile-header">
-      <div className="profile-cover"></div>
+
       
       <div className="profile-info-wrapper">
         <div className="profile-avatar-wrapper">
