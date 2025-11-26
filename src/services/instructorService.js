@@ -1,0 +1,370 @@
+import { db } from '../firebase';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import scheduleData from '../assets/my-file.optimized.json';
+import { fetchReplies } from '../utils/feedbackInteractions';
+
+export const instructorService = {
+  // Fetch Master List (JSON + Firestore + Ratings)
+  fetchAllInstructors: async () => {
+      // 1. Parse JSON
+      const jsonInstructorsMap = new Map();
+      if (scheduleData && Array.isArray(scheduleData.schedule)) {
+          scheduleData.schedule.forEach(dept => {
+              if (Array.isArray(dept.courses)) {
+                  dept.courses.forEach(course => {
+                      if (Array.isArray(course.instructor)) {
+                          course.instructor.forEach(inst => {
+                              const email = inst.email ? inst.email.toLowerCase() : null;
+                              const name = inst.name;
+                              const key = email || name; 
+                              if (key && !jsonInstructorsMap.has(key)) {
+                                  jsonInstructorsMap.set(key, {
+                                      id: key,
+                                      instructorName: name,
+                                      email: email,
+                                      department: dept.department,
+                                      courses: [course.course_title],
+                                      source: 'json',
+                                      photo: null
+                                  });
+                              } else if (key) {
+                                  const existing = jsonInstructorsMap.get(key);
+                                  if (!existing.courses.includes(course.course_title)) {
+                                      existing.courses.push(course.course_title);
+                                  }
+                              }
+                          });
+                      }
+                  });
+              }
+          });
+      }
+
+      // 2. Fetch Firestore Instructors
+      const q = query(collection(db, 'users'), where('role', '==', 'instructor'));
+      const querySnapshot = await getDocs(q);
+      const firestoreInstructors = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // 3. Fetch All Feedbacks
+      const ratingsQ = query(collection(db, 'feedbacks'));
+      const ratingsSnap = await getDocs(ratingsQ);
+      const ratingMap = {}; 
+      
+      ratingsSnap.docs.forEach(doc => {
+          const data = doc.data();
+          const rVal = data.overall || data.rating || 0;
+          if (data.instructorId) {
+              const key = data.instructorId.toLowerCase();
+              if (!ratingMap[key]) {
+                  ratingMap[key] = { total: 0, count: 0, photo: null };
+              }
+              ratingMap[key].total += rVal;
+              ratingMap[key].count += 1;
+              if (data.instructorPhoto && !ratingMap[key].photo) {
+                  ratingMap[key].photo = data.instructorPhoto;
+              }
+          }
+      });
+
+      // 4. Merge Data
+      const mergedInstructors = [];
+      const processedFirestoreIds = new Set();
+
+      jsonInstructorsMap.forEach((val, key) => {
+          let totalRating = 0;
+          let totalCount = 0;
+          let photo = val.photo;
+
+          const emailKey = val.email ? val.email.toLowerCase() : null;
+          const nameKey = val.instructorName ? val.instructorName.toLowerCase() : null;
+
+          if (emailKey && ratingMap[emailKey]) {
+              totalRating += ratingMap[emailKey].total;
+              totalCount += ratingMap[emailKey].count;
+              if (ratingMap[emailKey].photo) photo = ratingMap[emailKey].photo;
+          }
+          if (nameKey && nameKey !== emailKey && ratingMap[nameKey]) {
+              totalRating += ratingMap[nameKey].total;
+              totalCount += ratingMap[nameKey].count;
+              if (ratingMap[nameKey].photo) photo = ratingMap[nameKey].photo;
+          }
+
+          const avgRating = totalCount > 0 ? totalRating / totalCount : 0;
+
+          // Match with Firestore
+          let match = firestoreInstructors.find(f => f.email && f.email.toLowerCase() === val.email);
+          if (!match) {
+              match = firestoreInstructors.find(f => f.displayName && f.displayName.toLowerCase() === val.instructorName.toLowerCase());
+          }
+
+          if (match) {
+              // Check for ratings by Firestore ID
+              const idKey = match.id.toLowerCase();
+              if (ratingMap[idKey]) {
+                  totalRating += ratingMap[idKey].total;
+                  totalCount += ratingMap[idKey].count;
+                  if (ratingMap[idKey].photo && !photo) photo = ratingMap[idKey].photo;
+              }
+
+              processedFirestoreIds.add(match.id);
+              
+              const avgRating = totalCount > 0 ? totalRating / totalCount : 0;
+
+              mergedInstructors.push({
+                  ...val,
+                  ...match,
+                  id: match.id,
+                  instructorName: match.displayName || val.instructorName,
+                  department: match.department || val.department,
+                  isRegistered: true,
+                  avgRating,
+                  ratingCount: totalCount,
+                  photo: match.photoURL || photo
+              });
+          } else {
+              const avgRating = totalCount > 0 ? totalRating / totalCount : 0;
+              mergedInstructors.push({
+                  ...val,
+                  id: val.id,
+                  isRegistered: false,
+                  avgRating,
+                  ratingCount: totalCount,
+                  photo: photo
+              });
+          }
+      });
+
+      // Add remaining Firestore instructors
+      firestoreInstructors.forEach(f => {
+          if (!processedFirestoreIds.has(f.id)) {
+              let avgRating = 0;
+              let ratingCount = 0;
+              let photo = f.photoURL || null;
+
+              const emailKey = f.email ? f.email.toLowerCase() : null;
+              const nameKey = f.displayName ? f.displayName.toLowerCase() : null;
+              
+              let totalRating = 0;
+              let totalCount = 0;
+
+              if (emailKey && ratingMap[emailKey]) {
+                  totalRating += ratingMap[emailKey].total;
+                  totalCount += ratingMap[emailKey].count;
+                  if (ratingMap[emailKey].photo && !photo) photo = ratingMap[emailKey].photo;
+              }
+              if (nameKey && nameKey !== emailKey && ratingMap[nameKey]) {
+                  totalRating += ratingMap[nameKey].total;
+                  totalCount += ratingMap[nameKey].count;
+                  if (ratingMap[nameKey].photo && !photo) photo = ratingMap[nameKey].photo;
+              }
+
+              // Check by ID
+              const idKey = f.id.toLowerCase();
+              if (ratingMap[idKey]) {
+                  totalRating += ratingMap[idKey].total;
+                  totalCount += ratingMap[idKey].count;
+                  if (ratingMap[idKey].photo && !photo) photo = ratingMap[idKey].photo;
+              }
+              
+              if (totalCount > 0) {
+                  avgRating = totalRating / totalCount;
+                  ratingCount = totalCount;
+              }
+
+              mergedInstructors.push({
+                  ...f,
+                  instructorName: f.displayName || 'Unknown',
+                  courses: [],
+                  isRegistered: true,
+                  avgRating,
+                  ratingCount,
+                  photo
+              });
+          }
+      });
+
+      return mergedInstructors;
+  },
+
+  // Fetch Single Profile
+  fetchInstructorProfile: async (instructorId, existingList = []) => {
+      // 1. Get basic info
+      let basicInfo = existingList.find(i => i.id === instructorId || i.email === instructorId);
+      
+      if (!basicInfo) {
+          const userRef = doc(db, 'users', instructorId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+              const data = userSnap.data();
+              basicInfo = {
+                  id: userSnap.id,
+                  instructorName: data.displayName || data.name,
+                  email: data.email,
+                  department: data.department,
+                  photo: data.photoURL || data.profilePictureUrl,
+                  bio: data.bio,
+                  role: data.role
+              };
+          }
+      }
+
+      if (!basicInfo) {
+          basicInfo = { id: instructorId, instructorName: 'Unknown' };
+      }
+
+      // 2. Fetch Ratings/Feedbacks - Multi-strategy Fetching
+      // Strategy A: By UID
+      const qUid = query(collection(db, 'feedbacks'), where('instructorId', '==', instructorId));
+
+      // Strategy B: By Email
+      let qEmail = null;
+      if (basicInfo.email) {
+          qEmail = query(collection(db, 'feedbacks'), where('instructorId', '==', basicInfo.email.toLowerCase()));
+      }
+
+      // Strategy C: By Name (Case-Insensitive)
+      let qNameLower = null;
+      let qNameOriginal = null;
+      let qPlaceholder = null;
+
+      if (basicInfo.instructorName || basicInfo.name) {
+           const originalName = basicInfo.instructorName || basicInfo.name;
+           const lowerName = originalName.toLowerCase();
+
+           // 1. Lowercase match
+           qNameLower = query(
+              collection(db, 'feedbacks'),
+              where('instructorId', '==', lowerName) 
+           );
+
+           // 2. Original case match (if different)
+           if (originalName !== lowerName) {
+               qNameOriginal = query(
+                  collection(db, 'feedbacks'),
+                  where('instructorId', '==', originalName)
+               );
+           }
+           
+           // Strategy D: Find placeholder user docs by name, then query feedbacks by those IDs
+           qPlaceholder = query(
+               collection(db, 'users'),
+               where('displayName', '==', originalName),
+               where('isRegistered', '==', false)
+           );
+      }
+
+      const [snapUid, snapEmail, snapNameLower, snapNameOriginal, snapPlaceholderUsers] = await Promise.all([
+          getDocs(qUid),
+          qEmail ? getDocs(qEmail) : Promise.resolve({ docs: [] }),
+          qNameLower ? getDocs(qNameLower) : Promise.resolve({ docs: [] }),
+          qNameOriginal ? getDocs(qNameOriginal) : Promise.resolve({ docs: [] }),
+          qPlaceholder ? getDocs(qPlaceholder) : Promise.resolve({ docs: [] })
+      ]);
+
+      // Fetch feedbacks for any found placeholder IDs
+      let placeholderFeedbacks = [];
+      if (!snapPlaceholderUsers.empty) {
+          const placeholderIds = snapPlaceholderUsers.docs.map(d => d.id);
+          const placeholderPromises = placeholderIds.map(pid => 
+              getDocs(query(collection(db, 'feedbacks'), where('instructorId', '==', pid)))
+          );
+          const placeholderSnaps = await Promise.all(placeholderPromises);
+          placeholderFeedbacks = placeholderSnaps.flatMap(s => s.docs);
+      }
+
+      const allDocs = [
+          ...snapUid.docs,
+          ...snapEmail.docs,
+          ...snapNameLower.docs,
+          ...snapNameOriginal.docs,
+          ...placeholderFeedbacks
+      ];
+
+      // Deduplicate by ID
+      const uniqueFeedbacksMap = new Map();
+      allDocs.forEach(d => {
+          if (!uniqueFeedbacksMap.has(d.id)) {
+              uniqueFeedbacksMap.set(d.id, { id: d.id, ...d.data() });
+          }
+      });
+
+      // Fetch missing student names
+      const feedbacks = Array.from(uniqueFeedbacksMap.values());
+      const studentIdsToFetch = new Set();
+      feedbacks.forEach(f => {
+          if (!f.studentName && f.studentId && !f.anonymous) {
+              studentIdsToFetch.add(f.studentId);
+          }
+      });
+
+      const studentMap = {};
+      if (studentIdsToFetch.size > 0) {
+          // Chunk requests if too many (Firestore limit is 10 for 'in', but we'll use getDoc for simplicity or Promise.all)
+          // Since we might have many, let's use Promise.all with getDoc for each unique ID
+          const ids = Array.from(studentIdsToFetch);
+          const userPromises = ids.map(uid => getDoc(doc(db, 'users', uid)));
+          const userSnaps = await Promise.all(userPromises);
+          
+          userSnaps.forEach(snap => {
+              if (snap.exists()) {
+                  const data = snap.data();
+                  studentMap[snap.id] = {
+                      name: data.displayName || data.name || 'Student',
+                      photo: data.photoURL || data.profilePictureUrl || null
+                  };
+              }
+          });
+      }
+
+      const ratings = feedbacks.map(data => {
+          let sName = data.studentName;
+          let sPhoto = data.studentPhoto;
+
+          if (!sName && data.studentId && studentMap[data.studentId]) {
+              sName = studentMap[data.studentId].name;
+              sPhoto = studentMap[data.studentId].photo;
+          }
+
+          if (data.anonymous) {
+              sName = 'Anonymous';
+              sPhoto = null;
+          }
+
+          return {
+              id: data.id,
+              courseTitle: data.courseTitle,
+              courseNo: data.courseId,
+              rating: data.overall || data.rating || 0,
+              feedback: data.feedback,
+              timestamp: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+              tags: data.tags || [],
+              likes: data.likes || 0,
+              studentName: sName || 'Student',
+              studentPhoto: sPhoto
+          };
+      });
+      
+      // Sort by timestamp desc
+      ratings.sort((a, b) => b.timestamp - a.timestamp);
+
+      // 3. Fetch Replies
+      const repliesMap = {};
+      for (const r of ratings) {
+          try {
+              const list = await fetchReplies(r.id);
+              repliesMap[r.id] = list;
+          } catch (_) {
+              repliesMap[r.id] = [];
+          }
+      }
+
+      return {
+          profile: basicInfo,
+          ratings,
+          replies: repliesMap
+      };
+  }
+};

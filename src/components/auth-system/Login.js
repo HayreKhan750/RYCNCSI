@@ -1,20 +1,28 @@
 import React, { useState } from 'react';
-import { useAuthLogic } from './useAuthLogic';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser, googleLogin, clearError } from '../../store/slices/authSlice';
 import AuthInput from './AuthInput';
 
 export default function Login({ onNavigate, onLoginSuccess }) {
-  const { login, googleLogin, loading, error } = useAuthLogic();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await login(formData.email, formData.password);
-    if (success) onLoginSuccess();
+    dispatch(clearError());
+    const resultAction = await dispatch(loginUser(formData));
+    if (loginUser.fulfilled.match(resultAction)) {
+        onLoginSuccess();
+    }
   };
 
   const handleGoogle = async () => {
-    const success = await googleLogin();
-    if (success) onLoginSuccess();
+    dispatch(clearError());
+    const resultAction = await dispatch(googleLogin());
+    if (googleLogin.fulfilled.match(resultAction)) {
+        onLoginSuccess();
+    }
   };
 
   return (

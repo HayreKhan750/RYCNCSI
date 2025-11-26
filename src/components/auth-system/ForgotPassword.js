@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
-import { useAuthLogic } from './useAuthLogic';
+import { useDispatch, useSelector } from 'react-redux';
+import { resetPassword, clearError } from '../../store/slices/authSlice';
 import AuthInput from './AuthInput';
 
 export default function ForgotPassword({ onNavigate }) {
-  const { resetPassword, loading, error } = useAuthLogic();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await resetPassword(email);
-    if (success) setSent(true);
+    dispatch(clearError());
+    const resultAction = await dispatch(resetPassword(email));
+    if (resetPassword.fulfilled.match(resultAction)) {
+        setSent(true);
+    }
   };
 
   if (sent) {

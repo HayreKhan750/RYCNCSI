@@ -1,20 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleTheme, setTheme } from '../store/slices/themeSlice';
 
 export default function Settings() {
-  const [theme, setTheme] = useState('light');
+  const dispatch = useDispatch();
+  const { mode } = useSelector((state) => state.theme);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('rycncsi_theme');
-    if (saved === 'dark' || saved === 'light') {
-      setTheme(saved);
-      document.documentElement.setAttribute('data-theme', saved);
+  const handleThemeChange = (newTheme) => {
+    if (newTheme !== mode) {
+        dispatch(setTheme(newTheme));
     }
-  }, []);
-
-  const toggleTheme = (next) => {
-    setTheme(next);
-    localStorage.setItem('rycncsi_theme', next);
-    document.documentElement.setAttribute('data-theme', next);
   };
 
   return (
@@ -35,15 +30,15 @@ export default function Settings() {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button
             type="button"
-            className={`nav-tab ${theme === 'light' ? 'active' : ''}`}
-            onClick={() => toggleTheme('light')}
+            className={`nav-tab ${mode === 'light' ? 'active' : ''}`}
+            onClick={() => handleThemeChange('light')}
           >
             ☀ Light Mode
           </button>
           <button
             type="button"
-            className={`nav-tab ${theme === 'dark' ? 'active' : ''}`}
-            onClick={() => toggleTheme('dark')}
+            className={`nav-tab ${mode === 'dark' ? 'active' : ''}`}
+            onClick={() => handleThemeChange('dark')}
           >
             🌙 Dark Mode
           </button>

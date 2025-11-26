@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../contexts/UserContext';
+import { useSelector } from 'react-redux';
 import scheduleData from '../assets/my-file.optimized.json';
 import './RatingFeedback.css';
 
 export default function RatingFeedback() {
-  const { user, userRole, isAdmin, isInstructor } = useUser();
+  const { user } = useSelector((state) => state.auth);
+  const userRole = user?.role || 'student';
+  const isAdmin = userRole === 'admin';
+  const isInstructor = userRole === 'instructor';
   const [selectedSection, setSelectedSection] = useState('');
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [rating, setRating] = useState(0);

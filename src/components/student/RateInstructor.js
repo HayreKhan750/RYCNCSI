@@ -8,7 +8,7 @@ import {
   addDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import scheduleData from '../../assets/my-file.optimized.json';
 import '../RatingFeedback.css';
 
@@ -20,7 +20,7 @@ const profanityBlocked = (text) => {
 };
 
 export default function RateInstructor() {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const [departments, setDepartments] = useState([]); // from schedule JSON
   const [instructors, setInstructors] = useState([]); // derived from selected course
   const [sections, setSections] = useState([]); // courses for selected department
@@ -188,6 +188,8 @@ export default function RateInstructor() {
         deptName: dept?.name || null,
         instructorId,
         instructorName: instructor?.displayName || null,
+        studentName: user.displayName || 'Student',
+        studentPhoto: user.photoURL || null,
         courseId,
         courseCode: selectedCourse?.code || null,
         courseTitle: selectedCourse?.title || null,

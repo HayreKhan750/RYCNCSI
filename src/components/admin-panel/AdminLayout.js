@@ -1,4 +1,5 @@
 import React from 'react';
+import RoleSwitcher from '../RoleSwitcher';
 
 export default function AdminLayout({ children, activePage, onNavigate, themeMode, toggleTheme, user }) {
   const navItems = [
@@ -43,7 +44,8 @@ export default function AdminLayout({ children, activePage, onNavigate, themeMod
              <p className="adm-subtitle" style={{fontSize:'0.8rem'}}>Welcome back, {user?.displayName || 'Admin'}</p>
            </div>
            
-           <div style={{display:'flex', gap:16}}>
+           <div style={{display:'flex', gap:16, alignItems:'center'}}>
+              <RoleSwitcher />
               <button className="adm-btn" onClick={toggleTheme}>
                   {themeMode === 'light' ? '🌙 Dark Mode' : '☀ Light Mode'}
               </button>

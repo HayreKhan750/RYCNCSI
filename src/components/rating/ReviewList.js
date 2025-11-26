@@ -1,11 +1,11 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import StarRating from './StarRating';
 import TagSelector from './TagSelector';
 import { toggleLikeReview, replyToReview } from '../../utils/ratingService';
-import { useUser } from '../../contexts/UserContext';
 
 const ReviewList = ({ reviews, setReviews }) => {
-  const { user } = useUser();
+  const { user } = useSelector((state) => state.auth);
 
   const handleLike = async (reviewId, currentLikes) => {
     if (!user) return alert("Please login to like reviews");
@@ -37,7 +37,7 @@ const ReviewList = ({ reviews, setReviews }) => {
                  <img src={`https://ui-avatars.com/api/?name=${review.studentId}&background=random`} alt="Student" style={{ width: '100%', height: '100%' }} />
               </div>
               <div>
-                <div style={{ fontWeight: 'bold' }}>Student</div>
+                <div style={{ fontWeight: 'bold' }}>{review.studentName || 'Student'}</div>
                 <div style={{ fontSize: '12px', opacity: 0.6 }}>{review.createdAt?.toDate ? review.createdAt.toDate().toLocaleDateString() : 'Just now'}</div>
               </div>
             </div>

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { resendVerification } from '../../store/slices/authSlice';
 import { auth } from '../../firebase';
-import { useAuthLogic } from './useAuthLogic';
 
 export default function VerifyEmail({ onVerified }) {
-  const { resendVerification, loading, error } = useAuthLogic();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
   const [user, setUser] = useState(auth.currentUser);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function VerifyEmail({ onVerified }) {
 
       <button 
         className="auth-btn auth-btn-secondary" 
-        onClick={() => resendVerification(user)}
+        onClick={() => dispatch(resendVerification(user))}
         disabled={loading}
       >
         {loading ? 'Sending...' : 'Resend Verification Email'}

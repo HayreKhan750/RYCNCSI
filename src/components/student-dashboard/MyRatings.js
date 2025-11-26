@@ -1,40 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../../firebase';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchFeedbacks, updateFeedback } from '../../store/slices/feedbackSlice';
+import { selectFeedbacksByStudentId, selectFeedbackLoading } from '../../store/selectors/feedbackSelectors';
 
 export default function MyRatings({ user }) {
-  const [ratings, setRatings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const ratings = useSelector((state) => selectFeedbacksByStudentId(state, user?.uid));
+  const loading = useSelector(selectFeedbackLoading);
 
   useEffect(() => {
-    const fetchRatings = async () => {
-      setLoading(true);
-      try {
-        const q = query(collection(db, 'feedbacks'), where('studentId', '==', user.uid));
-        const snap = await getDocs(q);
-        setRatings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      } catch (err) {
-        console.error("Error fetching ratings", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user) fetchRatings();
-  }, [user]);
+    if (user?.uid) {
+        dispatch(fetchFeedbacks({ studentId: user.uid }));
+    }
+  }, [user, dispatch]);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this rating?")) return;
     try {
-      // Soft delete preference from prompt, but standard delete is often cleaner. 
-      // Prompt said "Soft delete -> mark as deleted: true".
-      await updateDoc(doc(db, 'feedbacks', id), { deleted: true });
-      setRatings(ratings.filter(r => r.id !== id));
+      // Soft delete preference from prompt
+      await dispatch(updateFeedback({ id, updates: { deleted: true } })).unwrap();
     } catch (err) {
       console.error("Failed to delete", err);
     }
   };
 
-  if (loading) return <div className="glass-card" style={{padding:40}}>Loading...</div>;
+  if (loading && ratings.length === 0) return <div className="glass-card" style={{padding:40}}>Loading...</div>;
 
   const activeRatings = ratings.filter(r => !r.deleted);
 
@@ -54,7 +46,7 @@ export default function MyRatings({ user }) {
                <p style={{margin:'4px 0', opacity:0.7, fontSize:14}}>{rating.courseTitle}</p>
                <div style={{display:'flex', alignItems:'center', gap:10, margin:'8px 0'}}>
                   <span style={{fontWeight:'bold', color:'#fbbf24', fontSize:18}}>{rating.rating} ★</span>
-                  <span style={{fontSize:12, opacity:0.5}}>{new Date(rating.createdAt?.seconds * 1000).toLocaleDateString()}</span>
+                  <span style={{fontSize:12, opacity:0.5}}>{new Date(rating.timestamp || rating.createdAt?.seconds * 1000).toLocaleDateString()}</span>
                </div>
                <p style={{fontStyle:'italic', opacity:0.8}}>"{rating.feedback}"</p>
                <div className="tags-row" style={{display:'flex', gap:5, marginTop:10}}>
@@ -64,14 +56,14 @@ export default function MyRatings({ user }) {
                </div>
                {/* Reaction Summary */}
                <div style={{marginTop: 10, fontSize: 12, opacity: 0.6, display: 'flex', gap: 15}}>
-                   <span>👍 {rating.likesCount || 0} Likes</span>
-                   <span>👎 {rating.dislikesCount || 0} Dislikes</span>
-                   <span>💬 {rating.repliesCount || 0} Replies</span>
+                   <span>👍 {rating.likes || 0} Likes</span>
+                   <span>👎 {rating.dislikes || 0} Dislikes</span>
+                   <span>💬 {rating.replies?.length || 0} Replies</span>
                </div>
             </div>
 
             <div className="rating-actions">
-               <button className="icon-btn edit-btn" title="Edit">✎</button>
+               <button className="icon-btn edit-btn" title="Edit" onClick={() => navigate(`/rate/${rating.instructorId}`)}>✎</button>
                <button className="icon-btn delete-btn" title="Delete" onClick={() => handleDelete(rating.id)}>🗑</button>
             </div>
           </div>

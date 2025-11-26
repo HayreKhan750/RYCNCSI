@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import { db } from '../../firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 export default function InstructorSettingsHelp() {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');

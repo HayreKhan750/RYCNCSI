@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../contexts/UserContext';
+import { useSelector } from 'react-redux';
 import scheduleData from '../assets/my-file.optimized.json';
 import { db } from '../firebase';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import './AdminPanel.css';
 
 export default function AdminPanel() {
-  const { user, isAdmin } = useUser();
+  const { user } = useSelector((state) => state.auth);
+  const isAdmin = user?.role === 'admin';
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState([]);
   const [allRatings, setAllRatings] = useState([]);

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
 export default function InstructorAISummary() {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

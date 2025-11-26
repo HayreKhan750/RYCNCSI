@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useUser } from '../contexts/UserContext';
+import { useSelector } from 'react-redux';
 import { useStudentProfile } from '../hooks/useStudentProfile';
 import ProfileHeader from './student/ProfileHeader';
 import ActivityDashboard from './student/ActivityDashboard';
@@ -10,7 +10,7 @@ import EditProfileModal from './student/EditProfileModal';
 import './Profile.css';
 
 export default function StudentProfile() {
-  const { user } = useUser();
+  const { user } = useSelector((state) => state.auth);
   const {
     profile,
     myRatings,

@@ -1,98 +1,105 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useUser } from '../contexts/UserContext';
-import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { submitRating, getInstructorRatings, getStudentRatingForInstructor } from '../utils/ratingService';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchInstructors } from '../store/slices/instructorSlice';
+import { fetchFeedbacks, submitFeedback, updateFeedback } from '../store/slices/feedbackSlice';
+import { selectInstructorById } from '../store/selectors/instructorSelectors';
+import { selectFeedbacksByStudentId } from '../store/selectors/feedbackSelectors';
 import StarRating from '../components/rating/StarRating';
 import TagSelector from '../components/rating/TagSelector';
 import ReviewList from '../components/rating/ReviewList';
-import { useTheme } from '../contexts/ThemeContext';
+import Header from '../components/common/Header';
 import '../components/student-dashboard/StudentDashboard.css';
 import '../styles/RatingPage.css';
 
 const RatingPage = () => {
   const { instructorId } = useParams();
-  const { user } = useUser();
-  const { isDark } = useTheme();
   const navigate = useNavigate();
-
-  const [instructor, setInstructor] = useState(null);
+  const dispatch = useDispatch();
+  
+  const { user } = useSelector((state) => state.auth);
+  const { mode } = useSelector((state) => state.theme);
+  const isDark = mode === 'dark';
+  
+  const instructor = useSelector((state) => selectInstructorById(state, instructorId));
+  const myFeedbacks = useSelector((state) => selectFeedbacksByStudentId(state, user?.uid));
+  const { submitting } = useSelector((state) => state.feedbacks);
+  
   const [ratingValue, setRatingValue] = useState(0);
   const [selectedTags, setSelectedTags] = useState([]);
   const [feedback, setFeedback] = useState('');
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [existingRatingId, setExistingRatingId] = useState(null);
+  const [existingRating, setExistingRating] = useState(null);
 
+  // Fetch Data
   useEffect(() => {
-    const fetchData = async () => {
-      if (!instructorId) return;
+    if (!instructor) {
+        dispatch(fetchInstructors());
+    }
+    // Fetch feedbacks for this instructor to show reviews
+    dispatch(fetchFeedbacks({ instructorId }));
+    
+    // Fetch my feedbacks to check if I already rated
+    if (user?.uid) {
+        dispatch(fetchFeedbacks({ studentId: user.uid }));
+    }
+  }, [dispatch, instructorId, user, instructor]);
 
-      try {
-        // Fetch Instructor Details
-        const instructorDoc = await getDoc(doc(db, 'users', instructorId));
-        if (instructorDoc.exists()) {
-          setInstructor(instructorDoc.data());
-        } else {
-          console.error("Instructor not found");
-          // navigate('/dashboard'); // Optional redirect
-        }
-
-        // Fetch Reviews
-        const fetchedReviews = await getInstructorRatings(instructorId);
-        setReviews(fetchedReviews);
-
-        // Check if user already rated
-        if (user) {
-          const existingRating = await getStudentRatingForInstructor(user.uid, instructorId);
-          if (existingRating) {
-            setExistingRatingId(existingRating.id);
-            setRatingValue(existingRating.ratingValue);
-            setSelectedTags(existingRating.tags || []);
-            setFeedback(existingRating.feedback || '');
+  // Check for existing rating
+  useEffect(() => {
+      if (myFeedbacks && instructorId) {
+          const found = myFeedbacks.find(f => f.instructorId === instructorId);
+          if (found) {
+              setExistingRating(found);
+              setRatingValue(found.ratingValue);
+              setSelectedTags(found.tags || []);
+              setFeedback(found.feedback || '');
           }
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchData();
-  }, [instructorId, user, navigate]);
+  }, [myFeedbacks, instructorId]);
 
   const handleSubmit = async () => {
     if (ratingValue === 0) return alert("Please select a star rating");
     if (!user) return alert("You must be logged in to rate");
 
-    setSubmitting(true);
-    try {
-      const ratingData = {
-        ratingValue,
-        tags: selectedTags,
-        feedback
-      };
+    const ratingData = {
+      instructorId,
+      studentId: user.uid,
+      studentName: user.displayName,
+      ratingValue,
+      rating: ratingValue, // Alias for service compatibility
+      courseId: 'general', // Default course ID since we are rating instructor directly
+      tags: selectedTags,
+      feedback,
+      timestamp: Date.now()
+    };
 
-      await submitRating(instructorId, user.uid, ratingData, existingRatingId);
-      
-      alert("Rating submitted successfully!");
-      navigate('/dashboard'); // Or back to instructor profile
+    try {
+      if (existingRating) {
+          await dispatch(updateFeedback({ id: existingRating.id, updates: ratingData })).unwrap();
+          alert("Rating updated successfully!");
+      } else {
+          await dispatch(submitFeedback(ratingData)).unwrap();
+          alert("Rating submitted successfully!");
+      }
+      navigate('/dashboard');
     } catch (error) {
       console.error("Error submitting rating:", error);
       alert("Failed to submit rating. Please try again.");
-    } finally {
-      setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="rating-page-loading">Loading...</div>;
-  if (!instructor) return <div className="rating-page-error">Instructor not found</div>;
+  // Get reviews for this instructor from store
+  const reviews = useSelector((state) => 
+      state.feedbacks.allIds
+          .map(id => state.feedbacks.byId[id])
+          .filter(f => f.instructorId === instructorId && !f.deleted)
+  );
+
+  if (!instructor) return <div className="rating-page-loading">Loading Instructor...</div>;
 
   return (
     <div className={`dashboard-wrapper ${isDark ? 'dark' : 'light'}`}>
+      <Header />
       <div className="rating-page-container">
       {/* Header Section */}
       <div className="instructor-header glass-card">
@@ -101,15 +108,15 @@ const RatingPage = () => {
         </button>
         <div className="header-content">
           <div className="instructor-avatar-large">
-            <img src={instructor.photoURL || `https://ui-avatars.com/api/?name=${instructor.displayName}&size=128`} alt={instructor.displayName} />
+            <img src={instructor.photoURL || `https://ui-avatars.com/api/?name=${instructor.name}&size=128`} alt={instructor.name} />
           </div>
           <div className="instructor-info">
-            <h1>{instructor.displayName}</h1>
+            <h1>{instructor.name || instructor.instructorName || 'Instructor'}</h1>
             <p className="dept">{instructor.department || 'Department'}</p>
             <div className="rating-badge">
               <span className="star-icon">⭐</span>
-              <span className="rating-score">{instructor.averageRating?.toFixed(1) || 'New'}</span>
-              <span className="rating-count">({instructor.ratingCount || 0} ratings)</span>
+              <span className="rating-score">{instructor.rating?.toFixed(1) || 'New'}</span>
+              <span className="rating-count">({instructor.reviews || 0} ratings)</span>
             </div>
           </div>
         </div>
@@ -118,7 +125,7 @@ const RatingPage = () => {
       <div className="rating-content-grid">
         {/* Rating Form */}
         <div className="rating-form-section glass-card">
-          <h2>{existingRatingId ? "Edit Your Rating" : "Rate this Instructor"}</h2>
+          <h2>{existingRating ? "Edit Your Rating" : "Rate this Instructor"}</h2>
           
           <div className="form-group">
             <label>Overall Rating</label>
@@ -147,7 +154,7 @@ const RatingPage = () => {
             onClick={handleSubmit} 
             disabled={submitting}
           >
-            {submitting ? "Submitting..." : (existingRatingId ? "Update Rating" : "Submit Rating")}
+            {submitting ? "Submitting..." : (existingRating ? "Update Rating" : "Submit Rating")}
           </button>
         </div>
 
@@ -155,9 +162,8 @@ const RatingPage = () => {
         <div className="reviews-section">
           <div className="reviews-header">
             <h3>Student Reviews</h3>
-            {/* Sorting controls could go here */}
           </div>
-          <ReviewList reviews={reviews} setReviews={setReviews} />
+          <ReviewList reviews={reviews} />
         </div>
       </div>
       </div>

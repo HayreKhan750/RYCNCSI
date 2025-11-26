@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useAuthLogic } from './useAuthLogic';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, clearError } from '../../store/slices/authSlice';
 import AuthInput from './AuthInput';
 
 export default function Signup({ onNavigate }) {
-  const { signup, loading, error } = useAuthLogic();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -23,8 +25,11 @@ export default function Signup({ onNavigate }) {
       alert("Passwords do not match");
       return;
     }
-    const success = await signup(formData, photo);
-    if (success) onNavigate('verify'); // Redirect to verification
+    dispatch(clearError());
+    const resultAction = await dispatch(registerUser({ ...formData, file: photo }));
+    if (registerUser.fulfilled.match(resultAction)) {
+        onNavigate('verify'); // Redirect to verification
+    }
   };
 
   return (

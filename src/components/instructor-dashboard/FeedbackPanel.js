@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function FeedbackPanel({ ratings, onReply }) {
+export default function FeedbackPanel({ ratings, stats, onReply }) {
   const [replyText, setReplyText] = useState({});
   const [expandedId, setExpandedId] = useState(null);
 
@@ -70,9 +70,9 @@ export default function FeedbackPanel({ ratings, onReply }) {
         <div className="glass-panel" style={{border:'none', background:'rgba(255,255,255,0.05)'}}>
             <h4 style={{marginTop:0}}>💡 AI Insights</h4>
             <div style={{fontSize:'0.9rem', opacity:0.8, lineHeight:1.6}}>
-                <p><strong>Sentiment:</strong> Generally Positive</p>
-                <p><strong>Key Strength:</strong> Students find your classes very {ratings.length > 0 ? 'engaging' : '...'} and appreciate your clarity.</p>
-                <p><strong>Improvement Area:</strong> Consider providing more examples in future lectures based on recent comments.</p>
+                <p><strong>Sentiment:</strong> {stats?.averageRating >= 4 ? 'Very Positive' : stats?.averageRating >= 3 ? 'Generally Positive' : 'Mixed'}</p>
+                <p><strong>Key Strength:</strong> Students find your classes very {stats?.topTags?.[0] || 'engaging'} and appreciate your clarity.</p>
+                <p><strong>Improvement Area:</strong> {stats?.averageRating < 4.5 ? 'Consider providing more examples in future lectures based on recent comments.' : 'Keep up the great work! Students love your teaching style.'}</p>
             </div>
         </div>
       </div>

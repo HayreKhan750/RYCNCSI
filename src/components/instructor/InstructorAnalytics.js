@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import { db } from '../../firebase';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 
 export default function InstructorAnalytics() {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 

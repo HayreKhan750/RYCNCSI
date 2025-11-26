@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import { useInstructorProfile } from '../hooks/useInstructorProfile';
 import ProfileHeader from './instructor/ProfileHeader';
 import CoursesList from './instructor/CoursesList';
@@ -11,7 +11,7 @@ import { fetchReplies, postReply } from '../utils/feedbackInteractions';
 import './Profile.css';
 
 export default function InstructorProfile() {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const { id: routeInstructorId } = useParams();
   
   const {

@@ -1,8 +1,11 @@
 import React from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleTheme } from '../../store/slices/themeSlice';
 
 export default function AuthLayout({ children }) {
-  const { theme, toggleTheme } = useTheme();
+  const dispatch = useDispatch();
+  const { mode } = useSelector((state) => state.theme);
+  const theme = mode; // Alias for compatibility
 
   return (
     <div className={`auth-root ${theme}`}>
@@ -14,7 +17,7 @@ export default function AuthLayout({ children }) {
       {/* Theme Toggle - Fixed position to avoid overlap */}
       <button 
         className="theme-toggle" 
-        onClick={toggleTheme} 
+        onClick={() => dispatch(toggleTheme())} 
         title="Toggle Theme"
         style={{
           position: 'absolute',

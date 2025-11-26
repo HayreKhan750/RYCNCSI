@@ -9,7 +9,7 @@ export default function TopInstructors({ instructors }) {
   return (
     <div className="discovery-grid-premium">
       {instructors.map((inst, index) => (
-        <div key={inst.instructorId} className={`premium-card rank-${index + 1}`}>
+        <div key={inst.id} className={`premium-card rank-${index + 1}`}>
            <div className={`rank-badge-premium rank-${index + 1}`}>
              <span>#{index + 1}</span>
            </div>
@@ -21,15 +21,14 @@ export default function TopInstructors({ instructors }) {
                 </div>
                 <div className="avatar-glow"></div>
              </div>
-
              <div className="instructor-info-premium">
                 <h4 className="instructor-name-gradient">{inst.instructorName || 'Instructor'}</h4>
-                <p className="dept-name-premium">{inst.deptName}</p>
+                <p className="dept-name-premium">{inst.department}</p>
                 
                 <div className="rating-pill">
                    <span className="star-icon">⭐</span>
-                   <span className="rating-score">{inst.avgRating}</span>
-                   <span className="rating-count">({inst.count})</span>
+                   <span className="rating-score">{typeof inst.avgRating === 'number' ? inst.avgRating.toFixed(1) : inst.avgRating}</span>
+                   <span className="rating-count">({inst.ratingCount})</span>
                 </div>
 
                 {/* Engagement Insight */}
@@ -40,7 +39,7 @@ export default function TopInstructors({ instructors }) {
 
              <button 
                 className="view-profile-btn-premium"
-                onClick={() => navigate(`/instructor/${encodeURIComponent(inst.instructorId)}`)}
+                onClick={() => navigate(`/instructor/${encodeURIComponent(inst.id)}`)}
              >
                 View Profile
              </button>

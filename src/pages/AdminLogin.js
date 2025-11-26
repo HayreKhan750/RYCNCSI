@@ -1,84 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
-import { useUser } from '../contexts/UserContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser, googleLogin, clearError } from '../store/slices/authSlice';
 import '../styles/AdminLogin.css';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const dispatch = useDispatch();
+  const { user, loading, error } = useSelector((state) => state.auth);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already logged in as admin
   useEffect(() => {
-    const checkExistingAuth = async () => {
-      if (user) {
-        setLoading(true);
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().role === 'admin') {
-            navigate('/admin/dashboard');
-          } else {
-            // If logged in but not admin, maybe show error or just stay (auth logic handles this usually)
-            // For this page, we might want to force logout if they try to access admin with student account
-            // But let's just let them try to login with admin creds
-          }
-        } catch (err) {
-          console.error("Auth check error", err);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    checkExistingAuth();
+    if (user && user.role === 'admin') {
+        navigate('/admin');
+    }
   }, [user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      // 1. Authenticate
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const loggedInUser = userCredential.user;
-
-      // 2. Verify Admin Role
-      const userDocRef = doc(db, 'users', loggedInUser.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        if (userData.role === 'admin') {
-          // Success
-          navigate('/admin/dashboard');
+    dispatch(clearError());
+    const resultAction = await dispatch(loginUser({ email, password }));
+    if (loginUser.fulfilled.match(resultAction)) {
+        const loggedInUser = resultAction.payload;
+        if (loggedInUser.role !== 'admin') {
+            // If not admin, maybe logout or show error?
+            // For now, let's just show alert and not navigate
+            alert("Access Denied: You do not have administrator privileges.");
         } else {
-          // Not an admin
-          await auth.signOut();
-          setError('Access Denied: You do not have administrator privileges.');
+            navigate('/admin');
         }
-      } else {
-        // No user record found (shouldn't happen if auth worked, but safety check)
-        await auth.signOut();
-        setError('User record not found.');
-      }
-    } catch (err) {
-      console.error("Login error:", err);
-      if (err.code === 'auth/invalid-email') setError('Invalid email address.');
-      else if (err.code === 'auth/user-not-found') setError('No admin account found with this email.');
-      else if (err.code === 'auth/wrong-password') setError('Incorrect password.');
-      else if (err.code === 'auth/too-many-requests') setError('Too many failed attempts. Try again later.');
-      else setError('Failed to log in. Please check your credentials.');
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = async () => {
+      dispatch(clearError());
+      const resultAction = await dispatch(googleLogin());
+      if (googleLogin.fulfilled.match(resultAction)) {
+          const loggedInUser = resultAction.payload;
+          if (loggedInUser.role !== 'admin') {
+              alert("Access Denied: You do not have administrator privileges.");
+          } else {
+              navigate('/admin');
+          }
+      }
   };
 
   return (
@@ -137,6 +105,23 @@ const AdminLogin = () => {
             {loading ? <div className="spinner"></div> : "Access Dashboard"}
           </button>
         </form>
+
+        <div className="divider" style={{margin: '20px 0', textAlign: 'center', opacity: 0.6, fontSize: '0.9rem'}}>or</div>
+
+        <button 
+            type="button" 
+            className="admin-login-btn google-btn" 
+            onClick={handleGoogleLogin} 
+            disabled={loading}
+            style={{background: '#fff', color: '#333', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'}}
+        >
+            <img 
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+              alt="Google" 
+              style={{ width: 18, height: 18 }} 
+            />
+            Sign in with Google
+        </button>
 
         <div className="admin-footer">
           <a href="/" className="admin-link">← Return to Main Site</a>

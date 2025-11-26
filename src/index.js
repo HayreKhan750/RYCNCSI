@@ -1,34 +1,26 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { UserProvider } from './contexts/UserContext';
-import { RatingsProvider } from './contexts/RatingsContext';
-import { ProfileProvider } from './contexts/ProfileContext';
-import { NotificationsProvider } from './contexts/NotificationsContext';
+
+import { Provider } from 'react-redux';
+import { store } from './store/store';
 import { MfaProvider } from './contexts/MfaContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <UserProvider>
-          <ProfileProvider>
-            <RatingsProvider>
-              <NotificationsProvider>
-                <MfaProvider>
-                  <App />
-                </MfaProvider>
-              </NotificationsProvider>
-            </RatingsProvider>
-          </ProfileProvider>
-        </UserProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <Provider store={store}>
+      <BrowserRouter>
+        <MfaProvider>
+          <App />
+        </MfaProvider>
+      </BrowserRouter>
+    </Provider>
   </React.StrictMode>
 );
 

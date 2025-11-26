@@ -2,7 +2,8 @@ import './App.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
-import { ThemeProvider } from './contexts/ThemeContext';
+// import { ThemeProvider } from './contexts/ThemeContext';
+import GlobalLoader from './components/common/GlobalLoader';
 
 // New Auth System Entry
 import AuthEntry from './components/auth-system/AuthEntry';
@@ -19,10 +20,23 @@ import Settings from './pages/Settings';
 import InstructorProfile from './components/instructor-profile/InstructorProfile';
 import RatingPage from './pages/RatingPage';
 import AdminLogin from './pages/AdminLogin';
+import GrantAdmin from './components/GrantAdmin';
+import GrantInstructor from './components/GrantInstructor';
+
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { checkAuthState } from './store/slices/authSlice';
 
 export default function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(checkAuthState());
+  }, [dispatch]);
+
   return (
-    <ThemeProvider>
+    <>
+      <GlobalLoader />
       <div className="app-container">
         <Routes>
           <Route
@@ -85,9 +99,11 @@ export default function App() {
             }
           />
           <Route path="/rate/:instructorId" element={<RatingPage />} />
+          <Route path="/grant-admin" element={<GrantAdmin />} />
+          <Route path="/grant-instructor" element={<GrantInstructor />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-    </ThemeProvider>
+    </>
   );
 }

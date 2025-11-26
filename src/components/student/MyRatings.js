@@ -13,10 +13,10 @@ import {
   limit,
   startAfter,
 } from 'firebase/firestore';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 
 export default function MyRatings() {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

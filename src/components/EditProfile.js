@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 import { useProfileData } from '../contexts/ProfileContext';
 
 export default function EditProfile() {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
   const { profile, loading, error, updateProfile, uploadAvatar, sendResetPassword, softDeleteAccount } = useProfileData();
   const [form, setForm] = useState({ name: '', department: '', bio: '', coursesTaught: [], officeHours: '' });
   const [avatarFile, setAvatarFile] = useState(null);

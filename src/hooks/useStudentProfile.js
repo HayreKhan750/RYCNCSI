@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { db, storage } from '../firebase';
+import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { updateUserProfile, uploadProfilePicture } from '../store/slices/userSlice';
+import { db } from '../firebase';
 import {
   collection,
   doc,
@@ -9,47 +11,17 @@ import {
   orderBy,
   query,
   where,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-  startAfter,
   documentId
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { fetchUserFlags, fetchUserReactions } from '../utils/feedbackInteractions';
 import scheduleData from '../assets/my-file.optimized.json';
 
-// Helper to build instructor lookup map from schedule data
-const getInstructorMap = () => {
-  const map = new Map();
-  if (!scheduleData?.schedule) return map;
-  
-  scheduleData.schedule.forEach(dept => {
-    if (dept.courses) {
-      dept.courses.forEach(course => {
-        if (course.instructor) {
-          const instructors = Array.isArray(course.instructor) ? course.instructor : [{ name: course.instructor, email: null }];
-          instructors.forEach(inst => {
-            const key = (inst.email || inst.name || '').toLowerCase();
-            if (key && inst.name) {
-              map.set(key, inst.name);
-            }
-            // Also map name directly for robustness
-            if (inst.name) {
-                map.set(inst.name.toLowerCase(), inst.name);
-                map.set(inst.name, inst.name);
-            }
-          });
-        }
-      });
-    }
-  });
-  return map;
-};
+import { getInstructorMap } from '../utils/getInstructorMap';
 
 const STATIC_INSTRUCTOR_MAP = getInstructorMap();
 
 export function useStudentProfile(user) {
+  const dispatch = useDispatch();
   const [profile, setProfile] = useState(null);
   const [myRatings, setMyRatings] = useState([]);
   const [stats, setStats] = useState({ totalRatings: 0, totalComments: 0, avgGiven: 0 });
@@ -71,7 +43,7 @@ export function useStudentProfile(user) {
       setLoading(true);
       setError(null);
       try {
-        // 1. Fetch User Profile
+        // 1. Fetch User Profile (We could use Redux state, but for now fetch fresh)
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
         const userData = userSnap.exists() ? userSnap.data() : {};
@@ -82,9 +54,10 @@ export function useStudentProfile(user) {
           bio: userData.bio || '',
           profilePictureUrl: userData.profilePictureUrl || user.photoURL || '',
           role: userData.role || 'Student',
-          joinedAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toLocaleDateString() : new Date(user.metadata.creationTime).toLocaleDateString(),
+          joinedAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toLocaleDateString() : (user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'Unknown'),
         });
 
+        // ... (rest of fetching logic remains same for now)
         // 2. Fetch User's Ratings
         const ratingsQ = query(
           collection(db, 'feedbacks'),
@@ -95,7 +68,6 @@ export function useStudentProfile(user) {
         const ratingsSnap = await getDocs(ratingsQ);
         const ratingsRows = ratingsSnap.docs.map((d) => {
             const data = d.data();
-            // Enrich with static name if missing
             if (data.instructorId && STATIC_INSTRUCTOR_MAP.has(data.instructorId)) {
                 data.instructorName = STATIC_INSTRUCTOR_MAP.get(data.instructorId);
             }
@@ -130,7 +102,7 @@ export function useStudentProfile(user) {
             lastRating: r.rating || 0,
           };
           existing.count += 1;
-          existing.lastRating = r.rating || existing.lastRating; // Simplification
+          existing.lastRating = r.rating || existing.lastRating; 
           instMap.set(key, existing);
         });
         setRatedInstructors(Array.from(instMap.values()));
@@ -143,7 +115,7 @@ export function useStudentProfile(user) {
         setUserReactions(reactions);
         setUserFlags(flags);
 
-        // 6. Fetch Top Instructors (Platform-wide)
+        // 6. Fetch Top Instructors
         const topInstQ = query(
             collection(db, 'feedbacks'),
             orderBy('rating', 'desc'),
@@ -172,7 +144,7 @@ export function useStudentProfile(user) {
             .sort((a, b) => b.avgRating - a.avgRating)
             .slice(0, 5);
 
-        // 7. Fetch Popular Reviewers (Platform-wide)
+        // 7. Fetch Popular Reviewers
         const popularQ = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'), limit(100));
         const popularSnap = await getDocs(popularQ);
         const reviewerMap = new Map();
@@ -191,14 +163,13 @@ export function useStudentProfile(user) {
         });
         const popRevList = Array.from(reviewerMap.values()).sort((a,b) => b.count - a.count).slice(0,5);
 
-        // 8. Enrich with Names from Users Collection
+        // 8. Enrich with Names
         const userIdsToFetch = new Set();
         topInstList.forEach(i => { if(i.instructorId) userIdsToFetch.add(i.instructorId); });
         popRevList.forEach(r => { if(r.studentId) userIdsToFetch.add(r.studentId); });
 
         if (userIdsToFetch.size > 0) {
             const ids = Array.from(userIdsToFetch);
-            // Firestore 'in' query supports up to 10 values. Chunk if needed, but top 5+5=10 fits.
             const chunks = [];
             for (let i = 0; i < ids.length; i += 10) {
                 chunks.push(ids.slice(i, i + 10));
@@ -218,15 +189,12 @@ export function useStudentProfile(user) {
                 });
             }
 
-            // Update lists
             topInstList.forEach(i => {
-                // Try to find name in static map first (from JSON)
                 if (STATIC_INSTRUCTOR_MAP.has(i.instructorId)) {
                     i.instructorName = STATIC_INSTRUCTOR_MAP.get(i.instructorId);
                 } else if (i.instructorId && STATIC_INSTRUCTOR_MAP.has(i.instructorId.toLowerCase())) {
                     i.instructorName = STATIC_INSTRUCTOR_MAP.get(i.instructorId.toLowerCase());
                 }
-                // Then try users collection (if it was a UID)
                 else if (userNames[i.instructorId]) {
                     i.instructorName = userNames[i.instructorId];
                     i.deptName = userDepts[i.instructorId] || i.deptName;
@@ -239,7 +207,6 @@ export function useStudentProfile(user) {
                 }
             });
         } else {
-             // If no user fetch needed (or failed), still try static map
              topInstList.forEach(i => {
                 if (STATIC_INSTRUCTOR_MAP.has(i.instructorId)) {
                     i.instructorName = STATIC_INSTRUCTOR_MAP.get(i.instructorId);
@@ -269,20 +236,26 @@ export function useStudentProfile(user) {
       let profilePictureUrl = profile?.profilePictureUrl;
 
       if (imageFile) {
-        const storageRef = ref(storage, `profilePictures/${user.uid}`);
-        await uploadBytes(storageRef, imageFile);
-        profilePictureUrl = await getDownloadURL(storageRef);
+        const resultAction = await dispatch(uploadProfilePicture({ uid: user.uid, file: imageFile }));
+        if (uploadProfilePicture.fulfilled.match(resultAction)) {
+            profilePictureUrl = resultAction.payload;
+        } else {
+            throw new Error(resultAction.payload || 'Failed to upload image');
+        }
       }
 
       const updates = {
         ...formData,
         profilePictureUrl,
-        updatedAt: serverTimestamp(),
       };
 
-      await setDoc(doc(db, 'users', user.uid), updates, { merge: true });
-      setProfile(prev => ({ ...prev, ...updates }));
-      return true;
+      const resultAction = await dispatch(updateUserProfile({ uid: user.uid, data: updates }));
+      if (updateUserProfile.fulfilled.match(resultAction)) {
+          setProfile(prev => ({ ...prev, ...updates }));
+          return true;
+      } else {
+          throw new Error(resultAction.payload || 'Failed to update profile');
+      }
     } catch (err) {
       console.error("Error updating profile:", err);
       throw err;

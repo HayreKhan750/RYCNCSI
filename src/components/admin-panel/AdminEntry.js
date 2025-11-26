@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '../../contexts/UserContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleTheme } from '../../store/slices/themeSlice';
 import { useAdminData } from './useAdminData';
 import AdminLayout from './AdminLayout';
 import AdminDashboard from './AdminDashboard';
@@ -7,11 +8,11 @@ import AdminUsers from './AdminUsers';
 import AdminContent from './AdminContent';
 import './AdminPanel.css';
 
-import { useTheme } from '../../contexts/ThemeContext';
-
 export default function AdminEntry() {
-  const { user, userData } = useUser();
-  const { theme, toggleTheme } = useTheme();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { mode } = useSelector((state) => state.theme);
+  const theme = mode; // Alias for compatibility
   const { 
     loading: dataLoading, 
     stats, 
@@ -30,7 +31,7 @@ export default function AdminEntry() {
   // Access Control
   // Assuming AdminRoute wraps this component in App.js, but double check here for safety
   if (!user) return null; 
-  if (userData?.role !== 'admin') {
+  if (user?.role !== 'admin') {
       return (
           <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#09090b', color:'white'}}>
               <div style={{textAlign:'center'}}>
@@ -75,7 +76,7 @@ export default function AdminEntry() {
       activePage={activePage} 
       onNavigate={setActivePage} 
       themeMode={theme} 
-      toggleTheme={toggleTheme}
+      toggleTheme={() => dispatch(toggleTheme())}
       user={user}
     >
         {renderPage()}

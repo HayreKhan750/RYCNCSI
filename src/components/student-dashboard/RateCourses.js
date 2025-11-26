@@ -1,178 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import scheduleData from '../../assets/my-file.optimized.json';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchInstructors } from '../../store/slices/instructorSlice';
+import { selectAllInstructors, selectInstructorsLoading } from '../../store/selectors/instructorSelectors';
 import { ensureInstructorExists } from '../../utils/ratingService';
 
 export default function RateCourses({ user }) {
+  const dispatch = useDispatch();
+  const instructors = useSelector(selectAllInstructors);
+  const loading = useSelector(selectInstructorsLoading);
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [instructors, setInstructors] = useState([]);
-  const [filteredInstructors, setFilteredInstructors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState(null); // Track which instructor is being processed
+  const [sortBy, setSortBy] = useState('rating'); // 'rating', 'name', 'department'
+  const [processingId, setProcessingId] = useState(null); 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchInstructors = async () => {
-      try {
-        // 1. Parse JSON to get unique instructors
-        const jsonInstructorsMap = new Map();
-        
-        if (scheduleData && Array.isArray(scheduleData.schedule)) {
-            scheduleData.schedule.forEach(dept => {
-                if (Array.isArray(dept.courses)) {
-                    dept.courses.forEach(course => {
-                        if (Array.isArray(course.instructor)) {
-                            course.instructor.forEach(inst => {
-                                const email = inst.email ? inst.email.toLowerCase() : null;
-                                const name = inst.name;
-                                const key = email || name; // Prefer email as key
-
-                                if (key && !jsonInstructorsMap.has(key)) {
-                                    jsonInstructorsMap.set(key, {
-                                        name: name,
-                                        email: email,
-                                        department: dept.department,
-                                        courses: [course.course_title],
-                                        source: 'json'
-                                    });
-                                } else if (key) {
-                                    // Append course if already exists
-                                    const existing = jsonInstructorsMap.get(key);
-                                    if (!existing.courses.includes(course.course_title)) {
-                                        existing.courses.push(course.course_title);
-                                    }
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
-
-        // 2. Fetch Firestore Instructors to get IDs, Photos, and Ratings
-        const q = query(collection(db, 'users'), where('role', '==', 'instructor'));
-        const querySnapshot = await getDocs(q);
-        const firestoreInstructors = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-
-        // 3. Fetch all feedbacks to calculate ratings
-        const ratingsQ = query(collection(db, 'feedbacks'));
-        const ratingsSnap = await getDocs(ratingsQ);
-        const ratingMap = {}; // instructorId -> { total, count }
-        
-        ratingsSnap.docs.forEach(doc => {
-            const data = doc.data();
-            if (data.instructorId && data.rating) {
-                // instructorId in feedbacks is the generated key (email or name)
-                const key = data.instructorId.toLowerCase();
-                if (!ratingMap[key]) {
-                    ratingMap[key] = { total: 0, count: 0 };
-                }
-                ratingMap[key].total += data.rating;
-                ratingMap[key].count += 1;
-            }
-        });
-
-        // 4. Merge Data
-        const mergedInstructors = [];
-        const processedFirestoreIds = new Set();
-
-        jsonInstructorsMap.forEach((val, key) => {
-            // Calculate rating from map
-            const lookupKey = key.toLowerCase();
-            const stats = ratingMap[lookupKey] || { total: 0, count: 0 };
-            const avgRating = stats.count > 0 ? stats.total / stats.count : 0;
-
-            // Try to find in Firestore by Email
-            let match = firestoreInstructors.find(f => f.email && f.email.toLowerCase() === val.email);
-            
-            // If no email match, try fuzzy name match
-            if (!match) {
-                match = firestoreInstructors.find(f => f.displayName && f.displayName.toLowerCase() === val.name.toLowerCase());
-            }
-
-            if (match) {
-                processedFirestoreIds.add(match.id);
-                mergedInstructors.push({
-                    ...val,
-                    ...match,
-                    displayName: match.displayName || val.name,
-                    department: match.department || val.department,
-                    isRegistered: true,
-                    averageRating: avgRating,
-                    ratingCount: stats.count
-                });
-            } else {
-                mergedInstructors.push({
-                    ...val,
-                    displayName: val.name,
-                    id: null, // No Firestore ID yet
-                    isRegistered: false,
-                    averageRating: avgRating,
-                    ratingCount: stats.count
-                });
-            }
-        });
-
-        // Add remaining Firestore instructors (who might not be in JSON but are registered)
-        firestoreInstructors.forEach(f => {
-            if (!processedFirestoreIds.has(f.id)) {
-                // For these, we might not have a link to the JSON key easily unless we know their email matches a key
-                // But if they are not in JSON map, maybe they don't have ratings from the JSON-based system?
-                // Or maybe they have ratings under their UID? 
-                // For now, assume 0 or check if their email matches a key in ratingMap
-                let avgRating = 0;
-                let ratingCount = 0;
-                if (f.email) {
-                     const stats = ratingMap[f.email.toLowerCase()];
-                     if (stats) {
-                         avgRating = stats.total / stats.count;
-                         ratingCount = stats.count;
-                     }
-                }
-
-                mergedInstructors.push({
-                    ...f,
-                    courses: [],
-                    isRegistered: true,
-                    averageRating: avgRating,
-                    ratingCount
-                });
-            }
-        });
-
-        // Sort by rating descending
-        mergedInstructors.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
-
-        setInstructors(mergedInstructors);
-        setFilteredInstructors(mergedInstructors);
-      } catch (error) {
-        console.error("Error fetching instructors:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInstructors();
-  }, []);
-
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredInstructors(instructors);
-      return;
+    if (instructors.length === 0) {
+        dispatch(fetchInstructors());
     }
-    const lower = searchTerm.toLowerCase();
-    const filtered = instructors.filter(inst => 
-      (inst.displayName && inst.displayName.toLowerCase().includes(lower)) ||
-      (inst.department && inst.department.toLowerCase().includes(lower)) ||
-      (inst.email && inst.email.toLowerCase().includes(lower))
-    );
-    setFilteredInstructors(filtered);
-  }, [searchTerm, instructors]);
+  }, [dispatch, instructors.length]);
+
+  const filteredAndSortedInstructors = useMemo(() => {
+    let result = [...instructors];
+
+    // Filter
+    if (searchTerm) {
+        const lower = searchTerm.toLowerCase();
+        result = result.filter(inst => 
+          (inst.instructorName && inst.instructorName.toLowerCase().includes(lower)) ||
+          (inst.department && inst.department.toLowerCase().includes(lower)) ||
+          (inst.email && inst.email.toLowerCase().includes(lower))
+        );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+        if (sortBy === 'rating') {
+            return (b.avgRating || 0) - (a.avgRating || 0);
+        } else if (sortBy === 'name') {
+            return (a.instructorName || '').localeCompare(b.instructorName || '');
+        } else if (sortBy === 'department') {
+            return (a.department || '').localeCompare(b.department || '');
+        }
+        return 0;
+    });
+
+    return result;
+  }, [instructors, searchTerm, sortBy]);
 
   const handleRateClick = async (inst) => {
       if (inst.id) {
@@ -201,52 +76,125 @@ export default function RateCourses({ user }) {
           <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '1.1rem'}}>Find and rate your instructors to help the community.</p>
       </div>
 
-      <div style={{position: 'relative', maxWidth: '600px', margin: '0 auto 50px'}}>
-        <input 
-          type="text" 
-          placeholder="🔍 Search instructor or department..." 
-          className="premium-input"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-              width: '100%', 
-              padding: '16px 24px', 
-              borderRadius: '50px', 
-              background: 'rgba(255,255,255,0.05)', 
-              border: '1px solid rgba(255,255,255,0.1)', 
-              color: 'white', 
-              fontSize: '1.1rem', 
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-              outline: 'none',
-              backdropFilter: 'blur(10px)'
-          }}
-        />
+      <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'20px', marginBottom:'50px'}}>
+        {/* Search Bar */}
+        <div style={{position: 'relative', width: '100%', maxWidth: '600px'}}>
+            <input 
+            type="text" 
+            placeholder="🔍 Search instructor or department..." 
+            className="premium-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+                width: '100%', 
+                padding: '16px 24px', 
+                borderRadius: '50px', 
+                background: 'rgba(255,255,255,0.05)', 
+                border: '1px solid rgba(255,255,255,0.1)', 
+                color: 'white', 
+                fontSize: '1.1rem', 
+                boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                outline: 'none',
+                backdropFilter: 'blur(10px)'
+            }}
+            />
+        </div>
+
+        {/* Sort Controls */}
+        <div style={{display:'flex', gap:'10px'}}>
+            <button 
+                onClick={() => setSortBy('rating')}
+                style={{
+                    padding:'8px 16px', 
+                    borderRadius:'20px', 
+                    border:'none', 
+                    background: sortBy === 'rating' ? 'var(--neon-primary)' : 'rgba(255,255,255,0.1)',
+                    color:'white',
+                    cursor:'pointer',
+                    transition:'all 0.3s'
+                }}
+            >
+                ⭐ Top Rated
+            </button>
+            <button 
+                onClick={() => setSortBy('name')}
+                style={{
+                    padding:'8px 16px', 
+                    borderRadius:'20px', 
+                    border:'none', 
+                    background: sortBy === 'name' ? 'var(--neon-primary)' : 'rgba(255,255,255,0.1)',
+                    color:'white',
+                    cursor:'pointer',
+                    transition:'all 0.3s'
+                }}
+            >
+                🔤 Name
+            </button>
+            <button 
+                onClick={() => setSortBy('department')}
+                style={{
+                    padding:'8px 16px', 
+                    borderRadius:'20px', 
+                    border:'none', 
+                    background: sortBy === 'department' ? 'var(--neon-primary)' : 'rgba(255,255,255,0.1)',
+                    color:'white',
+                    cursor:'pointer',
+                    transition:'all 0.3s'
+                }}
+            >
+                🏢 Department
+            </button>
+        </div>
       </div>
 
       <div className="discovery-grid-premium" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px'}}>
-        {filteredInstructors.map((inst, index) => (
-          <div key={inst.id || `json-${index}`} className="premium-card" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', textAlign: 'center'}}>
+        {filteredAndSortedInstructors.map((inst, index) => (
+          <div key={inst.id || `json-${index}`} className="premium-card" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', textAlign: 'center', position:'relative', overflow:'hidden'}}>
+             
+             {/* Rank Badge for Top 3 when sorted by rating */}
+             {sortBy === 'rating' && index < 3 && (
+                 <div style={{
+                     position:'absolute', 
+                     top:'10px', 
+                     left:'10px', 
+                     background: index === 0 ? 'gold' : index === 1 ? 'silver' : '#cd7f32',
+                     color:'black',
+                     fontWeight:'bold',
+                     padding:'4px 10px',
+                     borderRadius:'10px',
+                     fontSize:'0.8rem',
+                     boxShadow:'0 2px 10px rgba(0,0,0,0.2)'
+                 }}>
+                     #{index + 1}
+                 </div>
+             )}
+
              <div className="avatar-container" style={{marginBottom: '20px'}}>
                 <div className="premium-avatar" style={{width: '80px', height: '80px', fontSize: '2rem'}}>
-                  {(inst.displayName || 'T').charAt(0)}
+                  {(inst.instructorName || 'T').charAt(0)}
                 </div>
+                <div className="avatar-glow"></div>
              </div>
 
              <div className="instructor-info-premium" style={{width: '100%'}}>
-                <p className="dept-name-premium" style={{marginBottom: '8px'}}>{inst.department || 'General'}</p>
-                <h4 className="instructor-name-gradient" style={{fontSize: '1.3rem', marginBottom: '16px'}}>{inst.displayName || 'Unknown Instructor'}</h4>
+                <h4 className="instructor-name-gradient" style={{fontSize: '1.3rem', marginBottom: '4px'}}>{inst.instructorName || 'Unknown Instructor'}</h4>
+                <p className="dept-name-premium" style={{marginBottom: '16px', opacity:0.7}}>{inst.department || 'General'}</p>
                 
                 <div className="rating-pill" style={{margin: '0 auto 20px'}}>
-                   <span className="star-icon">★</span>
-                   <span className="rating-score">{inst.averageRating?.toFixed(1) || '0.0'}</span>
+                   <span className="star-icon">⭐</span>
+                   <span className="rating-score">{typeof inst.avgRating === 'number' ? inst.avgRating.toFixed(1) : inst.avgRating || '0.0'}</span>
                    <span className="rating-count">({inst.ratingCount || 0})</span>
                 </div>
                 
-                {!inst.isRegistered && (
-                  <div className="engagement-badge" style={{marginBottom: '20px', background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', borderColor: 'rgba(99, 102, 241, 0.2)'}}>
-                      Available for Rating
-                  </div>
-                )}
+                {/* Engagement / Status Badge */}
+                <div className="engagement-badge" style={{
+                    marginBottom: '20px', 
+                    background: inst.avgRating >= 4.0 ? 'rgba(255, 215, 0, 0.1)' : 'rgba(99, 102, 241, 0.1)', 
+                    color: inst.avgRating >= 4.0 ? 'gold' : '#818cf8', 
+                    borderColor: inst.avgRating >= 4.0 ? 'rgba(255, 215, 0, 0.2)' : 'rgba(99, 102, 241, 0.2)'
+                }}>
+                    {inst.avgRating >= 4.0 ? '🔥 High Engagement' : 'Available for Rating'}
+                </div>
              </div>
 
              <div style={{display:'flex', gap:'10px', width: '100%', marginTop: 'auto'}}>
@@ -266,7 +214,7 @@ export default function RateCourses({ user }) {
         ))}
       </div>
 
-      {filteredInstructors.length === 0 && (
+      {filteredAndSortedInstructors.length === 0 && (
           <div style={{textAlign:'center', padding: 60, opacity: 0.6, fontSize: '1.2rem'}}>No instructors found matching your search.</div>
       )}
     </div>
