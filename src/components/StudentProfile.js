@@ -9,8 +9,16 @@ import PopularReviewers from './student/PopularReviewers';
 import EditProfileModal from './student/EditProfileModal';
 import './Profile.css';
 
+import { useParams } from 'react-router-dom';
+
 export default function StudentProfile() {
   const { user } = useSelector((state) => state.auth);
+  const { id } = useParams();
+  
+  // Determine which user ID to fetch
+  const targetUserId = id || user?.uid;
+  const isOwnProfile = !id || id === user?.uid;
+
   const {
     profile,
     myRatings,
@@ -22,7 +30,7 @@ export default function StudentProfile() {
     loading,
     error,
     updateProfile
-  } = useStudentProfile(user);
+  } = useStudentProfile(targetUserId ? { uid: targetUserId, email: null } : null); // Pass object mimicking user for hook compatibility
 
   const [activeTab, setActiveTab] = useState('activity');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -30,13 +38,13 @@ export default function StudentProfile() {
   if (!user) return <div className="loading-screen">Please sign in to view profile.</div>;
   if (loading) return <div className="loading-screen">Loading profile...</div>;
   if (error) return <div className="error-screen">Error: {error}</div>;
-
   return (
     <div className="student-profile-container">
       <ProfileHeader 
         profile={profile} 
         stats={stats} 
-        onEdit={() => setShowEditModal(true)} 
+        onEdit={isOwnProfile ? () => setShowEditModal(true) : null}
+        isOwnProfile={isOwnProfile}
       />
 
       {showEditModal && (

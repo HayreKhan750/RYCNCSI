@@ -43,18 +43,19 @@ export function useStudentProfile(user) {
       setLoading(true);
       setError(null);
       try {
-        // 1. Fetch User Profile (We could use Redux state, but for now fetch fresh)
+        // 1. Fetch User Profile
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
         const userData = userSnap.exists() ? userSnap.data() : {};
+        
         setProfile({
-          name: userData.name || user.displayName || user.email,
-          email: user.email,
+          name: userData.name || userData.displayName || user.displayName || user.email || 'Student',
+          email: userData.email || user.email || '',
           department: userData.department || 'Not set',
           bio: userData.bio || '',
-          profilePictureUrl: userData.profilePictureUrl || user.photoURL || '',
+          profilePictureUrl: userData.profilePictureUrl || userData.photoURL || user.photoURL || '',
           role: userData.role || 'Student',
-          joinedAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toLocaleDateString() : (user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'Unknown'),
+          joinedAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toLocaleDateString() : 'Unknown',
         });
 
         // ... (rest of fetching logic remains same for now)

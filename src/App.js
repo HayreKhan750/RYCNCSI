@@ -17,7 +17,9 @@ import EmailOtpPrompt from './components/auth/EmailOtpPrompt';
 import Dashboard from './components/Dashboard';
 import AdminImporter from './pages/AdminImporter';
 import Settings from './pages/Settings';
+
 import InstructorProfile from './components/instructor-profile/InstructorProfile';
+import StudentProfile from './components/StudentProfile';
 import RatingPage from './pages/RatingPage';
 import AdminLogin from './pages/AdminLogin';
 import GrantAdmin from './components/GrantAdmin';
@@ -95,6 +97,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <InstructorProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/:id"
+            element={
+              <ProtectedRoute>
+                <StudentProfile />
               </ProtectedRoute>
             }
           />

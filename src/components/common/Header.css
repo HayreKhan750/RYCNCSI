@@ -1,86 +1,111 @@
-.app-header {
+.nav-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2rem;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  padding: 15px 30px;
+  margin-bottom: 30px;
+  border-radius: 20px;
   transition: all 0.3s ease;
 }
 
-.app-header.dark {
-  background: rgba(17, 24, 39, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
+.glass-header {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.logo {
-  font-size: 1.5rem;
-  font-weight: 700;
+.logo-area {
+  font-weight: bold;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
+}
+
+.logo-text {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.header-right {
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
-.theme-toggle-btn {
-  background: none;
+.user-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.system-actions {
+  border-left: 1px solid rgba(128,128,128,0.3);
+  padding-left: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-btn-small {
+  padding: 8px 16px;
+  border-radius: 12px;
   border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: background 0.2s;
-}
-
-.theme-toggle-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.app-header.dark .theme-toggle-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-}
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-name {
-  font-weight: 500;
+  color: inherit;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.action-btn-small:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .logout-btn {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.1);
-  background: white;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-}
-
-.app-header.dark .logout-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
 .logout-btn:hover {
-  background: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.role-switcher {
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.role-switcher option {
+  background: #1e1e1e;
   color: white;
-  border-color: #ef4444;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(15deg);
 }

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleTheme } from '../../store/slices/themeSlice';
 import useInstructorProfile from '../../hooks/useInstructorProfile';
+import Header from '../common/Header';
 import ProfileHeader from './ProfileHeader';
 import PerformanceMetrics from './PerformanceMetrics';
 import VisualCharts from './VisualCharts';
@@ -29,17 +30,9 @@ export default function InstructorProfile({ user: propUser }) {
           setLoadingUser(true);
           // 1. If ID is present in URL, fetch that user
           if (id) {
-              try {
-                  const userDoc = await getDoc(doc(db, 'users', id));
-                  if (userDoc.exists()) {
-                      setCurrentUser({ uid: id, ...userDoc.data() });
-                  } else {
-                      console.error("Instructor not found");
-                      setCurrentUser(null);
-                  }
-              } catch (err) {
-                  console.error("Error fetching instructor:", err);
-              }
+              // We rely on useInstructorProfile to fetch data by ID
+              // So we just set a minimal object to trigger the hook
+              setCurrentUser({ uid: id });
           } 
           // 2. Fallback to propUser or authUser (e.g. "My Profile" route)
           else {
@@ -63,7 +56,7 @@ export default function InstructorProfile({ user: propUser }) {
     deleteReply,
     voteReply,
     toggleLike
-  } = useInstructorProfile(currentUser?.uid);
+  } = useInstructorProfile(id || currentUser?.uid);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -79,17 +72,7 @@ export default function InstructorProfile({ user: propUser }) {
 
   return (
     <div className={`profile-page-container ${!isDarkMode ? 'light-mode' : ''}`}>
-      {/* Theme Toggle (Floating) */}
-      <button 
-          onClick={() => dispatch(toggleTheme())}
-          style={{
-              position: 'absolute', top: 20, right: 20, 
-              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-              color: 'inherit', padding: '8px 16px', borderRadius: 20, cursor: 'pointer', zIndex: 10
-          }}
-      >
-          {isDarkMode ? '☀ Light Mode' : '🌙 Dark Mode'}
-      </button>
+      <Header user={authUser} isDark={isDarkMode} />
 
       <ProfileHeader 
           profile={profile} 

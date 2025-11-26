@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { timeAgo } from '../../utils/timeAgo';
 
 export default function FeedbackSection({ feedbacks, onReply, onLike, onReplyDelete, onReplyVote, canReply }) {
   const { user } = useSelector((state) => state.auth);
@@ -11,7 +12,7 @@ export default function FeedbackSection({ feedbacks, onReply, onLike, onReplyDel
       
       const replyData = {
           text: replyText[feedbackId],
-          authorName: user?.displayName || 'User',
+          authorName: user?.displayName || user?.name || 'Student',
           authorId: user?.uid,
           role: user?.role || 'student' // Pass role for styling
       };
@@ -92,53 +93,52 @@ export default function FeedbackSection({ feedbacks, onReply, onLike, onReplyDel
                           
                           {/* Render Replies */}
                           {review.replies && review.replies.map((reply, idx) => {
-                              // Safe Date Parsing
-                              let dateStr = 'Just now';
-                              if (reply.createdAt) {
-                                  if (reply.createdAt.seconds) {
-                                      dateStr = new Date(reply.createdAt.seconds * 1000).toLocaleDateString();
-                                  } else if (typeof reply.createdAt === 'number') {
-                                      dateStr = new Date(reply.createdAt).toLocaleDateString();
-                                  } else if (reply.createdAt.toDate) {
-                                      dateStr = reply.createdAt.toDate().toLocaleDateString();
-                                  }
-                              }
-
+                              const dateStr = timeAgo(reply.createdAt);
                               const isAuthor = user?.uid === reply.authorId;
 
                               return (
-                                  <div key={reply.id || idx} className="reply-item" style={{marginBottom:15, background:'rgba(0,0,0,0.2)', padding:12, borderRadius:8}}>
-                                      <div style={{display:'flex', justifyContent:'space-between', marginBottom:5}}>
-                                          <span style={{fontWeight:600, fontSize:'0.9rem', color: reply.role === 'instructor' ? '#bc13fe' : 'inherit'}}>
-                                              {reply.authorName} {reply.role === 'instructor' && <span className="badge-instructor">Instructor</span>}
-                                          </span>
-                                          <div style={{display:'flex', gap:10, alignItems:'center'}}>
-                                              <span style={{fontSize:'0.7rem', opacity:0.5}}>{dateStr}</span>
-                                              {isAuthor && (
-                                                  <button 
-                                                      onClick={() => onReplyDelete && onReplyDelete(review.id, reply.id)}
-                                                      style={{background:'none', border:'none', color:'#ff4d4d', cursor:'pointer', fontSize:'0.7rem', padding:0}}
-                                                  >
-                                                      Delete
-                                                  </button>
-                                              )}
+                                  <div key={reply.id || idx} className="reply-item" style={{marginBottom:15, background:'transparent', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                                      <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                                          <div style={{display:'flex', alignItems:'center', gap:8}}>
+                                              <span style={{fontWeight:600, fontSize:'0.85rem', color: reply.role === 'instructor' ? '#bc13fe' : (isAuthor ? '#fff' : '#ddd')}}>
+                                                  {reply.authorName || 'Student'} {reply.role === 'instructor' && <span className="badge-instructor" style={{fontSize:'0.6rem', padding:'2px 6px', marginLeft:5}}>Instructor</span>}
+                                              </span>
+                                              <span style={{fontSize:'0.75rem', opacity:0.5}}>{dateStr}</span>
                                           </div>
+                                          {isAuthor && (
+                                              <button 
+                                                  onClick={() => onReplyDelete && onReplyDelete(review.id, reply.id)}
+                                                  style={{background:'none', border:'none', color:'#ff4d4d', cursor:'pointer', fontSize:'0.75rem', opacity:0.7}}
+                                                  title="Delete Reply"
+                                              >
+                                                  🗑️
+                                              </button>
+                                          )}
                                       </div>
-                                      <p style={{margin:0, fontSize:'0.95rem', opacity:0.9}}>{reply.text}</p>
                                       
-                                      <div style={{marginTop:8, display:'flex', gap:15, fontSize:'0.8rem', opacity:0.7}}>
-                                          <span 
-                                              style={{cursor:'pointer'}} 
+                                      <p style={{margin:'4px 0 8px 0', fontSize:'0.9rem', lineHeight:1.4, opacity:0.9, paddingLeft:0}}>{reply.text}</p>
+                                      
+                                      <div style={{display:'flex', gap:16, alignItems:'center'}}>
+                                          <div 
+                                              style={{display:'flex', alignItems:'center', gap:6, cursor:'pointer', opacity:0.7, transition:'opacity 0.2s'}}
                                               onClick={() => onReplyVote && onReplyVote(review.id, reply.id, 'like')}
+                                              onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                                              onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
                                           >
-                                              👍 {reply.likes || 0}
-                                          </span>
-                                          <span 
-                                              style={{cursor:'pointer'}} 
+                                              <span style={{fontSize:'1rem'}}>👍</span>
+                                              <span style={{fontSize:'0.8rem', fontWeight:500}}>{reply.likes || 0}</span>
+                                          </div>
+                                          
+                                          <div 
+                                              style={{display:'flex', alignItems:'center', gap:6, cursor:'pointer', opacity:0.7, transition:'opacity 0.2s'}}
                                               onClick={() => onReplyVote && onReplyVote(review.id, reply.id, 'dislike')}
+                                              onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                                              onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
                                           >
-                                              👎 {reply.dislikes || 0}
-                                          </span>
+                                              <span style={{fontSize:'1rem'}}>👎</span>
+                                          </div>
+                                          
+                                          <span style={{fontSize:'0.8rem', fontWeight:500, cursor:'pointer', opacity:0.6}}>Reply</span>
                                       </div>
                                   </div>
                               );

@@ -1,49 +1,53 @@
-import React from 'react'; // Header component
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { logoutUser, setUser } from '../../store/slices/authSlice';
 import { toggleTheme } from '../../store/slices/themeSlice';
-import { logoutUser } from '../../store/slices/authSlice';
-import './Header.css';
+import './Header.css'; // We'll create this CSS file
 
-const Header = () => {
-  const navigate = useNavigate();
+export default function Header({ user, activeView, setActiveView, isDark }) {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const { mode } = useSelector((state) => state.theme);
-  const isDark = mode === 'dark';
+  const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await dispatch(logoutUser());
-    navigate('/login');
+  const handleRoleSwitch = (newRole) => {
+      const updatedUser = { ...user, role: newRole };
+      dispatch(setUser(updatedUser));
   };
 
   return (
-    <div className="nav-header">
-      <div className="logo-area" style={{fontWeight:'bold', fontSize:24, display:'flex', alignItems:'center', gap:10, cursor:'pointer'}} onClick={() => navigate('/dashboard')}>
+    <div className="nav-header glass-header">
+      <div className="logo-area" onClick={() => setActiveView ? setActiveView('home') : navigate('/')}>
         <span style={{fontSize:28}}>🎓</span>
-        <span style={{background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>CNCS Rate</span>
+        <span className="logo-text">CNCS Rate</span>
       </div>
       
-      <div style={{display:'flex', alignItems:'center', gap: 15, flexWrap: 'wrap'}}>
-          
-          <div style={{display:'flex', gap: '10px', alignItems:'center', marginRight: '15px'}}>
-              <button className="action-btn-small" onClick={() => navigate('/settings')}>
+      <div className="header-actions">
+          <div className="user-actions">
+              <button className="action-btn-small" onClick={() => setActiveView ? setActiveView('profile') : navigate('/profile')}>
                  My Profile
               </button>
-              <button className="action-btn-small" onClick={handleLogout} style={{background: 'rgba(239, 68, 68, 0.1)', color:'#ef4444'}}>
+              <button className="action-btn-small logout-btn" onClick={() => dispatch(logoutUser())}>
                   Logout
               </button>
           </div>
 
-          <div style={{borderLeft: '1px solid rgba(128,128,128,0.3)', paddingLeft: '15px', display:'flex', alignItems:'center', gap:10}}>
-              {/* Role Switcher removed for standard header, or can be added if needed */}
-              <button className="theme-toggle" onClick={() => dispatch(toggleTheme())} style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+          <div className="system-actions">
+              <select 
+                  value={user?.role || 'student'} 
+                  onChange={(e) => handleRoleSwitch(e.target.value)}
+                  className="role-switcher"
+                  title="Switch User Role (Dev Tool)"
+              >
+                  <option value="student">Student View</option>
+                  <option value="instructor">Instructor View</option>
+                  <option value="admin">Admin View</option>
+              </select>
+
+              <button className="theme-toggle" onClick={() => dispatch(toggleTheme())}>
                   {isDark ? '☀' : '🌙'}
               </button>
           </div>
       </div>
     </div>
   );
-};
-
-export default Header;
+}

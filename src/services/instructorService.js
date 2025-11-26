@@ -361,8 +361,12 @@ export const instructorService = {
           }
       }
 
+      // Calculate Average Rating from fetched ratings
+      const totalRating = ratings.reduce((acc, r) => acc + (r.rating || 0), 0);
+      const avgRating = ratings.length > 0 ? (totalRating / ratings.length).toFixed(1) : (basicInfo.avgRating || 0);
+
       return {
-          profile: basicInfo,
+          profile: { ...basicInfo, avgRating, ratingCount: ratings.length },
           ratings,
           replies: repliesMap
       };

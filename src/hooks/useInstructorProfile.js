@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchInstructorProfile } from '../store/slices/instructorSlice';
-import { fetchInstructorProfile } from '../store/slices/instructorSlice';
 import { addReply, deleteReply, voteReply } from '../store/slices/feedbackSlice';
 import { selectActiveProfile } from '../store/selectors/instructorSelectors';
 import { db, storage } from '../firebase';
