@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useStudentProfile } from '../hooks/useStudentProfile';
+import Header from './common/Header';
 import ProfileHeader from './student/ProfileHeader';
 import ActivityDashboard from './student/ActivityDashboard';
 import RatedInstructors from './student/RatedInstructors';
@@ -13,6 +14,8 @@ import { useParams } from 'react-router-dom';
 
 export default function StudentProfile() {
   const { user } = useSelector((state) => state.auth);
+  const { mode } = useSelector((state) => state.theme);
+  const isDarkMode = mode === 'dark';
   const { id } = useParams();
   
   // Determine which user ID to fetch
@@ -39,7 +42,9 @@ export default function StudentProfile() {
   if (loading) return <div className="loading-screen">Loading profile...</div>;
   if (error) return <div className="error-screen">Error: {error}</div>;
   return (
-    <div className="student-profile-container">
+    <div className={`student-profile-page ${!isDarkMode ? 'light-mode' : ''}`}>
+      <Header user={user} isDark={isDarkMode} />
+      
       <ProfileHeader 
         profile={profile} 
         stats={stats} 
@@ -60,20 +65,24 @@ export default function StudentProfile() {
            className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
            onClick={() => setActiveTab('activity')}
         >
-           My Activity
+           Recent Activities
         </button>
-        <button 
-           className={`tab-btn ${activeTab === 'rated' ? 'active' : ''}`}
-           onClick={() => setActiveTab('rated')}
-        >
-           Rated Instructors
-        </button>
-        <button 
-           className={`tab-btn ${activeTab === 'discovery' ? 'active' : ''}`}
-           onClick={() => setActiveTab('discovery')}
-        >
-           Discovery
-        </button>
+        {isOwnProfile && (
+          <>
+            <button 
+               className={`tab-btn ${activeTab === 'rated' ? 'active' : ''}`}
+               onClick={() => setActiveTab('rated')}
+            >
+               Rated Instructors
+            </button>
+            <button 
+               className={`tab-btn ${activeTab === 'discovery' ? 'active' : ''}`}
+               onClick={() => setActiveTab('discovery')}
+            >
+               Discovery
+            </button>
+          </>
+        )}
       </div>
 
       <div className="tab-content">

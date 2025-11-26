@@ -229,7 +229,7 @@ export function useStudentProfile(user) {
     };
 
     loadData();
-  }, [user]);
+  }, [user?.uid]);
 
   const updateProfile = async (formData, imageFile) => {
     if (!user?.uid) return;

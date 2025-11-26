@@ -48,9 +48,11 @@ export default function ProfileHeader({ profile, stats, onEdit }) {
           </div>
         </div>
 
-        <button className="edit-profile-btn" onClick={onEdit}>
-          Edit Profile
-        </button>
+        {onEdit && (
+          <button className="edit-profile-btn" onClick={onEdit}>
+            Edit Profile
+          </button>
+        )}
       </div>
     </div>
   );
