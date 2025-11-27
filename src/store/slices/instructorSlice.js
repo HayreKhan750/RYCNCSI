@@ -16,15 +16,22 @@ export const fetchInstructors = createAsyncThunk(
 
 export const fetchInstructorProfile = createAsyncThunk(
   'instructors/fetchProfile',
-  async (instructorId, { getState, rejectWithValue }) => {
+  async (arg, { getState, rejectWithValue }) => {
     try {
       const state = getState();
+      
+      // Handle both string ID and object { instructorId, email }
+      let instructorId = arg;
+      let fallbackEmail = null;
+      
+      if (typeof arg === 'object' && arg !== null) {
+          instructorId = arg.instructorId;
+          fallbackEmail = arg.email;
+      }
+
       // Pass existing list to service to avoid re-fetching basic info if possible
-      // Convert normalized list back to array for service consumption if needed, 
-      // or just let service handle it. For now, we pass the array from selectors if we had them,
-      // but here we can just pass Object.values(state.instructors.byId)
       const existingList = Object.values(state.instructors.byId);
-      const data = await instructorService.fetchInstructorProfile(instructorId, existingList);
+      const data = await instructorService.fetchInstructorProfile(instructorId, existingList, fallbackEmail);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);

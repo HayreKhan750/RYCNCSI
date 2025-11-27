@@ -19,8 +19,9 @@ export default function InstructorProfile({ user: propUser }) {
   const { id } = useParams();
   const dispatch = useDispatch();
   const { user: authUser } = useSelector((state) => state.auth);
-  const { mode } = useSelector((state) => state.theme);
-  const isDarkMode = mode === 'dark';
+
+  // Enforce dark mode for premium aesthetic as requested
+  const isDarkMode = true;
 
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);

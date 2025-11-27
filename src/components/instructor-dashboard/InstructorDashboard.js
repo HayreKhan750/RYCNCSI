@@ -58,6 +58,8 @@ export default function InstructorDashboard({ user }) {
             <button className="edit-btn" onClick={() => setShowEditProfile(true)}>Edit Profile</button>
         </div>
       </div>
+      
+
 
       {/* Stats */}
       <StatsCards stats={stats} />

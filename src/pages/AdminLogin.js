@@ -126,6 +126,22 @@ const AdminLogin = () => {
         <div className="admin-footer">
           <a href="/" className="admin-link">← Return to Main Site</a>
         </div>
+        
+        {/* Temporary Seeding Button */}
+        <div style={{marginTop: 30, textAlign: 'center'}}>
+            <button 
+                onClick={async () => {
+                    if (window.confirm("Are you sure you want to seed the database? This will upload all instructors from the JSON file.")) {
+                        const { seedInstructorsToFirestore } = await import('../utils/seedInstructors');
+                        const result = await seedInstructorsToFirestore();
+                        alert(result.message);
+                    }
+                }}
+                style={{background: 'transparent', border: '1px dashed #666', color: '#666', padding: '5px 10px', cursor: 'pointer', fontSize: '0.8rem'}}
+            >
+                🛠️ Seed Database
+            </button>
+        </div>
       </div>
     </div>
   );

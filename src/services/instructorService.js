@@ -190,7 +190,7 @@ export const instructorService = {
   },
 
   // Fetch Single Profile
-  fetchInstructorProfile: async (instructorId, existingList = []) => {
+  fetchInstructorProfile: async (instructorId, existingList = [], fallbackEmail = null) => {
       // 1. Get basic info
       let basicInfo = existingList.find(i => i.id === instructorId || i.email === instructorId);
       
@@ -214,6 +214,11 @@ export const instructorService = {
       if (!basicInfo) {
           basicInfo = { id: instructorId, instructorName: 'Unknown' };
       }
+      
+      // Use fallback email if basicInfo email is missing
+      if (!basicInfo.email && fallbackEmail) {
+          basicInfo.email = fallbackEmail;
+      }
 
       // 2. Fetch Ratings/Feedbacks - Multi-strategy Fetching
       // Strategy A: By UID
@@ -224,11 +229,60 @@ export const instructorService = {
       if (basicInfo.email) {
           qEmail = query(collection(db, 'feedbacks'), where('instructorId', '==', basicInfo.email.toLowerCase()));
       }
-
       // Strategy C: By Name (Case-Insensitive)
       let qNameLower = null;
       let qNameOriginal = null;
       let qPlaceholder = null;
+      let qJsonName = null;
+
+      // 1.1 Try to find match in JSON data to get the "Legacy ID" (Name) and Department
+      let jsonMatch = null;
+      let debugScanCount = 0;
+      let debugFirstEmail = null;
+      
+      if (scheduleData && Array.isArray(scheduleData.schedule)) {
+          for (const dept of scheduleData.schedule) {
+              if (jsonMatch) break;
+              if (Array.isArray(dept.courses)) {
+                  for (const course of dept.courses) {
+                      if (jsonMatch) break;
+                      if (Array.isArray(course.instructor)) {
+                          for (const inst of course.instructor) {
+                              debugScanCount++;
+                              if (!debugFirstEmail && inst.email) debugFirstEmail = inst.email;
+                              
+                              // Match by Email
+                              if (basicInfo.email && inst.email && inst.email.toLowerCase().trim() === basicInfo.email.toLowerCase().trim()) {
+                                  jsonMatch = { ...inst, department: dept.department };
+                                  break;
+                              }
+                              // Match by Name (if basicInfo has a real name, not just email)
+                              const currentName = basicInfo.instructorName || basicInfo.name;
+                              if (currentName && !currentName.includes('@') && inst.name && inst.name.toLowerCase().trim() === currentName.toLowerCase().trim()) {
+                                  jsonMatch = { ...inst, department: dept.department };
+                                  break;
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
+
+      // If JSON match found, enrich basicInfo and add query
+      if (jsonMatch) {
+          // Enrich Profile
+          if (!basicInfo.department) basicInfo.department = jsonMatch.department;
+          if (basicInfo.instructorName && basicInfo.instructorName.includes('@')) basicInfo.instructorName = jsonMatch.name; // Fix email as name
+          
+          // Add Query for JSON Name
+          if (jsonMatch.name) {
+             qJsonName = query(
+                collection(db, 'feedbacks'),
+                where('instructorId', '==', jsonMatch.name)
+             );
+          }
+      }
 
       if (basicInfo.instructorName || basicInfo.name) {
            const originalName = basicInfo.instructorName || basicInfo.name;
@@ -256,12 +310,13 @@ export const instructorService = {
            );
       }
 
-      const [snapUid, snapEmail, snapNameLower, snapNameOriginal, snapPlaceholderUsers] = await Promise.all([
+      const [snapUid, snapEmail, snapNameLower, snapNameOriginal, snapPlaceholderUsers, snapJsonName] = await Promise.all([
           getDocs(qUid),
           qEmail ? getDocs(qEmail) : Promise.resolve({ docs: [] }),
           qNameLower ? getDocs(qNameLower) : Promise.resolve({ docs: [] }),
           qNameOriginal ? getDocs(qNameOriginal) : Promise.resolve({ docs: [] }),
-          qPlaceholder ? getDocs(qPlaceholder) : Promise.resolve({ docs: [] })
+          qPlaceholder ? getDocs(qPlaceholder) : Promise.resolve({ docs: [] }),
+          qJsonName ? getDocs(qJsonName) : Promise.resolve({ docs: [] })
       ]);
 
       // Fetch feedbacks for any found placeholder IDs
@@ -280,7 +335,8 @@ export const instructorService = {
           ...snapEmail.docs,
           ...snapNameLower.docs,
           ...snapNameOriginal.docs,
-          ...placeholderFeedbacks
+          ...placeholderFeedbacks,
+          ...snapJsonName.docs
       ];
 
       // Deduplicate by ID
@@ -366,7 +422,16 @@ export const instructorService = {
       const avgRating = ratings.length > 0 ? (totalRating / ratings.length).toFixed(1) : (basicInfo.avgRating || 0);
 
       return {
-          profile: { ...basicInfo, avgRating, ratingCount: ratings.length },
+          profile: { 
+              ...basicInfo, 
+              avgRating, 
+              ratingCount: ratings.length,
+              debugJsonMatch: !!jsonMatch,
+              debugQueriedNames: [jsonMatch?.name, basicInfo.instructorName || basicInfo.name].filter(Boolean),
+              debugScanCount,
+              debugFirstEmail,
+              debugBasicEmail: basicInfo.email
+          },
           ratings,
           replies: repliesMap
       };
