@@ -99,13 +99,10 @@ const RatingPage = () => {
 
   return (
     <div className={`dashboard-wrapper ${isDark ? 'dark' : 'light'}`}>
-      <Header />
+      <Header title="Rate Instructor" showBack={true} />
       <div className="rating-page-container">
       {/* Header Section */}
       <div className="instructor-header glass-card">
-        <button className="back-dashboard-btn" onClick={() => navigate('/dashboard')}>
-            ← Back to Dashboard
-        </button>
         <div className="header-content">
           <div className="instructor-avatar-large">
             <img src={instructor.photoURL || `https://ui-avatars.com/api/?name=${instructor.name}&size=128`} alt={instructor.name} />

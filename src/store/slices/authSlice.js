@@ -8,7 +8,6 @@ export const loginUser = createAsyncThunk(
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const user = await authService.login(email, password);
-      // Fetch full profile to get role
       const profile = await authService.getUserProfile(user.uid);
       
       return {
@@ -134,21 +133,28 @@ export const checkAuthState = createAsyncThunk(
     }
 );
 
+const initialState = {
+  user: null,
+  isAuthenticated: false,
+  status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+  error: null,
+  initialized: false,
+};
+
 const authSlice = createSlice({
   name: 'auth',
-  initialState: {
-    user: null,
-    isAuthenticated: false,
-    loading: true, // Start true to handle initial check
-    error: null,
-  },
+  initialState,
   reducers: {
     setUser: (state, action) => {
         state.user = action.payload;
         state.isAuthenticated = !!action.payload;
-        state.loading = false;
+        state.status = 'succeeded';
     },
     clearError: (state) => {
+        state.error = null;
+    },
+    resetAuthStatus: (state) => {
+        state.status = 'idle';
         state.error = null;
     }
   },
@@ -156,84 +162,77 @@ const authSlice = createSlice({
     builder
       // Login
       .addCase(loginUser.pending, (state) => {
-        state.loading = true;
+        state.status = 'loading';
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
-        state.loading = false;
+        state.status = 'succeeded';
         state.user = action.payload;
         state.isAuthenticated = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
       })
       // Google Login
       .addCase(googleLogin.pending, (state) => {
-        state.loading = true;
+        state.status = 'loading';
         state.error = null;
       })
       .addCase(googleLogin.fulfilled, (state, action) => {
-        state.loading = false;
+        state.status = 'succeeded';
         state.user = action.payload;
         state.isAuthenticated = true;
       })
       .addCase(googleLogin.rejected, (state, action) => {
-        state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
       })
       // Register
       .addCase(registerUser.pending, (state) => {
-        state.loading = true;
+        state.status = 'loading';
         state.error = null;
       })
       .addCase(registerUser.fulfilled, (state, action) => {
-        state.loading = false;
+        state.status = 'succeeded';
         state.user = action.payload;
         state.isAuthenticated = true;
       })
       .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
       })
       // Logout
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
+        state.status = 'idle';
       })
       // Reset Password
       .addCase(resetPassword.pending, (state) => {
-        state.loading = true;
+        state.status = 'loading';
         state.error = null;
       })
       .addCase(resetPassword.fulfilled, (state) => {
-        state.loading = false;
-        // Maybe set a success message flag if needed, but for now just stop loading
+        state.status = 'succeeded';
       })
       .addCase(resetPassword.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      // Resend Verification
-      .addCase(resendVerification.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(resendVerification.fulfilled, (state) => {
-        state.loading = false;
-      })
-      .addCase(resendVerification.rejected, (state, action) => {
-        state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
       })
       // Check Auth State
       .addCase(checkAuthState.pending, (state) => {
-          state.loading = true;
+          state.status = 'loading';
       })
       .addCase(checkAuthState.fulfilled, (state, action) => {
-          state.loading = false;
+          state.status = 'succeeded';
           state.user = action.payload;
           state.isAuthenticated = !!action.payload;
+          state.initialized = true;
+      })
+      .addCase(checkAuthState.rejected, (state) => {
+          state.status = 'failed';
+          state.initialized = true;
       })
       // Sync with User Slice updates
       .addCase(updateUserProfile.fulfilled, (state, action) => {
@@ -249,5 +248,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, clearError } = authSlice.actions;
+export const { setUser, clearError, resetAuthStatus } = authSlice.actions;
 export default authSlice.reducer;

@@ -73,7 +73,7 @@ export default function InstructorProfile({ user: propUser }) {
 
   return (
     <div className={`profile-page-container ${!isDarkMode ? 'light-mode' : ''}`}>
-      <Header user={authUser} isDark={isDarkMode} />
+      <Header title="Instructor Profile" />
 
       <ProfileHeader 
           profile={profile} 

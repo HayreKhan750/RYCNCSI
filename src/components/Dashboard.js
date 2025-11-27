@@ -11,13 +11,14 @@ import InstructorDashboard from './instructor-dashboard/InstructorDashboard';
 import InstructorProfile from './instructor-profile/InstructorProfile';
 import './student-dashboard/StudentDashboard.css';
 
+import Header from './common/Header';
+
 export default function Dashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
   const { user, loading } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
-  const isDark = mode === 'dark';
   
   const [activeView, setActiveView] = useState('home');
 
@@ -49,23 +50,7 @@ export default function Dashboard() {
 
       return (
         <div className={`dashboard-wrapper ${mode}`}>
-           <div className="nav-header">
-             <div className="logo-area" style={{fontWeight:'bold', fontSize:24, display:'flex', alignItems:'center', gap:10, cursor:'pointer'}} onClick={() => setActiveView('home')}>
-                <span style={{fontSize:28}}>🎓</span>
-                <span style={{background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>CNCS Instructor</span>
-             </div>
-             <div style={{display:'flex', alignItems:'center', gap: 15, flexWrap: 'wrap'}}>
-                 <button className="action-btn-small" onClick={() => setActiveView('profile')}>
-                     My Profile
-                 </button>
-                 <button className="theme-toggle" onClick={() => dispatch(toggleTheme())} style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                     {isDark ? '☀' : '🌙'}
-                 </button>
-                 <button className="action-btn-small" onClick={() => dispatch(logoutUser())} style={{background: 'rgba(239, 68, 68, 0.1)', color:'#ef4444'}}>
-                     Logout
-                 </button>
-             </div>
-           </div>
+           <Header title="Instructor Dashboard" showBack={false} />
            <InstructorDashboard user={user} />
         </div>
       );
@@ -90,41 +75,7 @@ export default function Dashboard() {
 
   return (
     <div className={`dashboard-wrapper ${mode}`}>
-      <div className="nav-header">
-        <div className="logo-area" style={{fontWeight:'bold', fontSize:24, display:'flex', alignItems:'center', gap:10, cursor:'pointer'}} onClick={() => setActiveView('home')}>
-          <span style={{fontSize:28}}>🎓</span>
-          <span style={{background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>CNCS Rate</span>
-        </div>
-        
-        <div style={{display:'flex', alignItems:'center', gap: 15, flexWrap: 'wrap'}}>
-            
-            <div style={{display:'flex', gap: '10px', alignItems:'center', marginRight: '15px'}}>
-                <button className="action-btn-small" onClick={() => setActiveView('profile')}>
-                   My Profile
-                </button>
-                <button className="action-btn-small" onClick={() => dispatch(logoutUser())} style={{background: 'rgba(239, 68, 68, 0.1)', color:'#ef4444'}}>
-                    Logout
-                </button>
-            </div>
-
-            <div style={{borderLeft: '1px solid rgba(128,128,128,0.3)', paddingLeft: '15px', display:'flex', alignItems:'center', gap:10}}>
-                <select 
-                    value={user.role || 'student'} 
-                    onChange={(e) => handleRoleSwitch(e.target.value)}
-                    style={{padding: '5px', borderRadius: '5px', border: '1px solid #ccc', background: 'transparent', color: 'inherit', cursor:'pointer'}}
-                    title="Switch User Role (Dev Tool)"
-                >
-                    <option value="student">Student View</option>
-                    <option value="instructor">Instructor View</option>
-                    <option value="admin">Admin View</option>
-                </select>
-
-                <button className="theme-toggle" onClick={() => dispatch(toggleTheme())} style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                    {isDark ? '☀' : '🌙'}
-                </button>
-            </div>
-        </div>
-      </div>
+      <Header title="Student Dashboard" showBack={false} />
 
       <div className="dashboard-content fade-in">
         {renderContent()}
@@ -132,3 +83,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

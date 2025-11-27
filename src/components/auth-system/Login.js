@@ -5,15 +5,21 @@ import AuthInput from './AuthInput';
 
 export default function Login({ onNavigate, onLoginSuccess }) {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { status, error } = useSelector((state) => state.auth);
+  const loading = status === 'loading';
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     dispatch(clearError());
     const resultAction = await dispatch(loginUser(formData));
+    console.log('Login Result:', resultAction);
     if (loginUser.fulfilled.match(resultAction)) {
+        console.log('Login Fulfilled');
         onLoginSuccess();
+    } else {
+        console.error('Login Failed:', resultAction.payload);
+        alert(`Login Failed: ${resultAction.payload}`);
     }
   };
 

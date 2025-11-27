@@ -1,65 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isSignedIn() { return request.auth != null; }
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-    function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
 
-    match /users/{uid} {
-      allow read: if isSignedIn() && (isSelf(uid) || isAdmin());
-      allow create: if isSelf(uid);
-      // Prevent privilege escalation: non-admins cannot change their role field
-      allow update: if (
-        isAdmin() || (
-          isSelf(uid) && request.resource.data.role == resource.data.role
-        )
-      );
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
       allow delete: if isAdmin();
     }
 
-    match /instructors/{iid} {
-      allow read: if true;
-      allow create, update: if isSelf(iid) || isAdmin();
-      allow delete: if isAdmin();
-    }
+    // Feedbacks Collection
+    match /feedbacks/{feedbackId} {
+      allow read: if true; // Public read for reviews
+      allow create: if isAuthenticated();
+      // Only owner or admin can update/delete
+      allow update: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isAdmin());
 
-    match /departments/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
+      // Replies Subcollection
+      match /replies/{replyId} {
+        allow read: if true;
+        allow create: if isAuthenticated();
+        allow update, delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+      }
     }
-
-    match /courses/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /sections/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /ratings/{rid} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (resource.data.studentId == request.auth.uid || isAdmin());
-    }
-
-    match /flags/{fid} {
-      allow read, create: if isSignedIn();
-      allow update, delete: if isAdmin();
-    }
-
-    match /notifications/{nid} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow write: if isAdmin();
-    }
-
-    match /announcements/{aid} {
-      allow read: if true;
-      allow write: if isAdmin();
+    
+    // Notifications
+    match /notifications/{notificationId} {
+        allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+        allow write: if false; // Only server (Cloud Functions) should write notifications ideally, or admin
     }
   }
 }

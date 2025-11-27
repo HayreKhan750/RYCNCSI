@@ -5,7 +5,8 @@ import AuthInput from './AuthInput';
 
 export default function Signup({ onNavigate }) {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { status, error } = useSelector((state) => state.auth);
+  const loading = status === 'loading';
   
   const [formData, setFormData] = useState({
     name: '',

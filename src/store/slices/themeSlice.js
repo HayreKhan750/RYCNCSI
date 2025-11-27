@@ -15,30 +15,19 @@ const themeSlice = createSlice({
     toggleTheme: (state) => {
       state.mode = state.mode === 'light' ? 'dark' : 'light';
       localStorage.setItem('theme', state.mode);
-      
-      // Apply class to body immediately for smoother transition
-      if (state.mode === 'dark') {
-          document.body.classList.add('dark-mode');
-          document.body.classList.remove('light-mode');
-      } else {
-          document.body.classList.add('light-mode');
-          document.body.classList.remove('dark-mode');
-      }
+      document.documentElement.setAttribute('data-theme', state.mode);
     },
     setTheme: (state, action) => {
       state.mode = action.payload;
       localStorage.setItem('theme', state.mode);
-      
-      if (state.mode === 'dark') {
-          document.body.classList.add('dark-mode');
-          document.body.classList.remove('light-mode');
-      } else {
-          document.body.classList.add('light-mode');
-          document.body.classList.remove('dark-mode');
-      }
+      document.documentElement.setAttribute('data-theme', state.mode);
     },
+    initializeTheme: (state) => {
+        // Action to trigger DOM update on mount
+        document.documentElement.setAttribute('data-theme', state.mode);
+    }
   },
 });
 
-export const { toggleTheme, setTheme } = themeSlice.actions;
+export const { toggleTheme, setTheme, initializeTheme } = themeSlice.actions;
 export default themeSlice.reducer;

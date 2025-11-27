@@ -21,7 +21,7 @@ export default function AuthEntry() {
            if (user.emailVerified) {
                // Already verified, redirect to dashboard
                // Delay slightly for splash if needed
-               setTimeout(() => navigate('/'), 500);
+               setTimeout(() => navigate('/dashboard'), 500);
            } else {
                setView('verify');
            }
@@ -33,7 +33,7 @@ export default function AuthEntry() {
   const handleAuthSuccess = () => {
       // Force check verification or redirect
       if (auth.currentUser?.emailVerified) {
-          navigate('/');
+          navigate('/dashboard');
       } else {
           setView('verify');
       }
@@ -63,7 +63,7 @@ export default function AuthEntry() {
         )}
         {view === 'verify' && (
             <VerifyEmail 
-                onVerified={() => navigate('/')} 
+                onVerified={() => navigate('/dashboard')} 
             />
         )}
     </AuthLayout>

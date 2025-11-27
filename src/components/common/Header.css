@@ -1,111 +1,193 @@
+/* Header.css - Universal Premium Header */
 .nav-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* Left, Center, Right */
   align-items: center;
-  padding: 15px 30px;
-  margin-bottom: 30px;
-  border-radius: 20px;
-  transition: all 0.3s ease;
+  padding: 0 var(--space-4);
+  height: 72px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s var(--ease-in-out);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .glass-header {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
 }
 
-.logo-area {
-  font-weight: bold;
-  font-size: 24px;
+[data-theme="dark"] .glass-header {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Left Section */
+.header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-  cursor: pointer;
+  gap: var(--space-3);
+  justify-self: start;
 }
 
-.logo-text {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.user-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-right: 15px;
-}
-
-.system-actions {
-  border-left: 1px solid rgba(128,128,128,0.3);
-  padding-left: 15px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.action-btn-small {
-  padding: 8px 16px;
-  border-radius: 12px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: inherit;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.action-btn-small:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-.logout-btn {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-.role-switcher {
-  padding: 5px;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
   background: transparent;
   color: inherit;
-  cursor: pointer;
-}
-
-.role-switcher option {
-  background: #1e1e1e;
-  color: white;
-}
-
-.theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: transparent;
-  color: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: var(--bg-elevated);
+  transform: translateX(-2px);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.logo-area:hover {
+  background: rgba(0,0,0,0.03);
+}
+[data-theme="dark"] .logo-area:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3));
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.header-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-subtle);
+  margin: 0 4px;
+}
+
+.header-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Center Section */
+.header-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  justify-self: center;
+}
+
+/* Right Section */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px; /* Increased gap between Theme Toggle and Logout */
+  justify-self: end;
+  padding-right: 8px;
+}
+
+.theme-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+  flex-shrink: 0;
+  transform: none; /* Reset alignment */
 }
 
 .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-elevated);
   transform: rotate(15deg);
+  border-color: var(--border-subtle);
+}
+
+.logout-btn {
+  background: #ef4444 !important; /* Force Solid Red */
+  color: white !important;
+  border: none;
+  padding: 8px 24px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+  flex-shrink: 0;
+  margin-left: 0;
+  margin-right: 40px; /* Push further left from edge */
+}
+
+.logout-btn:hover {
+  background: #dc2626 !important; /* Darker Red on Hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .nav-header {
+    padding: 0 var(--space-2);
+    height: 64px;
+    grid-template-columns: auto 1fr auto; /* Adjust for mobile */
+  }
+
+  .header-title {
+    display: none;
+  }
+  
+  .header-divider { display: none; }
+  
+  /* Ensure logout button is visible or icon-only if needed, but keeping text for now as requested "red logout button" */
+  .logout-btn {
+      padding: 6px 12px;
+      font-size: 0.9rem;
+  }
+
+  .header-right {
+    gap: 12px;
+  }
 }

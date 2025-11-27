@@ -1,12 +1,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { userService } from '../../services/userService';
+import { authService } from '../../services/authService';
+import { storage } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export const updateUserProfile = createAsyncThunk(
   'user/updateProfile',
   async ({ uid, data }, { rejectWithValue }) => {
     try {
-      const updatedData = await userService.updateProfile(uid, data);
-      return updatedData;
+      await authService.updateUserProfile(uid, data);
+      return data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -17,8 +19,14 @@ export const uploadProfilePicture = createAsyncThunk(
   'user/uploadProfilePicture',
   async ({ uid, file }, { rejectWithValue }) => {
     try {
-      const downloadURL = await userService.uploadProfilePicture(uid, file);
-      return downloadURL;
+      const storageRef = ref(storage, `profilePictures/${uid}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      // Update user profile with new URL
+      await authService.updateUserProfile(uid, { photoURL: url, profilePictureUrl: url });
+      
+      return url;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -28,48 +36,44 @@ export const uploadProfilePicture = createAsyncThunk(
 const userSlice = createSlice({
   name: 'user',
   initialState: {
-    loading: false,
+    profile: null,
+    status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
-    success: false
   },
-  reducers: {
-    resetUserStatus: (state) => {
-      state.loading = false;
-      state.error = null;
-      state.success = false;
-    }
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       // Update Profile
       .addCase(updateUserProfile.pending, (state) => {
-        state.loading = true;
+        state.status = 'loading';
         state.error = null;
-        state.success = false;
       })
-      .addCase(updateUserProfile.fulfilled, (state) => {
-        state.loading = false;
-        state.success = true;
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        if (state.profile) {
+            state.profile = { ...state.profile, ...action.payload };
+        }
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
-        state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
       })
       // Upload Picture
       .addCase(uploadProfilePicture.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+          state.status = 'loading';
       })
-      .addCase(uploadProfilePicture.fulfilled, (state) => {
-        state.loading = false;
-        state.success = true;
+      .addCase(uploadProfilePicture.fulfilled, (state, action) => {
+          state.status = 'succeeded';
+          if (state.profile) {
+              state.profile.photoURL = action.payload;
+              state.profile.profilePictureUrl = action.payload;
+          }
       })
       .addCase(uploadProfilePicture.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+          state.status = 'failed';
+          state.error = action.payload;
       });
   },
 });
 
-export const { resetUserStatus } = userSlice.actions;
 export default userSlice.reducer;

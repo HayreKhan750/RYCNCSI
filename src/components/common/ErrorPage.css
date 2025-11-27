@@ -1,0 +1,102 @@
+/* ErrorPage.css */
+.error-page-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg-root);
+  color: var(--text-primary);
+}
+
+.error-card {
+  max-width: 500px;
+  width: 100%;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+  40% {transform: translateY(-20px);}
+  60% {transform: translateY(-10px);}
+}
+
+.error-card h1 {
+  margin: 0 0 15px;
+  font-size: 2rem;
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.error-message {
+  margin-bottom: 30px;
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+.error-actions {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+  justify-content: center;
+}
+
+.retry-btn, .home-btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: none;
+}
+
+.retry-btn {
+  background: var(--primary);
+  color: white;
+}
+
+.home-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+
+.retry-btn:hover, .home-btn:hover {
+  transform: translateY(-2px);
+}
+
+.error-details {
+  margin-top: 30px;
+  text-align: left;
+  width: 100%;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.error-details summary {
+  cursor: pointer;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.error-details pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

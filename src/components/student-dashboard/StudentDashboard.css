@@ -1,15 +1,9 @@
 /* StudentDashboard.css */
 :root {
-  --bg-light: #f0f2f5;
-  --bg-dark: #0f172a;
-  --text-light: #1e293b;
-  --text-dark: #f8fafc;
-  --card-light: rgba(255, 255, 255, 0.8);
-  --card-dark: rgba(30, 41, 59, 0.7);
-  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  --secondary-gradient: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-soft) 100%);
+  --secondary-gradient: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-pink) 100%);
+  --glass-border: 1px solid var(--border-subtle);
+  --glass-shadow: var(--shadow-soft);
   --neon-glow: 0 0 10px rgba(99, 102, 241, 0.5), 0 0 20px rgba(99, 102, 241, 0.3);
 }
 
@@ -21,30 +15,30 @@
 }
 
 .dashboard-wrapper.light {
-  background: var(--bg-light);
-  color: var(--text-light);
+  background: var(--bg-root);
+  color: var(--text-primary);
 }
 
 .dashboard-wrapper.dark {
-  background: var(--bg-dark);
-  color: var(--text-dark);
-  background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
+  background: var(--bg-root);
+  color: var(--text-primary);
+  background-image: radial-gradient(circle at 50% 0%, rgba(30, 27, 75, 0.5) 0%, var(--bg-root) 70%);
 }
 
 /* Glassmorphism Card */
 .glass-card {
-  background: var(--card-light);
+  background: var(--bg-elevated);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   border: var(--glass-border);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dark .glass-card {
-  background: var(--card-dark);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
 }
 
 .glass-card:hover {
@@ -53,13 +47,7 @@
 }
 
 /* Navigation */
-.nav-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 0 10px;
-}
+/* Navigation styles moved to Header.css */
 
 .theme-toggle {
   background: none;
@@ -103,6 +91,19 @@
   background: rgba(255,255,255,0.1);
   border-radius: 50%;
   filter: blur(60px);
+}
+
+@media (max-width: 768px) {
+  .welcome-hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 30px 20px;
+  }
+  
+  .welcome-hero::before {
+    top: -20%;
+    right: -20%;
+  }
 }
 
 .student-avatar-large {
@@ -171,7 +172,7 @@
 
 .nav-card:hover .icon { transform: scale(1.2) rotate(5deg); }
 .nav-card:hover {
-  border-color: #6366f1;
+  border-color: var(--primary);
   box-shadow: var(--neon-glow);
 }
 
@@ -219,15 +220,15 @@
 
 .action-btn-small {
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
   background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
+  color: var(--primary);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
-.action-btn-small:hover { background: #6366f1; color: white; }
+.action-btn-small:hover { background: var(--primary); color: white; }
 
 /* Rate Courses Page */
 .search-bar-large {
@@ -286,7 +287,7 @@
   width: 100%;
   padding: 12px;
   border: none;
-  background: var(--text-light);
+  background: var(--text-primary);
   color: white;
   font-weight: 600;
   cursor: pointer;
@@ -339,15 +340,15 @@
 .tag-chip {
   padding: 6px 12px;
   border-radius: 20px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-subtle);
   background: transparent;
   cursor: pointer;
   transition: all 0.2s;
 }
 .tag-chip.selected {
-  background: #6366f1;
+  background: var(--primary);
   color: white;
-  border-color: #6366f1;
+  border-color: var(--primary);
 }
 
 .submit-btn {
@@ -397,6 +398,6 @@
   transition: opacity 0.2s;
 }
 .icon-btn:hover { opacity: 1; }
-.delete-btn:hover { color: #ef4444; }
-.edit-btn:hover { color: #3b82f6; }
+.delete-btn:hover { color: var(--danger); }
+.edit-btn:hover { color: var(--accent-cyan); }
 

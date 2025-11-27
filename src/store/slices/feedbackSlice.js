@@ -62,24 +62,55 @@ export const addReply = createAsyncThunk(
   }
 );
 
+export const deleteReply = createAsyncThunk(
+  'feedbacks/deleteReply',
+  async ({ feedbackId, replyId }, { rejectWithValue }) => {
+    try {
+      await feedbackService.deleteReply(feedbackId, replyId);
+      return { feedbackId, replyId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const voteReply = createAsyncThunk(
+  'feedbacks/voteReply',
+  async ({ feedbackId, replyId, type }, { rejectWithValue }) => {
+    try {
+      await feedbackService.voteReply(feedbackId, replyId, type);
+      return { feedbackId, replyId, type };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+const initialState = {
+  byId: {},
+  allIds: [],
+  status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+  error: null,
+  submitStatus: 'idle'
+};
+
 const feedbackSlice = createSlice({
   name: 'feedbacks',
-  initialState: {
-    byId: {},
-    allIds: [],
-    loading: false,
-    error: null,
-    submitting: false
+  initialState,
+  reducers: {
+      resetSubmitStatus: (state) => {
+          state.submitStatus = 'idle';
+      }
   },
-  reducers: {},
   extraReducers: (builder) => {
     builder
       // Fetch
       .addCase(fetchFeedbacks.pending, (state) => {
-        state.loading = true;
+        state.status = 'loading';
+        state.error = null;
       })
       .addCase(fetchFeedbacks.fulfilled, (state, action) => {
-        state.loading = false;
+        state.status = 'succeeded';
         // Normalize
         action.payload.forEach(f => {
             state.byId[f.id] = f;
@@ -89,21 +120,21 @@ const feedbackSlice = createSlice({
         });
       })
       .addCase(fetchFeedbacks.rejected, (state, action) => {
-        state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
       })
       // Submit
       .addCase(submitFeedback.pending, (state) => {
-          state.submitting = true;
+          state.submitStatus = 'loading';
       })
       .addCase(submitFeedback.fulfilled, (state, action) => {
-          state.submitting = false;
+          state.submitStatus = 'succeeded';
           const f = action.payload;
           state.byId[f.id] = f;
           state.allIds.unshift(f.id); // Add to top
       })
       .addCase(submitFeedback.rejected, (state, action) => {
-          state.submitting = false;
+          state.submitStatus = 'failed';
           state.error = action.payload;
       })
       // Delete
@@ -132,28 +163,5 @@ const feedbackSlice = createSlice({
   },
 });
 
-export const deleteReply = createAsyncThunk(
-  'feedbacks/deleteReply',
-  async ({ feedbackId, replyId }, { rejectWithValue }) => {
-    try {
-      await feedbackService.deleteReply(feedbackId, replyId);
-      return { feedbackId, replyId };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const voteReply = createAsyncThunk(
-  'feedbacks/voteReply',
-  async ({ feedbackId, replyId, type }, { rejectWithValue }) => {
-    try {
-      await feedbackService.voteReply(feedbackId, replyId, type);
-      return { feedbackId, replyId, type };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
+export const { resetSubmitStatus } = feedbackSlice.actions;
 export default feedbackSlice.reducer;

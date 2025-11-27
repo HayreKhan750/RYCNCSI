@@ -39,30 +39,37 @@ export const fetchInstructorProfile = createAsyncThunk(
   }
 );
 
+const initialState = {
+  byId: {},
+  allIds: [],
+  status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+  error: null,
+  activeProfile: {
+      data: null,
+      ratings: [],
+      replies: {},
+      status: 'idle',
+      error: null
+  }
+};
+
 const instructorSlice = createSlice({
   name: 'instructors',
-  initialState: {
-    byId: {},
-    allIds: [],
-    loading: false,
-    error: null,
-    activeProfile: {
-        data: null,
-        ratings: [],
-        replies: {},
-        loading: false,
-        error: null
-    }
+  initialState,
+  reducers: {
+      clearActiveProfile: (state) => {
+          state.activeProfile = initialState.activeProfile;
+      }
   },
-  reducers: {},
   extraReducers: (builder) => {
     builder
       // Fetch All
       .addCase(fetchInstructors.pending, (state) => {
-        state.loading = true;
+        state.status = 'loading';
+        state.error = null;
       })
       .addCase(fetchInstructors.fulfilled, (state, action) => {
-        state.loading = false;
+        state.status = 'succeeded';
         // Normalize data
         const byId = {};
         const allIds = [];
@@ -74,21 +81,22 @@ const instructorSlice = createSlice({
         state.allIds = allIds;
       })
       .addCase(fetchInstructors.rejected, (state, action) => {
-        state.loading = false;
+        state.status = 'failed';
         state.error = action.payload;
       })
       // Fetch Profile
       .addCase(fetchInstructorProfile.pending, (state) => {
-        state.activeProfile.loading = true;
+        state.activeProfile.status = 'loading';
+        state.activeProfile.error = null;
       })
       .addCase(fetchInstructorProfile.fulfilled, (state, action) => {
-        state.activeProfile.loading = false;
+        state.activeProfile.status = 'succeeded';
         state.activeProfile.data = action.payload.profile;
         state.activeProfile.ratings = action.payload.ratings;
         state.activeProfile.replies = action.payload.replies;
       })
       .addCase(fetchInstructorProfile.rejected, (state, action) => {
-        state.activeProfile.loading = false;
+        state.activeProfile.status = 'failed';
         state.activeProfile.error = action.payload;
       })
       // Add Reply (Sync with Feedback Slice)
@@ -120,4 +128,5 @@ const instructorSlice = createSlice({
   },
 });
 
+export const { clearActiveProfile } = instructorSlice.actions;
 export default instructorSlice.reducer;
