@@ -1,21 +1,46 @@
 import React, { useState } from 'react';
-import { useInstructorData } from './useInstructorData';
-import StatsCards from './StatsCards';
-import ChartsSection from './ChartsSection';
-import FeedbackPanel from './FeedbackPanel';
+import useInstructorProfile from '../../hooks/useInstructorProfile';
 import RoleSwitcher from '../RoleSwitcher';
 import InstructorTools from './InstructorTools';
-import EditProfile from '../EditProfile';
+import ProfileHeader from '../instructor-profile/ProfileHeader';
+import PerformanceMetrics from '../instructor-profile/PerformanceMetrics';
+import StudentAISummary from '../instructor-profile/StudentAISummary';
+import VisualCharts from '../instructor-profile/VisualCharts';
+import BadgesSection from '../instructor-profile/BadgesSection';
+import FeedbackSection from '../instructor-profile/FeedbackSection';
+import EditProfileModal from '../instructor-profile/EditProfileModal';
 import { useNavigate } from 'react-router-dom';
-import './InstructorDashboard.css';
+import '../instructor-profile/InstructorProfile.css'; // Reuse the profile styles
+import './InstructorDashboard.css'; // Keep dashboard specific overrides if any
 
 export default function InstructorDashboard({ user }) {
-  const { loading, instructorProfile, ratings, stats, chartData, replyToFeedback } = useInstructorData(user);
+  // Use the same hook as the public profile
+  const { 
+    loading, 
+    profile, 
+    stats, 
+    feedbacks, 
+    badges, 
+    chartData, 
+    updateProfile, 
+    postReply,
+    deleteReply,
+    voteReply,
+    toggleLike
+  } = useInstructorProfile(user?.uid);
+
   const [showEditProfile, setShowEditProfile] = useState(false);
   const navigate = useNavigate();
 
+  // Enforce dark mode for premium aesthetic
+  const isDarkMode = true;
+
   if (loading) {
-      return <div className="loader-container"><div className="glass-panel" style={{padding:40}}>Loading Instructor Dashboard...</div></div>;
+      return (
+        <div className={`profile-page-container ${!isDarkMode ? 'light-mode' : ''}`} style={{display:'flex', justifyContent:'center', alignItems:'center', minHeight: '50vh'}}>
+            <div className="glass-card" style={{padding:40}}>Loading Instructor Dashboard...</div>
+        </div>
+      );
   }
 
   const handleToolAction = (action) => {
@@ -38,53 +63,63 @@ export default function InstructorDashboard({ user }) {
   };
 
   return (
-    <div className="instructor-dashboard fade-in">
-      {/* Header */}
-      <div className="glass-panel instructor-header">
-        <div className="profile-ring">
-            <img 
-                src={instructorProfile.photoURL || `https://ui-avatars.com/api/?name=${instructorProfile.name}&background=random`} 
-                alt="Profile" 
-                className="profile-img"
-            />
-        </div>
-        <div className="header-info">
-            <h1>{instructorProfile.name}</h1>
-            <p>{instructorProfile.department} Department</p>
-            <p style={{fontSize:'0.9rem'}}>{instructorProfile.bio}</p>
-        </div>
-        <div style={{display:'flex', gap:10, alignItems:'center'}}>
-            <RoleSwitcher />
-            <button className="edit-btn" onClick={() => setShowEditProfile(true)}>Edit Profile</button>
-        </div>
-      </div>
+    <div className={`profile-page-container ${!isDarkMode ? 'light-mode' : ''}`} style={{paddingTop: 0}}>
       
+      {/* Dashboard Header with Tools */}
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20}}>
+         <h2 style={{margin:0, background: 'linear-gradient(to right, #fff, #a5f3fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>
+            Instructor Dashboard
+         </h2>
+         <div style={{display:'flex', gap:10, alignItems:'center'}}>
+            <RoleSwitcher />
+         </div>
+      </div>
 
+      {/* Reusing Profile Header */}
+      <ProfileHeader 
+          profile={profile || { name: user.displayName, department: 'CS', bio: 'Welcome back!' }} 
+          onEdit={() => setShowEditProfile(true)} 
+          isOwnProfile={true}
+      />
 
       {/* Stats */}
-      <StatsCards stats={stats} />
+      <PerformanceMetrics stats={stats} />
 
-      {/* Charts */}
-      <ChartsSection data={chartData} />
+      {/* AI Summary */}
+      <StudentAISummary stats={stats} feedbacks={feedbacks} />
 
-      {/* Feedback & Tools */}
+      {/* Charts & Badges */}
+      <div className="mid-section">
+         <VisualCharts data={chartData} />
+         <BadgesSection badges={badges} />
+      </div>
+
+      {/* Feedback & Tools Split */}
       <div style={{display:'grid', gridTemplateColumns: '2fr 1fr', gap: 24}}>
           <div id="feedback-panel">
-              <FeedbackPanel ratings={ratings} stats={stats} onReply={replyToFeedback} />
+              <FeedbackSection 
+                  feedbacks={feedbacks} 
+                  onReply={postReply} 
+                  onLike={toggleLike}
+                  onReplyDelete={deleteReply}
+                  onReplyVote={voteReply}
+                  canReply={true}
+              />
           </div>
           <div>
-              <InstructorTools onAction={handleToolAction} />
+              <div style={{position: 'sticky', top: 20}}>
+                <InstructorTools onAction={handleToolAction} />
+              </div>
           </div>
       </div>
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
-          <div className="modal-overlay" onClick={() => setShowEditProfile(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                  <button className="close-modal-btn" onClick={() => setShowEditProfile(false)}>×</button>
-                  <EditProfile />
-              </div>
-          </div>
+          <EditProfileModal 
+              profile={profile} 
+              onSave={updateProfile} 
+              onClose={() => setShowEditProfile(false)} 
+          />
       )}
     </div>
   );
