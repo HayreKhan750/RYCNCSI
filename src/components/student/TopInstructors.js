@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 export default function TopInstructors({ instructors }) {
   const navigate = useNavigate();
 
-  if (!instructors?.length) return <div className="glass-panel" style={{padding:20, textAlign:'center', opacity:0.6}}>No data available.</div>;
+  if (!instructors?.length) return <div className="empty-state-message">No data available.</div>;
 
   return (
     <div className="discovery-grid-premium">

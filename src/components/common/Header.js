@@ -24,22 +24,34 @@ export default function Header({
   
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  // Smart Logo Logic: Redirect based on role
+  // 1. Role-Based Logo Redirection
   const handleLogoClick = () => {
-      if (user?.role === 'admin') {
-          navigate('/admin');
-      } else if (user?.role === 'instructor') {
-          navigate('/dashboard'); // Instructor Dashboard
-      } else {
-          navigate('/dashboard'); // Student Dashboard
+      if (!user) {
+          navigate('/login');
+          return;
+      }
+      
+      switch(user.role) {
+          case 'admin':
+              navigate('/admin');
+              break;
+          case 'instructor':
+              navigate('/dashboard');
+              break;
+          case 'student':
+          default:
+              navigate('/dashboard');
+              break;
       }
   };
 
-  // Smart Back Button Logic
-  // Hide on main dashboards to prevent "back to login" weirdness
-  const isMainPage = ['/', '/dashboard', '/admin'].includes(location.pathname);
-  const shouldShowBack = showBack && !isMainPage;
+  // 2. Smart Back Button Logic
+  // Hide on root pages to prevent awkward navigation
+  const rootPages = ['/', '/dashboard', '/admin', '/login', '/signup'];
+  const isRootPage = rootPages.includes(location.pathname);
+  const shouldShowBack = showBack && !isRootPage;
 
+  // 3. Logout Flow
   const handleLogoutConfirm = () => {
     setIsLogoutModalOpen(false);
     dispatch(logoutUser()).then(() => {
@@ -49,60 +61,74 @@ export default function Header({
 
   return (
     <>
-    <header className={`nav-header glass-header ${mode}`}>
-      {/* Left: Logo & Back */}
-      <div className="header-left">
-        {shouldShowBack && (
-            <button onClick={goBack} className="back-btn" aria-label="Go Back" title="Go Back">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-            </button>
-        )}
-        
-        <div className="logo-area" onClick={handleLogoClick} title="Go to Dashboard">
-            <div className="logo-icon">⚡</div>
-            <span className="logo-text">CNCS Rate</span>
+      <header className={`nav-header glass-header ${mode}`} role="banner">
+        {/* Left Section: Navigation & Identity */}
+        <div className="header-left">
+          {shouldShowBack && (
+              <button 
+                  onClick={goBack} 
+                  className="back-btn" 
+                  aria-label="Go Back" 
+                  title="Go Back"
+              >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 18l-6-6 6-6"/>
+                  </svg>
+              </button>
+          )}
+          
+          <div 
+              className="logo-area" 
+              onClick={handleLogoClick} 
+              role="button" 
+              tabIndex={0}
+              title="Return to Dashboard"
+              onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
+          >
+              <div className="logo-icon">⚡</div>
+              <span className="logo-text">CNCS Rate</span>
+          </div>
         </div>
 
-        {title && <div className="header-divider"></div>}
-        {title && <h1 className="header-title">{title}</h1>}
-      </div>
+        {/* Center Section: Context / Title */}
+        <div className="header-center">
+            {title && <h1 className="header-title">{title}</h1>}
+            {children}
+        </div>
 
-      {/* Center: Context/Children */}
-      <div className="header-center">
-          {children}
-      </div>
+        {/* Right Section: Actions */}
+        <div className="header-right">
+          <button 
+              className="theme-toggle" 
+              onClick={() => dispatch(toggleTheme())}
+              title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+              aria-label="Toggle Theme"
+          >
+              {isDark ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              )}
+          </button>
 
-      {/* Right: Actions */}
-      <div className="header-right">
-        <button 
-            className="theme-toggle" 
-            onClick={() => dispatch(toggleTheme())}
-            title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
-            aria-label="Toggle Theme"
-        >
-            {isDark ? '🌙' : '☀'}
-        </button>
+          {showLogout && (
+              <button 
+                  onClick={() => setIsLogoutModalOpen(true)} 
+                  className="logout-btn"
+                  title="Sign Out"
+              >
+                  Logout
+              </button>
+          )}
+        </div>
+      </header>
 
-        {showLogout && (
-            <button 
-                onClick={() => setIsLogoutModalOpen(true)} 
-                className="action-btn-small logout-btn"
-                title="Sign Out"
-            >
-                Logout
-            </button>
-        )}
-      </div>
-    </header>
-
-    <LogoutModal 
-        isOpen={isLogoutModalOpen} 
-        onClose={() => setIsLogoutModalOpen(false)} 
-        onConfirm={handleLogoutConfirm}
-        isDark={isDark}
-    />
+      <LogoutModal 
+          isOpen={isLogoutModalOpen} 
+          onClose={() => setIsLogoutModalOpen(false)} 
+          onConfirm={handleLogoutConfirm}
+          isDark={isDark}
+      />
     </>
   );
 }

@@ -10,9 +10,17 @@ const ThemeProvider = ({ children }) => {
     dispatch(initializeTheme());
   }, [dispatch]);
 
-  // Also ensure it updates if mode changes externally or via other means
   useEffect(() => {
+    // Sync theme to DOM immediately when mode changes
     document.documentElement.setAttribute('data-theme', mode);
+    // Also update body class for legacy CSS support if needed
+    if (mode === 'dark') {
+        document.body.classList.add('dark');
+        document.body.classList.remove('light');
+    } else {
+        document.body.classList.add('light');
+        document.body.classList.remove('dark');
+    }
   }, [mode]);
 
   return <>{children}</>;
