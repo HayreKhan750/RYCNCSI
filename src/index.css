@@ -143,28 +143,44 @@ code {
 .premium-card:hover {
   transform: translateY(-8px) scale(1.02);
   border-color: var(--primary);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.1);
 }
 
-.premium-card.rank-1 { border-color: rgba(251, 191, 36, 0.5); }
-.premium-card.rank-2 { border-color: rgba(148, 163, 184, 0.5); }
-.premium-card.rank-3 { border-color: rgba(180, 83, 9, 0.5); }
+.premium-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--primary-gradient);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.premium-card:hover::before {
+  opacity: 1;
+}
+
+.premium-card.rank-1 { border-color: rgba(251, 191, 36, 0.3); }
+.premium-card.rank-2 { border-color: rgba(148, 163, 184, 0.3); }
+.premium-card.rank-3 { border-color: rgba(180, 83, 9, 0.3); }
 
 .rank-badge-premium {
   position: absolute;
   top: 0;
   right: 0;
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: white;
   z-index: 5;
   background: var(--primary-gradient);
-  border-bottom-left-radius: 24px;
+  border-bottom-left-radius: 20px;
   box-shadow: -4px 4px 12px rgba(0,0,0,0.1);
 }
 
@@ -173,7 +189,7 @@ code {
 .rank-badge-premium.rank-3 { background: linear-gradient(135deg, #d97706, #92400e); }
 
 .card-content {
-  padding: 30px 24px 24px;
+  padding: 32px 24px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -201,7 +217,7 @@ code {
   border: 4px solid var(--bg-elevated);
   position: relative;
   z-index: 2;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 
 .avatar-glow {
@@ -222,15 +238,19 @@ code {
   font-size: 1.4rem;
   font-weight: 800;
   margin: 0;
-  color: #0f172a; /* Force dark slate */
+  color: #0f172a;
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .dept-name-premium {
-  color: #334155; /* Force medium slate */
-  font-size: 0.9rem;
+  color: #64748b;
+  font-size: 0.85rem;
   margin: 4px 0 12px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
@@ -238,10 +258,11 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-root);
-  padding: 6px 12px;
+  background: rgba(241, 245, 249, 0.8);
+  padding: 8px 16px;
   border-radius: 20px;
   border: 1px solid var(--border-subtle);
+  font-weight: 600;
 }
 
 .see-more-card {
@@ -249,53 +270,65 @@ code {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--bg-elevated);
-  border: 1px dashed var(--border-subtle);
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px dashed var(--border-subtle);
   border-radius: 24px;
   cursor: pointer;
   transition: all 0.3s ease;
   min-height: 200px;
-  color: #334155; /* Force medium slate */
+  color: var(--text-secondary);
   font-weight: 600;
   gap: 12px;
 }
 
 .see-more-card:hover {
-  background: var(--bg-root);
+  background: var(--bg-elevated);
   border-color: var(--primary);
   color: var(--primary);
   transform: translateY(-4px);
+  box-shadow: var(--shadow-soft);
 }
 
 .see-more-card .arrow {
   font-size: 1.5rem;
   transition: transform 0.3s ease;
+  background: var(--primary-soft);
+  color: white;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .see-more-card:hover .arrow {
   transform: translateX(6px);
+  background: var(--primary);
 }
 
 .rating-score {
   color: #fbbf24;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 1.1rem;
 }
 
 .rating-count {
-  color: #64748b; /* Force slate 500 */
+  color: #94a3b8;
   font-size: 0.85rem;
 }
 
 .engagement-badge {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: #ec4899;
-  background: rgba(236, 72, 153, 0.1);
+  background: rgba(236, 72, 153, 0.08);
   padding: 6px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(236, 72, 153, 0.2);
+  border: 1px solid rgba(236, 72, 153, 0.15);
   margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .view-profile-btn-premium {
@@ -303,9 +336,9 @@ code {
   padding: 12px;
   margin-top: auto;
   background: transparent;
-  border: 1px solid var(--primary);
-  border-radius: 12px;
-  color: var(--primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  color: var(--text-secondary);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -314,7 +347,8 @@ code {
 .view-profile-btn-premium:hover {
   background: var(--primary);
   color: white;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 /* Reviewer Card Specifics */
@@ -336,20 +370,21 @@ code {
   font-size: 1.2rem;
   font-weight: 700;
   color: white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 2px solid white;
 }
 
 .reviewer-info h4 {
   margin: 0;
   font-size: 1.1rem;
-  color: #0f172a; /* Force dark slate */
+  color: var(--text-primary);
   font-weight: 700;
 }
 
 .reviewer-dept {
   margin: 4px 0 0;
   font-size: 0.85rem;
-  color: #334155; /* Force medium slate */
+  color: var(--text-secondary);
 }
 
 .stats-grid-premium {
@@ -360,24 +395,33 @@ code {
 }
 
 .stat-item-premium {
-  background: var(--bg-root);
+  background: rgba(241, 245, 249, 0.5);
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.premium-card:hover .stat-item-premium {
+  background: white;
+  border-color: var(--border-subtle);
 }
 
 .stat-val {
-  font-weight: 700;
-  color: #0f172a; /* Force dark slate */
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
 .stat-lbl {
-  font-size: 0.75rem;
-  color: #64748b; /* Force slate 500 */
+  font-size: 0.7rem;
+  color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .small-btn {
@@ -387,20 +431,61 @@ code {
   padding: 10px;
 }
 
-/* Dark Mode Overrides for Premium Cards */
-[data-theme="dark"] .instructor-name-gradient,
-[data-theme="dark"] .reviewer-info h4,
-[data-theme="dark"] .stat-val {
-  color: var(--text-primary);
+/* New Premium Button Style for "See More" */
+.btn-premium-glass {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  padding: 10px 24px;
+  border-radius: 50px;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
 }
 
-[data-theme="dark"] .dept-name-premium,
-[data-theme="dark"] .reviewer-dept,
+.btn-premium-glass:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .instructor-name-gradient {
+  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="dark"] .rating-pill,
+[data-theme="dark"] .stat-item-premium {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .premium-card:hover .stat-item-premium {
+  background: rgba(30, 41, 59, 0.8);
+}
+
 [data-theme="dark"] .see-more-card {
-  color: var(--text-secondary);
+  background: rgba(30, 41, 59, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-[data-theme="dark"] .rating-count,
-[data-theme="dark"] .stat-lbl {
-  color: var(--text-muted);
+[data-theme="dark"] .btn-premium-glass {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--primary-soft);
+}
+
+[data-theme="dark"] .btn-premium-glass:hover {
+  background: var(--primary);
+  color: white;
 }

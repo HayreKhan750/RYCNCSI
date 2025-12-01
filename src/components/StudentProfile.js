@@ -12,7 +12,7 @@ import './Profile.css';
 
 import { useParams } from 'react-router-dom';
 
-export default function StudentProfile() {
+export default function StudentProfile({ showHeader = true }) {
   const { user } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
   const isDarkMode = mode === 'dark';
@@ -43,7 +43,7 @@ export default function StudentProfile() {
   if (error) return <div className="error-screen">Error: {error}</div>;
   return (
     <div className={`student-profile-page ${!isDarkMode ? 'light-mode' : ''}`}>
-      <Header user={user} isDark={isDarkMode} />
+      {showHeader && <Header user={user} isDark={isDarkMode} />}
       
       <ProfileHeader 
         profile={profile} 

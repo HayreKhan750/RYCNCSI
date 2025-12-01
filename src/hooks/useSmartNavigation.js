@@ -35,18 +35,16 @@ export const useSmartNavigation = () => {
   }, [dispatch, location.pathname, navigate]);
 
   // 3. Smart Back Function
+  // 3. Smart Back Function
   const goBack = useCallback(() => {
-    // Save current scroll just in case we return forward
-    dispatch(saveScrollPosition({ path: location.pathname, position: window.scrollY }));
-    
-    if (previousRoute) {
-        dispatch(popRoute());
-        navigate(previousRoute);
+    // Standard browser back behavior
+    if (window.history.state && window.history.state.idx > 0) {
+        navigate(-1);
     } else {
-        // Fallback if no history
-        navigate(-1); 
+        // Fallback if no history (e.g. opened link in new tab)
+        navigate('/dashboard'); 
     }
-  }, [dispatch, location.pathname, navigate, previousRoute]);
+  }, [navigate]);
 
   return { smartNavigate, goBack };
 };

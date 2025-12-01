@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toggleTheme } from '../../store/slices/themeSlice';
 import { logoutUser } from '../../store/slices/authSlice';
 import { useSmartNavigation } from '../../hooks/useSmartNavigation';
-import LogoutModal from './LogoutModal';
 import './Header.css';
 
 export default function Header({ 
     title, 
     showBack = true, 
     showLogout = true, 
+    onLogoClick,
     children 
 }) {
   const dispatch = useDispatch();
@@ -22,10 +22,13 @@ export default function Header({
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
   
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-
   // 1. Role-Based Logo Redirection
   const handleLogoClick = () => {
+      if (onLogoClick) {
+          onLogoClick();
+          return;
+      }
+
       if (!user) {
           navigate('/login');
           return;
@@ -47,16 +50,18 @@ export default function Header({
 
   // 2. Smart Back Button Logic
   // Hide on root pages to prevent awkward navigation
-  const rootPages = ['/', '/dashboard', '/admin', '/login', '/signup'];
+  const rootPages = ['/', '/login', '/signup']; // Removed /dashboard to allow sub-views to show back button
   const isRootPage = rootPages.includes(location.pathname);
+  // If showBack is explicitly false, hide it. Otherwise, show it unless it's a root page.
   const shouldShowBack = showBack && !isRootPage;
 
   // 3. Logout Flow
-  const handleLogoutConfirm = () => {
-    setIsLogoutModalOpen(false);
-    dispatch(logoutUser()).then(() => {
-        navigate('/login');
-    });
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to log out?")) {
+        dispatch(logoutUser()).then(() => {
+            navigate('/login');
+        });
+    }
   };
 
   return (
@@ -113,7 +118,7 @@ export default function Header({
 
           {showLogout && (
               <button 
-                  onClick={() => setIsLogoutModalOpen(true)} 
+                  onClick={handleLogout} 
                   className="logout-btn"
                   title="Sign Out"
               >
@@ -122,13 +127,6 @@ export default function Header({
           )}
         </div>
       </header>
-
-      <LogoutModal 
-          isOpen={isLogoutModalOpen} 
-          onClose={() => setIsLogoutModalOpen(false)} 
-          onConfirm={handleLogoutConfirm}
-          isDark={isDark}
-      />
     </>
   );
 }

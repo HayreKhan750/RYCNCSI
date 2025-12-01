@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logoutUser, setUser } from '../store/slices/authSlice'; // setUser for role switch dev tool
+import { setUser } from '../store/slices/authSlice'; // setUser for role switch dev tool
 import { toggleTheme } from '../store/slices/themeSlice';
 import DashboardHome from './student-dashboard/DashboardHome';
 import RateCourses from './student-dashboard/RateCourses';
@@ -16,11 +16,18 @@ import Header from './common/Header';
 export default function Dashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const { user, loading } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
   
-  const [activeView, setActiveView] = useState('home');
+  // Initialize activeView from URL param or default to 'home'
+  const activeView = searchParams.get('view') || 'home';
+
+  // Helper to switch views while preserving other params if needed (though usually view switch resets context)
+  const setActiveView = (view) => {
+      setSearchParams({ view });
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -64,7 +71,7 @@ export default function Dashboard() {
       case 'my-ratings':
         return <MyRatings user={user} />;
       case 'profile':
-        return <StudentProfile />;
+        return <StudentProfile showHeader={false} />;
       case 'feedback':
         return <div className="glass-card" style={{padding:40, textAlign:'center'}}>Feedback & Replies Module Coming Soon</div>;
       case 'home':
@@ -73,9 +80,28 @@ export default function Dashboard() {
     }
   };
 
+  // Show back button if we are not on the home view
+  const showBack = activeView !== 'home';
+
+  // Dynamic Header Title
+  const getHeaderTitle = () => {
+      switch(activeView) {
+          case 'rate': return 'Rate Instructors';
+          case 'my-ratings': return 'My Ratings';
+          case 'profile': return 'My Profile';
+          case 'feedback': return 'My Feedback';
+          case 'home':
+          default: return 'Student Dashboard';
+      }
+  };
+
   return (
     <div className={`dashboard-wrapper ${mode}`}>
-      <Header title="Student Dashboard" showBack={false} />
+      <Header 
+        title={getHeaderTitle()} 
+        showBack={showBack} 
+        onLogoClick={() => setActiveView('home')}
+      />
 
       <div className="dashboard-content fade-in">
         {renderContent()}

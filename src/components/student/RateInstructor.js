@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { useSelector } from 'react-redux';
 import scheduleData from '../../assets/my-file.optimized.json';
-import '../RatingFeedback.css';
+import '../../styles/RatingPage.css';
 
 const profanityBlocked = (text) => {
   if (!text) return false;
@@ -217,15 +217,15 @@ export default function RateInstructor() {
   };
 
   return (
-    <div className="rating-feedback-container premium-container" style={{maxWidth: '800px', margin: '40px auto', padding: '0 20px'}}>
-      <div className="premium-card" style={{padding: '40px', background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)'}}>
-          <h2 style={{textAlign: 'center', fontSize: '2.5rem', fontWeight: '800', marginBottom: '30px', background: 'linear-gradient(to right, #fff, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Rate Instructor</h2>
+    <div className="rating-page-container">
+      <div className="premium-card">
+          <h2 className="rating-title">Rate Instructor</h2>
 
           {/* Filters */}
-          <div className="form-grid" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px'}}>
+          <div className="form-grid">
               <div className="section-selector">
-                <label style={{display: 'block', marginBottom: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '600'}}>Department</label>
-                <select className="premium-input" value={deptId} onChange={e=>setDeptId(e.target.value)} style={{width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem'}}>
+                <label className="form-label">Department</label>
+                <select className="premium-input" value={deptId} onChange={e=>setDeptId(e.target.value)}>
                   <option value="">-- Select Department --</option>
                   {departments.map(d => (
                     <option key={d.id} value={d.id}>{d.name}</option>
@@ -234,8 +234,8 @@ export default function RateInstructor() {
               </div>
 
               <div className="section-selector">
-                <label style={{display: 'block', marginBottom: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '600'}}>Course</label>
-                <select className="premium-input" value={courseId} onChange={e=>setCourseId(e.target.value)} disabled={!deptId} style={{width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', opacity: !deptId ? 0.5 : 1}}>
+                <label className="form-label">Course</label>
+                <select className="premium-input" value={courseId} onChange={e=>setCourseId(e.target.value)} disabled={!deptId}>
                   <option value="">-- Select Course --</option>
                   {sections.map(s => {
                     const c = coursesById[s.courseId];
@@ -249,8 +249,8 @@ export default function RateInstructor() {
           </div>
 
           <div className="section-selector" style={{marginBottom: '40px'}}>
-            <label style={{display: 'block', marginBottom: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: '600'}}>Instructor (Sorted by Rating)</label>
-            <select className="premium-input" value={instructorId} onChange={e=>setInstructorId(e.target.value)} disabled={!courseId} style={{width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', opacity: !courseId ? 0.5 : 1}}>
+            <label className="form-label">Instructor (Sorted by Rating)</label>
+            <select className="premium-input" value={instructorId} onChange={e=>setInstructorId(e.target.value)} disabled={!courseId}>
               <option value="">-- Select Instructor --</option>
               {instructors.map(i => (
                 <option key={i.id} value={i.id}>
@@ -261,53 +261,42 @@ export default function RateInstructor() {
           </div>
 
           {selectedCourse && (
-            <div className="rating-form animate-fade-in">
-              <h3 style={{fontSize: '1.5rem', marginBottom: '20px', color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px'}}>{selectedCourse.title}</h3>
+            <div className="rating-form">
+              <h3 className="course-title">{selectedCourse.title}</h3>
               
-              <div className="overall-score" style={{textAlign: 'center', marginBottom: '30px'}}>
-                  <div style={{fontSize: '3rem', fontWeight: '800', color: '#fbbf24', textShadow: '0 0 20px rgba(251, 191, 36, 0.4)'}}>{overall || 0}</div>
-                  <div style={{color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.8rem'}}>Overall Rating</div>
+              <div className="overall-score">
+                  <div className="overall-value">{overall || 0}</div>
+                  <div className="overall-label">Overall Rating</div>
               </div>
 
-              <div className="criteria-grid" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px'}}>
+              <div className="criteria-grid">
                   {Object.keys(ratings).map(key => (
-                      <div key={key} className="form-group" style={{background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px'}}>
-                        <label style={{display: 'block', marginBottom: '10px', textTransform: 'capitalize', color: 'rgba(255,255,255,0.8)'}}>{key}</label>
+                      <div key={key} className="criteria-item">
+                        <label className="criteria-label">{key}</label>
                         <StarRow value={ratings[key]} onSelect={(v)=>setStar(key, v)} />
                       </div>
                   ))}
               </div>
 
-              <div className="form-group" style={{marginBottom: '30px'}}>
-                <label style={{display: 'block', marginBottom: '10px', color: 'rgba(255,255,255,0.8)'}}>Comment (optional)</label>
+              <div className="form-group">
+                <label className="form-label">Comment (optional)</label>
                 <textarea
                   className="premium-input"
                   rows={4}
                   value={comment}
                   onChange={e=>setComment(e.target.value)}
                   placeholder="Share your experience..."
-                  style={{width: '100%', padding: '15px', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '1rem', resize: 'vertical'}}
+                  style={{resize: 'vertical'}}
                 />
               </div>
 
-              <div className="form-group" style={{marginBottom: '40px'}}>
-                <label style={{display: 'block', marginBottom: '10px', color: 'rgba(255,255,255,0.8)'}}>Tags (optional)</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div className="form-group">
+                <label className="form-label">Tags (optional)</label>
+                <div className="tags-container">
                   {tagOptions.map(t => {
                     const checked = tags.includes(t);
                     return (
-                      <label key={t} style={{ 
-                          display: 'inline-flex', 
-                          alignItems: 'center', 
-                          gap: 6, 
-                          padding: '8px 16px', 
-                          borderRadius: '20px', 
-                          cursor: 'pointer',
-                          background: checked ? 'var(--neon-primary)' : 'rgba(255,255,255,0.05)',
-                          border: checked ? '1px solid var(--neon-primary)' : '1px solid rgba(255,255,255,0.1)',
-                          color: checked ? 'white' : 'rgba(255,255,255,0.6)',
-                          transition: 'all 0.2s ease'
-                      }}>
+                      <label key={t} className={`tag-label ${checked ? 'checked' : ''}`}>
                         <input type="checkbox" checked={checked} onChange={() => {
                           setTags(prev => checked ? prev.filter(x => x !== t) : [...prev, t]);
                         }} style={{display: 'none'}} />
@@ -318,17 +307,17 @@ export default function RateInstructor() {
                 </div>
               </div>
 
-              <div className="form-actions" style={{display: 'flex', gap: '20px'}}>
-                <button className="save-button" disabled={loading} onClick={submit} style={{flex: 1, padding: '15px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--neon-primary), var(--neon-secondary))', border: 'none', color: 'white', fontWeight: '700', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 30px rgba(99, 102, 241, 0.4)'}}>
+              <div className="form-actions">
+                <button className="save-button" disabled={loading} onClick={submit}>
                     {loading ? 'Submitting…' : 'Submit Feedback'}
                 </button>
-                <button className="cancel-button" disabled={loading} onClick={()=>{ setCourseId(''); setComment(''); setRatings({ clarity:0, engagement:0, organization:0, fairness:0, punctuality:0 }); }} style={{padding: '15px 30px', borderRadius: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontWeight: '600', cursor: 'pointer'}}>
+                <button className="cancel-button" disabled={loading} onClick={()=>{ setCourseId(''); setComment(''); setRatings({ clarity:0, engagement:0, organization:0, fairness:0, punctuality:0 }); }}>
                     Cancel
                 </button>
               </div>
 
-              {error && <div className="error" style={{ marginTop: 20, padding: '15px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '12px', color: '#fca5a5', textAlign: 'center' }}>{error}</div>}
-              {success && <div className="success" style={{ marginTop: 20, padding: '15px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', color: '#6ee7b7', textAlign: 'center' }}>{success}</div>}
+              {error && <div className="error-msg">{error}</div>}
+              {success && <div className="success-msg">{success}</div>}
             </div>
           )}
 
@@ -344,19 +333,12 @@ export default function RateInstructor() {
 
 function StarRow({ value, onSelect }) {
   return (
-    <div className="star-rating" style={{display: 'flex', gap: '5px'}}>
+    <div className="star-rating">
       {[1,2,3,4,5].map(s => (
         <span 
             key={s} 
             className={`star ${s <= value ? 'filled' : ''}`} 
             onClick={()=>onSelect(s)}
-            style={{
-                fontSize: '1.5rem', 
-                cursor: 'pointer', 
-                color: s <= value ? '#fbbf24' : 'rgba(255,255,255,0.2)',
-                transition: 'all 0.2s ease',
-                transform: s <= value ? 'scale(1.1)' : 'scale(1)'
-            }}
         >
             ★
         </span>

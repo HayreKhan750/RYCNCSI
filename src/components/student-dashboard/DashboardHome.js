@@ -89,7 +89,7 @@ export default function DashboardHome({ user, navigateTo }) {
            <TopInstructors instructors={topInstructors} />
            <div className="section-footer">
               <button 
-                className="text-btn action-btn-text" 
+                className="btn-premium-glass" 
                 onClick={() => navigateTo('rate')} 
               >
                 See More Instructors →
@@ -102,7 +102,7 @@ export default function DashboardHome({ user, navigateTo }) {
           <div className="section-header">
               <h3>🌟 Top Reviewers</h3>
               <button 
-                className="text-btn simple-link" 
+                className="btn-premium-glass" 
                 onClick={() => navigateTo('profile')} 
               >
                 See More →

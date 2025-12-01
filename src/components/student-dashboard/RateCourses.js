@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchInstructors } from '../../store/slices/instructorSlice';
 import { selectAllInstructors, selectInstructorsLoading } from '../../store/selectors/instructorSelectors';
@@ -10,9 +10,11 @@ export default function RateCourses({ user }) {
   const instructors = useSelector(selectAllInstructors);
   const loading = useSelector(selectInstructorsLoading);
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('rating'); // 'rating', 'name', 'department'
-  const [processingId, setProcessingId] = useState(null); 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get('search') || '';
+  const sortBy = searchParams.get('sort') || 'rating'; // 'rating', 'name', 'department'
+
+  const [processingId, setProcessingId] = React.useState(null); 
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +22,11 @@ export default function RateCourses({ user }) {
         dispatch(fetchInstructors());
     }
   }, [dispatch, instructors.length]);
+
+  const updateParams = (newParams) => {
+      const current = Object.fromEntries(searchParams.entries());
+      setSearchParams({ ...current, ...newParams });
+  };
 
   const filteredAndSortedInstructors = useMemo(() => {
     let result = [...instructors];
@@ -84,7 +91,7 @@ export default function RateCourses({ user }) {
             placeholder="🔍 Search instructor or department..." 
             className="premium-input"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => updateParams({ search: e.target.value })}
             style={{
                 width: '100%', 
                 padding: '16px 24px', 
@@ -103,7 +110,7 @@ export default function RateCourses({ user }) {
         {/* Sort Controls */}
         <div style={{display:'flex', gap:'10px'}}>
             <button 
-                onClick={() => setSortBy('rating')}
+                onClick={() => updateParams({ sort: 'rating' })}
                 style={{
                     padding:'8px 16px', 
                     borderRadius:'20px', 
@@ -117,7 +124,7 @@ export default function RateCourses({ user }) {
                 ⭐ Top Rated
             </button>
             <button 
-                onClick={() => setSortBy('name')}
+                onClick={() => updateParams({ sort: 'name' })}
                 style={{
                     padding:'8px 16px', 
                     borderRadius:'20px', 
@@ -131,7 +138,7 @@ export default function RateCourses({ user }) {
                 🔤 Name
             </button>
             <button 
-                onClick={() => setSortBy('department')}
+                onClick={() => updateParams({ sort: 'department' })}
                 style={{
                     padding:'8px 16px', 
                     borderRadius:'20px', 
