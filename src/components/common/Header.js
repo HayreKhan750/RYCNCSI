@@ -57,11 +57,9 @@ export default function Header({
 
   // 3. Logout Flow
   const handleLogout = () => {
-    if (window.confirm("Are you sure you want to log out?")) {
-        dispatch(logoutUser()).then(() => {
-            navigate('/login');
-        });
-    }
+      dispatch(logoutUser()).then(() => {
+          navigate('/login');
+      });
   };
 
   return (

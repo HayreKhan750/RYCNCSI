@@ -9,6 +9,8 @@ import MyRatings from './student-dashboard/MyRatings';
 import StudentProfile from './StudentProfile';
 import InstructorDashboard from './instructor-dashboard/InstructorDashboard';
 import InstructorProfile from './instructor-profile/InstructorProfile';
+import MyFeedback from './student-dashboard/MyFeedback';
+import ReviewersDirectory from './student-dashboard/ReviewersDirectory';
 import './student-dashboard/StudentDashboard.css';
 
 import Header from './common/Header';
@@ -73,7 +75,9 @@ export default function Dashboard() {
       case 'profile':
         return <StudentProfile showHeader={false} />;
       case 'feedback':
-        return <div className="glass-card" style={{padding:40, textAlign:'center'}}>Feedback & Replies Module Coming Soon</div>;
+        return <MyFeedback user={user} />;
+      case 'reviewers':
+        return <ReviewersDirectory />;
       case 'home':
       default:
         return <DashboardHome user={user} navigateTo={setActiveView} />;
@@ -90,6 +94,7 @@ export default function Dashboard() {
           case 'my-ratings': return 'My Ratings';
           case 'profile': return 'My Profile';
           case 'feedback': return 'My Feedback';
+          case 'reviewers': return 'Top Reviewers';
           case 'home':
           default: return 'Student Dashboard';
       }

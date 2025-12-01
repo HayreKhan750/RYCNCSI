@@ -197,8 +197,8 @@
 /* Widgets Grid */
 .widgets-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
+  grid-template-columns: 1fr; /* Stack vertically as requested */
+  gap: 40px; /* Increased gap for better separation */
 }
 
 @media (max-width: 1024px) {

@@ -59,6 +59,12 @@ export default function App() {
                 </ProtectedRoute>
               } />
 
+              <Route path="/student/:id" element={
+                <ProtectedRoute>
+                  <StudentProfile />
+                </ProtectedRoute>
+              } />
+
               <Route path="/settings" element={
                 <ProtectedRoute>
                   <Settings />

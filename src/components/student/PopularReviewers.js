@@ -41,10 +41,6 @@ export default function PopularReviewers({ reviewers }) {
            </button>
         </div>
       ))}
-      <div className="see-more-card" onClick={() => navigate('/reviewers')}>
-          <span>See More</span>
-          <span className="arrow">→</span>
-      </div>
     </div>
   );
 }

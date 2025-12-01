@@ -101,14 +101,16 @@ export default function DashboardHome({ user, navigateTo }) {
         <div className="widget-section">
           <div className="section-header">
               <h3>🌟 Top Reviewers</h3>
-              <button 
-                className="btn-premium-glass" 
-                onClick={() => navigateTo('profile')} 
-              >
-                See More →
-              </button>
           </div>
           <PopularReviewers reviewers={activeReviewers.slice(0, 3)} />
+          <div className="section-footer">
+              <button 
+                className="btn-premium-glass" 
+                onClick={() => navigateTo('reviewers')} 
+              >
+                See More Reviewers →
+              </button>
+          </div>
         </div>
 
       </div>

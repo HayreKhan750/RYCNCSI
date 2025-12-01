@@ -100,5 +100,12 @@ export const authService = {
   // Auth State Listener (Callback)
   onAuthStateChanged: (callback) => {
     return onAuthStateChanged(auth, callback);
+  },
+
+  // Update User Profile Data
+  updateUserProfile: async (uid, data) => {
+    const userRef = doc(db, 'users', uid);
+    await setDoc(userRef, data, { merge: true });
+    return data;
   }
 };
