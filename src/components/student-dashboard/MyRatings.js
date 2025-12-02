@@ -1,14 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchFeedbacks, updateFeedback } from '../../store/slices/feedbackSlice';
 import { selectFeedbacksByStudentId, selectFeedbackLoading } from '../../store/selectors/feedbackSelectors';
+import PremiumModal from '../common/PremiumModal';
 
 export default function MyRatings({ user }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const ratings = useSelector((state) => selectFeedbacksByStudentId(state, user?.uid));
   const loading = useSelector(selectFeedbackLoading);
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'confirm' });
 
   useEffect(() => {
     if (user?.uid) {
@@ -16,13 +18,30 @@ export default function MyRatings({ user }) {
     }
   }, [user, dispatch]);
 
+  const confirmDelete = (feedbackId) => {
+      setModalConfig({
+          isOpen: true,
+          title: 'Delete Rating?',
+          message: 'Are you sure you want to delete this rating? This action cannot be undone.',
+          type: 'danger',
+          confirmText: 'Delete',
+          onConfirm: () => handleDelete(feedbackId)
+      });
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this rating?")) return;
     try {
       // Soft delete preference from prompt
       await dispatch(updateFeedback({ id, updates: { deleted: true } })).unwrap();
     } catch (err) {
       console.error("Failed to delete", err);
+      setModalConfig({
+          isOpen: true,
+          title: 'Error',
+          message: 'Failed to delete rating. Please try again.',
+          type: 'alert',
+          confirmText: 'OK'
+      });
     }
   };
 
@@ -64,7 +83,7 @@ export default function MyRatings({ user }) {
 
             <div className="rating-actions">
                <button className="icon-btn edit-btn" title="Edit" onClick={() => navigate(`/rate/${rating.instructorId}`)}>✎</button>
-               <button className="icon-btn delete-btn" title="Delete" onClick={() => handleDelete(rating.id)}>🗑</button>
+               <button className="icon-btn delete-btn" title="Delete" onClick={() => confirmDelete(rating.id)}>🗑</button>
             </div>
           </div>
         ))}
@@ -73,6 +92,12 @@ export default function MyRatings({ user }) {
             <div style={{textAlign:'center', padding: 40, opacity: 0.6}}>You haven't submitted any ratings yet.</div>
         )}
       </div>
+
+      <PremiumModal 
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        {...modalConfig}
+      />
     </div>
   );
 }

@@ -6,6 +6,13 @@ export default function TopInstructors({ instructors }) {
 
   if (!instructors?.length) return <div className="empty-state-message">No data available.</div>;
 
+  const getDisplayName = (inst) => {
+      if (inst.name) return inst.name;
+      if (inst.instructorName && !inst.instructorName.includes('@')) return inst.instructorName;
+      if (inst.instructorName && inst.instructorName.includes('@')) return inst.instructorName.split('@')[0];
+      return 'Instructor';
+  };
+
   return (
     <div className="discovery-grid-premium">
       {instructors.map((inst, index) => (
@@ -17,13 +24,13 @@ export default function TopInstructors({ instructors }) {
            <div className="card-content">
              <div className="avatar-container">
                 <div className="premium-avatar">
-                  {(inst.instructorName || 'I').charAt(0)}
+                  {getDisplayName(inst).charAt(0)}
                 </div>
                 <div className="avatar-glow"></div>
              </div>
              <div className="instructor-info-premium">
-                <h4 className="instructor-name-gradient">{inst.instructorName || 'Instructor'}</h4>
-                <p className="dept-name-premium">{inst.department}</p>
+                <h4 className="instructor-name-gradient">{getDisplayName(inst)}</h4>
+                <p className="dept-name-premium">{inst.department || 'General'}</p>
                 
                 <div className="rating-pill">
                    <span className="star-icon">⭐</span>

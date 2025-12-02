@@ -48,6 +48,17 @@ export function useStudentProfile(user) {
         const userSnap = await getDoc(userRef);
         const userData = userSnap.exists() ? userSnap.data() : {};
         
+        let joinedDate = 'Unknown';
+        if (userData.createdAt) {
+            if (userData.createdAt.toDate) {
+                joinedDate = userData.createdAt.toDate().toLocaleDateString();
+            } else if (typeof userData.createdAt === 'string') {
+                joinedDate = new Date(userData.createdAt).toLocaleDateString();
+            } else if (typeof userData.createdAt === 'number') {
+                joinedDate = new Date(userData.createdAt).toLocaleDateString();
+            }
+        }
+
         setProfile({
           name: userData.name || userData.displayName || user.displayName || user.email || 'Student',
           email: userData.email || user.email || '',
@@ -55,10 +66,9 @@ export function useStudentProfile(user) {
           bio: userData.bio || '',
           profilePictureUrl: userData.profilePictureUrl || userData.photoURL || user.photoURL || '',
           role: userData.role || 'Student',
-          joinedAt: userData.createdAt?.toDate ? userData.createdAt.toDate().toLocaleDateString() : 'Unknown',
+          joinedAt: joinedDate,
         });
 
-        // ... (rest of fetching logic remains same for now)
         // 2. Fetch User's Ratings
         const ratingsQ = query(
           collection(db, 'feedbacks'),
@@ -67,12 +77,52 @@ export function useStudentProfile(user) {
           limit(50)
         );
         const ratingsSnap = await getDocs(ratingsQ);
+        
+        // Pre-fetch missing instructor names
+        const missingInstructorIds = new Set();
+        ratingsSnap.docs.forEach(d => {
+            const data = d.data();
+            if (data.instructorId && !STATIC_INSTRUCTOR_MAP.has(data.instructorId) && !STATIC_INSTRUCTOR_MAP.has(data.instructorId.toLowerCase())) {
+                missingInstructorIds.add(data.instructorId);
+            }
+        });
+
+        const fetchedInstructorNames = {};
+        if (missingInstructorIds.size > 0) {
+            const ids = Array.from(missingInstructorIds);
+            // Simple batch fetch (chunking if needed, but assuming < 10 for now or using Promise.all)
+            const promises = ids.map(id => getDoc(doc(db, 'users', id)));
+            const snaps = await Promise.all(promises);
+            snaps.forEach(snap => {
+                if (snap.exists()) {
+                    const d = snap.data();
+                    fetchedInstructorNames[snap.id] = d.displayName || d.name || 'Unknown Instructor';
+                }
+            });
+        }
+
         const ratingsRows = ratingsSnap.docs.map((d) => {
             const data = d.data();
-            if (data.instructorId && STATIC_INSTRUCTOR_MAP.has(data.instructorId)) {
-                data.instructorName = STATIC_INSTRUCTOR_MAP.get(data.instructorId);
+            let instructorName = data.instructorName;
+            
+            if (!instructorName) {
+                if (data.instructorId && STATIC_INSTRUCTOR_MAP.has(data.instructorId)) {
+                    instructorName = STATIC_INSTRUCTOR_MAP.get(data.instructorId);
+                } else if (data.instructorId && STATIC_INSTRUCTOR_MAP.has(data.instructorId.toLowerCase())) {
+                    instructorName = STATIC_INSTRUCTOR_MAP.get(data.instructorId.toLowerCase());
+                } else if (data.instructorId && fetchedInstructorNames[data.instructorId]) {
+                    instructorName = fetchedInstructorNames[data.instructorId];
+                } else {
+                    instructorName = data.instructorId || 'Unknown Instructor';
+                }
             }
-            return { id: d.id, ...data };
+
+            return { 
+                id: d.id, 
+                ...data,
+                instructorName,
+                comment: data.feedback || data.comment // Ensure feedback is mapped to comment
+            };
         });
         setMyRatings(ratingsRows);
 
@@ -87,17 +137,12 @@ export function useStudentProfile(user) {
         // 4. Process Rated Instructors
         const instMap = new Map();
         ratingsRows.forEach((r) => {
-          const key = r.instructorId || r.instructorName || 'unknown';
+          const key = r.instructorId || 'unknown';
           if (!key || key === 'unknown') return;
-          
-          let name = r.instructorName;
-          if (!name && r.instructorId && STATIC_INSTRUCTOR_MAP.has(r.instructorId)) {
-              name = STATIC_INSTRUCTOR_MAP.get(r.instructorId);
-          }
           
           const existing = instMap.get(key) || {
             instructorId: r.instructorId,
-            instructorName: name || r.instructorId,
+            instructorName: r.instructorName,
             deptName: r.deptName || null,
             count: 0,
             lastRating: r.rating || 0,

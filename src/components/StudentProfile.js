@@ -75,12 +75,6 @@ export default function StudentProfile({ showHeader = true }) {
             >
                Rated Instructors
             </button>
-            <button 
-               className={`tab-btn ${activeTab === 'discovery' ? 'active' : ''}`}
-               onClick={() => setActiveTab('discovery')}
-            >
-               Discovery
-            </button>
           </>
         )}
       </div>
@@ -96,19 +90,6 @@ export default function StudentProfile({ showHeader = true }) {
         
         {activeTab === 'rated' && (
            <RatedInstructors instructors={ratedInstructors} />
-        )}
-
-        {activeTab === 'discovery' && (
-           <div className="discovery-grid">
-              <div className="discovery-section">
-                 <h3>Top Rated Instructors</h3>
-                 <TopInstructors instructors={topInstructors} />
-              </div>
-              <div className="discovery-section">
-                 <h3>Popular Reviewers</h3>
-                 <PopularReviewers reviewers={popularReviewers} />
-              </div>
-           </div>
         )}
       </div>
     </div>

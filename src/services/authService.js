@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { serializeFirestoreData } from '../utils/serialization';
 
 export const authService = {
   // Login
@@ -63,7 +64,7 @@ export const authService = {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data();
+      return serializeFirestoreData(docSnap.data());
     }
     return null;
   },
@@ -106,6 +107,6 @@ export const authService = {
   updateUserProfile: async (uid, data) => {
     const userRef = doc(db, 'users', uid);
     await setDoc(userRef, data, { merge: true });
-    return data;
+    return serializeFirestoreData(data);
   }
 };

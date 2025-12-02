@@ -2,6 +2,7 @@ import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import scheduleData from '../assets/my-file.optimized.json';
 import { fetchReplies } from '../utils/feedbackInteractions';
+import { serializeFirestoreData } from '../utils/serialization';
 
 export const instructorService = {
   // Fetch Master List (JSON + Firestore + Ratings)
@@ -186,7 +187,7 @@ export const instructorService = {
           }
       });
 
-      return mergedInstructors;
+      return serializeFirestoreData(mergedInstructors);
   },
 
   // Fetch Single Profile
@@ -421,7 +422,7 @@ export const instructorService = {
       const totalRating = ratings.reduce((acc, r) => acc + (r.rating || 0), 0);
       const avgRating = ratings.length > 0 ? (totalRating / ratings.length).toFixed(1) : (basicInfo.avgRating || 0);
 
-      return {
+      return serializeFirestoreData({
           profile: { 
               ...basicInfo, 
               avgRating, 
@@ -434,6 +435,6 @@ export const instructorService = {
           },
           ratings,
           replies: repliesMap
-      };
+      });
   }
 };

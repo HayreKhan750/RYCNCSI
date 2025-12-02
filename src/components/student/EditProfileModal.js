@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function EditProfileModal({ profile, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -10,6 +10,20 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState(profile?.profilePictureUrl);
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 300); // Wait for animation
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,99 +54,367 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
     setError('');
     try {
       await onSave(formData, imageFile);
-      onClose();
+      handleClose();
     } catch (err) {
       setError(err.message || 'Failed to save profile');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target.className === 'modal-overlay' && onClose()}>
-      <div className="modal-content glass-panel">
-        <div className="modal-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 20}}>
-          <h3 style={{margin:0, fontSize:'1.5rem'}}>Edit Profile</h3>
-          <button className="close-btn" onClick={onClose} style={{background:'none', border:'none', fontSize:'1.5rem', cursor:'pointer', color:'inherit'}}>&times;</button>
+    <div 
+      className={`modal-overlay ${isClosing ? 'fade-out' : 'fade-in'}`}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20
+      }}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
+    >
+      <div 
+        className={`modal-content ${isClosing ? 'scale-out' : 'scale-in'}`}
+        style={{
+          background: 'var(--bg-elevated)',
+          width: '100%',
+          maxWidth: '500px',
+          maxHeight: '90vh', // Limit height to viewport
+          overflowY: 'auto', // Enable vertical scrolling
+          borderRadius: '24px',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          position: 'relative',
+          scrollbarWidth: 'thin', // Firefox
+          scrollbarColor: 'var(--text-muted) transparent' // Firefox
+        }}
+      >
+        {/* Header Background */}
+        <div style={{
+          height: '120px',
+          background: 'var(--primary-gradient)',
+          position: 'relative',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: '20px'
+        }}>
+          <button 
+            onClick={handleClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              backdropFilter: 'blur(4px)',
+              transition: 'background 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+            onMouseOut={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+          >
+            &times;
+          </button>
         </div>
-        
-        <form onSubmit={handleSubmit} className="edit-profile-form">
-          <div className="form-group" style={{textAlign:'center', marginBottom: 20}}>
-            <div className="avatar-preview" style={{width: 100, height: 100, borderRadius: '50%', margin: '0 auto 10px', overflow: 'hidden', border: '3px solid var(--neon-primary)'}}>
-               {previewUrl ? (
-                  <img src={previewUrl} alt="Preview" style={{width:'100%', height:'100%', objectFit:'cover'}} />
-               ) : (
-                  <div style={{width:'100%', height:'100%', background:'#e0e7ff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem'}}>
-                      {(formData.name || 'S').charAt(0)}
-                  </div>
-               )}
+
+        {/* Profile Image & Form */}
+        <div style={{ padding: '0 32px 32px', marginTop: '-60px' }}>
+          <form onSubmit={handleSubmit}>
+            
+            {/* Avatar Upload */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
+              <div style={{ position: 'relative', group: 'avatar' }}>
+                <div style={{
+                  width: '120px',
+                  height: '120px',
+                  borderRadius: '50%',
+                  border: '4px solid var(--bg-elevated)',
+                  background: 'var(--bg-root)',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '3rem',
+                  color: 'var(--text-muted)'
+                }}>
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    (formData.name || 'U').charAt(0).toUpperCase()
+                  )}
+                </div>
+                
+                <label 
+                  style={{
+                    position: 'absolute',
+                    bottom: '5px',
+                    right: '5px',
+                    background: 'var(--primary)',
+                    color: 'white',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    border: '2px solid var(--bg-elevated)',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                  onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                  title="Change Photo"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                </label>
+              </div>
+              <h2 style={{ margin: '16px 0 4px', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Edit Profile</h2>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Update your personal details</p>
             </div>
-            <label className="upload-btn-label" style={{color: 'var(--neon-primary)', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem'}}>
-               Change Photo
-               <input type="file" accept="image/*" onChange={handleImageChange} hidden />
-            </label>
-          </div>
 
-          <div className="form-group">
-            <label style={{fontWeight:'600', fontSize:'0.9rem', marginLeft: 5}}>Full Name</label>
-            <input 
-              type="text" 
-              name="name" 
-              value={formData.name} 
-              onChange={handleChange} 
-              required 
-              className="modern-input"
-              placeholder="Enter your full name"
-            />
-          </div>
+            {/* Form Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Full Name</label>
+                <input 
+                  type="text" 
+                  name="name" 
+                  value={formData.name} 
+                  onChange={handleChange} 
+                  required 
+                  placeholder="e.g. John Doe"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-root)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s'
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'var(--border-subtle)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
 
-          <div className="form-group" style={{marginTop: 15}}>
-            <label style={{fontWeight:'600', fontSize:'0.9rem', marginLeft: 5}}>Email (Read-only)</label>
-            <input 
-              type="text" 
-              value={profile?.email || ''} 
-              disabled
-              className="modern-input"
-              style={{opacity: 0.6, cursor: 'not-allowed'}}
-            />
-          </div>
+              {/* Department */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Department</label>
+                <input 
+                  type="text" 
+                  name="department" 
+                  value={formData.department} 
+                  onChange={handleChange} 
+                  placeholder="e.g. Computer Science"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-root)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s'
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'var(--border-subtle)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
 
-          <div className="form-group" style={{marginTop: 15}}>
-            <label style={{fontWeight:'600', fontSize:'0.9rem', marginLeft: 5}}>Department</label>
-            <input 
-              type="text" 
-              name="department" 
-              value={formData.department} 
-              onChange={handleChange} 
-              className="modern-input"
-              placeholder="e.g. Computer Science"
-            />
-          </div>
+              {/* Bio */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Bio</label>
+                <textarea 
+                  name="bio" 
+                  value={formData.bio} 
+                  onChange={handleChange} 
+                  rows={3} 
+                  placeholder="Tell us a bit about yourself..."
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-root)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    resize: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                    fontFamily: 'inherit'
+                  }}
+                  onFocus={e => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'var(--border-subtle)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
 
-          <div className="form-group" style={{marginTop: 15}}>
-            <label style={{fontWeight:'600', fontSize:'0.9rem', marginLeft: 5}}>Bio</label>
-            <textarea 
-              name="bio" 
-              value={formData.bio} 
-              onChange={handleChange} 
-              rows={3} 
-              className="modern-input"
-              placeholder="Tell us about yourself..."
-            />
-          </div>
-          
-          {error && <p className="error-msg" style={{color:'#ef4444', marginTop: 10, fontSize:'0.9rem'}}>{error}</p>}
+              {/* Read-only Email */}
+              <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{profile?.email}</span>
+              </div>
 
-          <div className="modal-actions" style={{display:'flex', gap: 15, marginTop: 30}}>
-            <button type="button" className="cancel-btn" onClick={onClose} disabled={loading} style={{flex:1, padding: 12, borderRadius: 12, border:'1px solid var(--glass-border)', background:'transparent', color:'inherit', cursor:'pointer'}}>
+            </div>
+
+            {error && (
+              <div style={{ 
+                marginTop: '20px', 
+                padding: '12px', 
+                background: 'rgba(239, 68, 68, 0.1)', 
+                border: '1px solid rgba(239, 68, 68, 0.2)', 
+                borderRadius: '12px', 
+                color: 'var(--danger)', 
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                {error}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+              <button 
+                type="button" 
+                onClick={handleClose} 
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={e => {
+                  if(!loading) {
+                    e.currentTarget.style.background = 'var(--bg-root)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }
+                }}
+                onMouseOut={e => {
+                  if(!loading) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }
+                }}
+              >
                 Cancel
-            </button>
-            <button type="submit" className="save-btn" disabled={loading} style={{flex:1, padding: 12, borderRadius: 12, border:'none', background:'var(--neon-primary)', color:'white', fontWeight:'bold', cursor:'pointer'}}>
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
+              </button>
+              <button 
+                type="submit" 
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: 'var(--primary-gradient)',
+                  color: 'white',
+                  fontWeight: '600',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseOver={e => {
+                  if(!loading) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(79, 70, 229, 0.4)';
+                  }
+                }}
+                onMouseOut={e => {
+                  if(!loading) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.3)';
+                  }
+                }}
+              >
+                {loading ? (
+                  <>
+                    <span style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                      display: 'inline-block',
+                      animation: 'spin 1s linear infinite'
+                    }}></span>
+                    Saving...
+                  </>
+                ) : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes scaleOut { from { transform: scale(1); opacity: 1; } to { transform: scale(0.95); opacity: 0; } }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .fade-out { animation: fadeOut 0.3s ease-in forwards; }
+        .scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .scale-out { animation: scaleOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      `}</style>
     </div>
   );
 }

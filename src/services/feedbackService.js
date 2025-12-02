@@ -12,8 +12,10 @@ import {
   getDoc,
   increment,
   deleteDoc,
-  limit
+  limit,
+  runTransaction
 } from 'firebase/firestore';
+import { serializeFirestoreData } from '../utils/serialization';
 
 export const feedbackService = {
   // Fetch Feedbacks (Global or Filtered)
@@ -36,7 +38,7 @@ export const feedbackService = {
       }
 
       const snap = await getDocs(q);
-      return snap.docs.map(d => ({
+      return snap.docs.map(d => serializeFirestoreData({
           id: d.id,
           ...d.data(),
           timestamp: d.data().createdAt?.toMillis ? d.data().createdAt.toMillis() : Date.now()
@@ -67,7 +69,7 @@ export const feedbackService = {
       // 2. Update Instructor Stats (Optional: could be done via Cloud Function)
       // For now, we rely on re-fetching or optimistic updates.
       
-      return { id: docRef.id, ...feedbackData };
+      return { id: docRef.id, ...feedbackData, createdAt: Date.now() };
   },
 
   // Fetch Replies for a Feedback
@@ -77,7 +79,7 @@ export const feedbackService = {
           orderBy('createdAt', 'asc')
       );
       const snap = await getDocs(q);
-      return snap.docs.map(d => ({ 
+      return snap.docs.map(d => serializeFirestoreData({ 
           id: d.id, 
           ...d.data(),
           // Ensure consistent field names if legacy data exists
@@ -130,14 +132,58 @@ export const feedbackService = {
       return { feedbackId, replyId, type };
   },
 
-  // Vote/Like Feedback
-  voteFeedback: async (feedbackId, userId) => {
-      // Ideally we track votes in a subcollection to prevent duplicates
-      // For simplicity, just increment for now
+  // Toggle Like/Dislike on Feedback
+  toggleLikeReview: async (feedbackId, userId, isLike) => {
       const ref = doc(db, 'feedbacks', feedbackId);
-      await updateDoc(ref, {
-          likes: increment(1)
-      });
+      
+      try {
+        await runTransaction(db, async (transaction) => {
+          const feedbackDoc = await transaction.get(ref);
+          if (!feedbackDoc.exists()) throw new Error("Feedback not found");
+
+          const data = feedbackDoc.data();
+          if (data.studentId === userId) throw new Error("You cannot vote on your own feedback");
+
+          const likedBy = data.likedBy || [];
+          const dislikedBy = data.dislikedBy || [];
+          
+          let newLikedBy = [...likedBy];
+          let newDislikedBy = [...dislikedBy];
+
+          if (isLike) {
+            if (newLikedBy.includes(userId)) {
+              // Already liked -> Remove like (Toggle off)
+              newLikedBy = newLikedBy.filter(id => id !== userId);
+            } else {
+              // Not liked -> Add like, remove from disliked if present
+              newLikedBy.push(userId);
+              newDislikedBy = newDislikedBy.filter(id => id !== userId);
+            }
+          } else {
+            // Dislike logic
+            if (newDislikedBy.includes(userId)) {
+              // Already disliked -> Remove dislike (Toggle off)
+              newDislikedBy = newDislikedBy.filter(id => id !== userId);
+            } else {
+              // Not disliked -> Add dislike, remove from liked if present
+              newDislikedBy.push(userId);
+              newLikedBy = newLikedBy.filter(id => id !== userId);
+            }
+          }
+
+          transaction.update(ref, {
+            likedBy: newLikedBy,
+            dislikedBy: newDislikedBy,
+            likes: newLikedBy.length,
+            dislikes: newDislikedBy.length
+          });
+        });
+
+        return { feedbackId, userId, isLike };
+      } catch (error) {
+        console.error("Transaction failed: ", error);
+        throw error;
+      }
   },
 
   // Delete Feedback
@@ -150,6 +196,13 @@ export const feedbackService = {
   updateFeedback: async (feedbackId, updates) => {
       const ref = doc(db, 'feedbacks', feedbackId);
       await updateDoc(ref, updates);
-      return { id: feedbackId, ...updates };
+      
+      // Sanitize updates for Redux (remove serverTimestamp)
+      const sanitizedUpdates = { ...updates };
+      if (sanitizedUpdates.updatedAt) {
+          sanitizedUpdates.updatedAt = Date.now(); // Replace with client time
+      }
+      
+      return { id: feedbackId, ...sanitizedUpdates };
   }
 };

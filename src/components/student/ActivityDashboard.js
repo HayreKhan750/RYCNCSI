@@ -1,29 +1,91 @@
 import React, { useState } from 'react';
 import { toggleReaction, flagFeedback } from '../../utils/feedbackInteractions';
 import { useNavigate } from 'react-router-dom';
+import PremiumModal from '../common/PremiumModal';
 
 export default function ActivityDashboard({ ratings, userReactions, user }) {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'confirm' });
+  
+  // Optimistic UI state
+  const [optimisticRatings, setOptimisticRatings] = useState(ratings);
+
+  // Sync props to state when props change
+  React.useEffect(() => {
+    setOptimisticRatings(ratings);
+  }, [ratings]);
 
   const handleReaction = async (feedbackId, type) => {
       if(!user?.uid) return;
+      
+      // Find the rating
+      const ratingIndex = optimisticRatings.findIndex(r => r.id === feedbackId);
+      if (ratingIndex === -1) return;
+      const rating = optimisticRatings[ratingIndex];
+
+      // Prevent self-voting (silently)
+      if (rating.studentId === user.uid) {
+          return;
+      }
+
+      // Optimistic update
+      const currentReaction = userReactions[feedbackId]; // 'like' | 'dislike' | null
+      const isRemoving = currentReaction === type;
+      const isSwitching = currentReaction && currentReaction !== type;
+
+      const newRatings = [...optimisticRatings];
+      const target = { ...newRatings[ratingIndex] };
+
+      if (type === 'like') {
+          if (isRemoving) target.likesCount = Math.max(0, (target.likesCount || 0) - 1);
+          else {
+              target.likesCount = (target.likesCount || 0) + 1;
+              if (isSwitching) target.dislikesCount = Math.max(0, (target.dislikesCount || 0) - 1);
+          }
+      } else {
+          if (isRemoving) target.dislikesCount = Math.max(0, (target.dislikesCount || 0) - 1);
+          else {
+              target.dislikesCount = (target.dislikesCount || 0) + 1;
+              if (isSwitching) target.likesCount = Math.max(0, (target.likesCount || 0) - 1);
+          }
+      }
+      
+      setOptimisticRatings(newRatings);
+
+      // API Call
       await toggleReaction({ feedbackId, userId: user.uid, type });
   };
 
-  const handleFlag = async (feedbackId) => {
+  const openFlagModal = (feedbackId) => {
       if(!user?.uid) return;
-      const reason = window.prompt('Reason for flagging?');
-      if(reason) {
-          await flagFeedback({ feedbackId, userId: user.uid, reason, details: '' });
-      }
+      setModalConfig({
+          isOpen: true,
+          title: 'Flag Content',
+          message: 'Please provide a reason for flagging this content.',
+          type: 'input',
+          inputPlaceholder: 'e.g. Inappropriate language...',
+          confirmText: 'Submit Report',
+          onConfirm: (reason) => handleFlag(feedbackId, reason)
+      });
+  };
+
+  const handleFlag = async (feedbackId, reason) => {
+      await flagFeedback({ feedbackId, userId: user.uid, reason, details: '' });
+      setModalConfig({
+          isOpen: true,
+          title: 'Report Submitted',
+          message: 'Thank you for keeping our community safe. We will review this shortly.',
+          type: 'alert',
+          confirmText: 'Done'
+      });
   };
 
   const toggleReplies = (id) => {
       setExpandedId(expandedId === id ? null : id);
   };
 
-  if (!ratings?.length) {
+  if (!optimisticRatings?.length) {
     return (
       <div className="glass-panel" style={{padding: 40, textAlign: 'center', opacity: 0.7}}>
         <h3>No activity yet</h3>
@@ -38,7 +100,7 @@ export default function ActivityDashboard({ ratings, userReactions, user }) {
   return (
     <div className="activity-feed">
     <div className="activity-feed-premium" style={{display:'flex', flexDirection:'column', gap: 24}}>
-      {ratings.map((rating) => (
+      {optimisticRatings.map((rating) => (
         <div key={rating.id} className="premium-card activity-card-premium" style={{flexDirection:'column', padding: 0, overflow:'visible'}}>
           <div className="activity-header-premium" style={{padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
              <div className="activity-meta">
@@ -54,14 +116,14 @@ export default function ActivityDashboard({ ratings, userReactions, user }) {
           
           <div className="activity-content" style={{padding: '24px'}}>
              <h4 style={{cursor:'pointer', fontSize:'1.2rem', margin:'0 0 8px', color:'white'}} onClick={() => navigate(`/instructor/${rating.instructorId}`)}>
-                {rating.instructorName}
+                {rating.instructorName || rating.instructorId || 'Unknown Instructor'}
              </h4>
              <p className="dept-name" style={{opacity:0.6, fontSize:'0.9rem', marginBottom:16, textTransform:'uppercase', letterSpacing:'0.5px'}}>
-                {rating.deptName || rating.courseTitle}
+                {rating.deptName || rating.courseTitle || 'General'}
              </p>
              
-             {rating.comment && (
-                 <div className="activity-comment" style={{background:'rgba(0,0,0,0.2)', padding:'16px', borderRadius:'12px', fontStyle:'italic', borderLeft:'3px solid var(--neon-primary)'}}>"{rating.comment}"</div>
+             {(rating.comment || rating.feedback) && (
+                 <div className="activity-comment" style={{background:'rgba(0,0,0,0.2)', padding:'16px', borderRadius:'12px', fontStyle:'italic', borderLeft:'3px solid var(--neon-primary)'}}>"{rating.comment || rating.feedback}"</div>
              )}
              
              {rating.tags && (
@@ -85,7 +147,7 @@ export default function ActivityDashboard({ ratings, userReactions, user }) {
              <button className="action-btn-premium" onClick={() => toggleReplies(rating.id)} style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.7)', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
                 💬 {rating.replies?.length || 0} Replies
              </button>
-             <button className="action-btn-premium secondary" style={{marginLeft:'auto', color:'#ef4444', background:'transparent', border:'none', cursor:'pointer'}} onClick={() => handleFlag(rating.id)}>
+             <button className="action-btn-premium secondary" style={{marginLeft:'auto', color:'#ef4444', background:'transparent', border:'none', cursor:'pointer'}} onClick={() => openFlagModal(rating.id)}>
                 🚩 Flag
              </button>
           </div>
@@ -109,6 +171,12 @@ export default function ActivityDashboard({ ratings, userReactions, user }) {
         </div>
       ))}
     </div>
+    
+    <PremiumModal 
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        {...modalConfig}
+    />
     </div>
   );
 }

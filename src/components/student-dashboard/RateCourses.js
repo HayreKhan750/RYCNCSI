@@ -154,7 +154,7 @@ export default function RateCourses({ user }) {
         </div>
       </div>
 
-      <div className="discovery-grid-premium" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px'}}>
+      <div className="discovery-grid-premium" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px'}}>
         {filteredAndSortedInstructors.map((inst, index) => (
           <div key={inst.id || `json-${index}`} className="premium-card" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', textAlign: 'center', position:'relative', overflow:'hidden'}}>
              
@@ -178,13 +178,15 @@ export default function RateCourses({ user }) {
 
              <div className="avatar-container" style={{marginBottom: '20px'}}>
                 <div className="premium-avatar" style={{width: '80px', height: '80px', fontSize: '2rem'}}>
-                  {(inst.instructorName || 'T').charAt(0)}
+                  {(inst.instructorName || inst.name || 'T').charAt(0)}
                 </div>
                 <div className="avatar-glow"></div>
              </div>
 
              <div className="instructor-info-premium" style={{width: '100%'}}>
-                <h4 className="instructor-name-gradient" style={{fontSize: '1.3rem', marginBottom: '4px'}}>{inst.instructorName || 'Unknown Instructor'}</h4>
+                <h4 className="instructor-name-gradient" style={{fontSize: '1.3rem', marginBottom: '4px'}}>
+                    {inst.instructorName || inst.name || 'Unknown Instructor'}
+                </h4>
                 <p className="dept-name-premium" style={{marginBottom: '16px', opacity:0.7}}>{inst.department || 'General'}</p>
                 
                 <div className="rating-pill" style={{margin: '0 auto 20px'}}>
@@ -206,13 +208,13 @@ export default function RateCourses({ user }) {
 
              <div style={{display:'flex', gap:'10px', width: '100%', marginTop: 'auto'}}>
                 {inst.isRegistered && (
-                    <button className="view-profile-btn-premium" style={{flex: 1, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)'}} onClick={() => navigate(`/instructor/${inst.id}`)}>Profile</button>
+                    <button className="view-profile-btn-premium" style={{flex: 1}} onClick={() => navigate(`/instructor/${inst.id}`)}>Profile</button>
                 )}
                 <button 
-                    className="view-profile-btn-premium" 
+                    className="action-btn-premium" 
                     onClick={() => handleRateClick(inst)}
                     disabled={processingId === (inst.email || inst.name)}
-                    style={{flex: 1, background: 'linear-gradient(135deg, var(--neon-primary), var(--neon-secondary))', border: 'none', color: 'white'}}
+                    style={{flex: 1}}
                 >
                     {processingId === (inst.email || inst.name) ? '...' : 'Rate'}
                 </button>

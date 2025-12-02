@@ -141,6 +141,6 @@ export default function useDashboardData(user) {
       topInstructors, 
       activeReviewers, 
       recentActivity, 
-      loading: instructorsLoading || feedbacksLoading || loadingReviewers 
+      loading: (instructors.length === 0 && instructorsLoading) || (allFeedbacks.length === 0 && feedbacksLoading) 
   };
 }

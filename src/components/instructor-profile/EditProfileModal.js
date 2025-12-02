@@ -1,96 +1,434 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 
 export default function EditProfileModal({ profile, onSave, onClose }) {
   const [formData, setFormData] = useState({
-    bio: profile.bio || '',
-    department: profile.dept || '',
-    name: profile.name || ''
+    name: '',
+    department: '',
+    bio: ''
   });
-  const [photoFile, setPhotoFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(profile.photoURL);
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
 
-  const handleFileChange = (e) => {
-    if (e.target.files[0]) {
-      setPhotoFile(e.target.files[0]);
-      setPreviewUrl(URL.createObjectURL(e.target.files[0]));
+  useEffect(() => {
+    if (profile) {
+        setFormData({
+            name: profile.name || profile.instructorName || '',
+            department: profile.dept || profile.department || '',
+            bio: profile.bio || ''
+        });
+        setPreviewUrl(profile.profilePictureUrl || profile.photoURL || '');
+    }
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [profile]);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 300);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+          setError("Image size must be less than 5MB");
+          return;
+      }
+      setImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setError('');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.name.trim()) {
+        setError("Full Name is required");
+        return;
+    }
+
     setLoading(true);
+    setError('');
     try {
         await onSave({
-            bio: formData.bio,
-            department: formData.department, // Ensure field matches DB schema
-            name: formData.name
-        }, photoFile);
-        onClose();
+            name: formData.name,
+            department: formData.department,
+            bio: formData.bio
+        }, imageFile);
+        handleClose();
     } catch (err) {
-        alert('Failed to update profile');
-    } finally {
+        console.error(err);
+        setError('Failed to update profile');
         setLoading(false);
     }
   };
 
-  return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-       <div className="edit-modal glass-card">
-           <h2 style={{marginTop:0, marginBottom:20}}>Edit Profile</h2>
-           
-           <form onSubmit={handleSubmit}>
-               <div style={{display:'flex', flexDirection:'column', alignItems:'center', marginBottom:20}}>
-                   <div style={{width:100, height:100, borderRadius:'50%', overflow:'hidden', marginBottom:10, border:'2px solid var(--neon-blue)'}}>
-                       <img src={previewUrl || 'https://via.placeholder.com/100'} alt="Preview" style={{width:'100%', height:'100%', objectFit:'cover'}} />
+  return ReactDOM.createPortal(
+    <div 
+      className={`modal-overlay ${isClosing ? 'fade-out' : 'fade-in'}`}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 10000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20
+      }}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
+    >
+       <div 
+         className={`edit-modal glass-card ${isClosing ? 'scale-out' : 'scale-in'}`}
+         style={{
+            background: 'var(--bg-elevated)',
+            width: '100%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            borderRadius: '24px',
+            border: '1px solid var(--border-subtle)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            position: 'relative',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'var(--text-muted) transparent'
+         }}
+       >
+           {/* Header Background */}
+           <div style={{
+             height: '120px',
+             background: 'var(--primary-gradient)',
+             position: 'relative',
+             display: 'flex',
+             justifyContent: 'flex-end',
+             padding: '20px'
+           }}>
+             <button 
+               onClick={handleClose}
+               style={{
+                 background: 'rgba(255, 255, 255, 0.2)',
+                 border: 'none',
+                 borderRadius: '50%',
+                 width: '36px',
+                 height: '36px',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 color: 'white',
+                 fontSize: '1.2rem',
+                 cursor: 'pointer',
+                 backdropFilter: 'blur(4px)',
+                 transition: 'background 0.2s'
+               }}
+               onMouseOver={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+               onMouseOut={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+             >
+               &times;
+             </button>
+           </div>
+
+           {/* Profile Image & Form */}
+           <div style={{ padding: '0 32px 32px', marginTop: '-60px' }}>
+               <form onSubmit={handleSubmit}>
+                   
+                   {/* Avatar Upload */}
+                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
+                       <div style={{ position: 'relative', group: 'avatar' }}>
+                           <div style={{
+                               width: '120px',
+                               height: '120px',
+                               borderRadius: '50%',
+                               border: '4px solid var(--bg-elevated)',
+                               background: 'var(--bg-root)',
+                               overflow: 'hidden',
+                               boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                               display: 'flex',
+                               alignItems: 'center',
+                               justifyContent: 'center',
+                               fontSize: '3rem',
+                               color: 'var(--text-muted)'
+                           }}>
+                               {previewUrl ? (
+                                   <img src={previewUrl} alt="Preview" style={{width:'100%', height:'100%', objectFit:'cover'}} />
+                               ) : (
+                                   (formData.name || 'I').charAt(0).toUpperCase()
+                               )}
+                           </div>
+                           
+                           <label 
+                               style={{
+                                   position: 'absolute',
+                                   bottom: '5px',
+                                   right: '5px',
+                                   background: 'var(--primary)',
+                                   color: 'white',
+                                   width: '36px',
+                                   height: '36px',
+                                   borderRadius: '50%',
+                                   display: 'flex',
+                                   alignItems: 'center',
+                                   justifyContent: 'center',
+                                   cursor: 'pointer',
+                                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                   border: '2px solid var(--bg-elevated)',
+                                   transition: 'transform 0.2s'
+                               }}
+                               onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                               onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                               title="Change Photo"
+                           >
+                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                   <circle cx="12" cy="13" r="4"></circle>
+                               </svg>
+                               <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                           </label>
+                       </div>
+                       <h2 style={{ margin: '16px 0 4px', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Edit Profile</h2>
+                       <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Update your instructor details</p>
                    </div>
-                   <label style={{cursor:'pointer', color:'var(--neon-blue)', fontSize:'0.9rem'}}>
-                       Change Photo
-                       <input type="file" hidden onChange={handleFileChange} accept="image/*" />
-                   </label>
-               </div>
 
-               <div style={{marginBottom:15}}>
-                   <label style={{display:'block', marginBottom:5, fontSize:'0.9rem', opacity:0.8}}>Full Name</label>
-                   <input 
-                      type="text" 
-                      className="modern-input" 
-                      value={formData.name} 
-                      onChange={e => setFormData({...formData, name: e.target.value})}
-                      style={{width:'100%'}}
-                   />
-               </div>
+                   {/* Form Fields */}
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                       
+                       {/* Name */}
+                       <div>
+                           <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Full Name</label>
+                           <input 
+                               type="text" 
+                               name="name" 
+                               value={formData.name} 
+                               onChange={handleChange} 
+                               required 
+                               placeholder="e.g. Dr. Sarah Smith"
+                               style={{
+                                   width: '100%',
+                                   padding: '12px 16px',
+                                   borderRadius: '12px',
+                                   border: '1px solid var(--border-subtle)',
+                                   background: 'var(--bg-root)',
+                                   color: 'var(--text-primary)',
+                                   fontSize: '0.95rem',
+                                   outline: 'none',
+                                   transition: 'border-color 0.2s, box-shadow 0.2s'
+                               }}
+                               onFocus={e => {
+                                   e.target.style.borderColor = 'var(--primary)';
+                                   e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                               }}
+                               onBlur={e => {
+                                   e.target.style.borderColor = 'var(--border-subtle)';
+                                   e.target.style.boxShadow = 'none';
+                               }}
+                           />
+                       </div>
 
-               <div style={{marginBottom:15}}>
-                   <label style={{display:'block', marginBottom:5, fontSize:'0.9rem', opacity:0.8}}>Department</label>
-                   <input 
-                      type="text" 
-                      className="modern-input" 
-                      value={formData.department} 
-                      onChange={e => setFormData({...formData, department: e.target.value})}
-                      style={{width:'100%'}}
-                   />
-               </div>
+                       {/* Department */}
+                       <div>
+                           <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Department</label>
+                           <input 
+                               type="text" 
+                               name="department" 
+                               value={formData.department} 
+                               onChange={handleChange} 
+                               placeholder="e.g. Computer Science"
+                               style={{
+                                   width: '100%',
+                                   padding: '12px 16px',
+                                   borderRadius: '12px',
+                                   border: '1px solid var(--border-subtle)',
+                                   background: 'var(--bg-root)',
+                                   color: 'var(--text-primary)',
+                                   fontSize: '0.95rem',
+                                   outline: 'none',
+                                   transition: 'border-color 0.2s, box-shadow 0.2s'
+                               }}
+                               onFocus={e => {
+                                   e.target.style.borderColor = 'var(--primary)';
+                                   e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                               }}
+                               onBlur={e => {
+                                   e.target.style.borderColor = 'var(--border-subtle)';
+                                   e.target.style.boxShadow = 'none';
+                               }}
+                           />
+                       </div>
 
-               <div style={{marginBottom:20}}>
-                   <label style={{display:'block', marginBottom:5, fontSize:'0.9rem', opacity:0.8}}>Bio</label>
-                   <textarea 
-                      className="modern-input" 
-                      rows="4"
-                      value={formData.bio} 
-                      onChange={e => setFormData({...formData, bio: e.target.value})}
-                      style={{width:'100%'}}
-                   />
-               </div>
+                       {/* Bio */}
+                       <div>
+                           <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Bio</label>
+                           <textarea 
+                               name="bio" 
+                               value={formData.bio} 
+                               onChange={handleChange} 
+                               rows={4} 
+                               placeholder="Tell students about your expertise and teaching philosophy..."
+                               style={{
+                                   width: '100%',
+                                   padding: '12px 16px',
+                                   borderRadius: '12px',
+                                   border: '1px solid var(--border-subtle)',
+                                   background: 'var(--bg-root)',
+                                   color: 'var(--text-primary)',
+                                   fontSize: '0.95rem',
+                                   outline: 'none',
+                                   resize: 'vertical',
+                                   transition: 'border-color 0.2s, box-shadow 0.2s',
+                                   fontFamily: 'inherit'
+                               }}
+                               onFocus={e => {
+                                   e.target.style.borderColor = 'var(--primary)';
+                                   e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
+                               }}
+                               onBlur={e => {
+                                   e.target.style.borderColor = 'var(--border-subtle)';
+                                   e.target.style.boxShadow = 'none';
+                               }}
+                           />
+                       </div>
 
-               <div style={{display:'flex', justifyContent:'flex-end', gap:10}}>
-                   <button type="button" onClick={onClose} style={{padding:'10px 20px', background:'transparent', border:'1px solid rgba(255,255,255,0.2)', color:'inherit', borderRadius:8, cursor:'pointer'}}>Cancel</button>
-                   <button type="submit" disabled={loading} style={{padding:'10px 20px', background:'var(--neon-blue)', border:'none', borderRadius:8, fontWeight:'bold', cursor:'pointer', color:'#000'}}>
-                       {loading ? 'Saving...' : 'Save Changes'}
-                   </button>
-               </div>
-           </form>
+                       {/* Read-only Email */}
+                       <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                               <polyline points="22,6 12,13 2,6"></polyline>
+                           </svg>
+                           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{profile?.email}</span>
+                       </div>
+
+                   </div>
+
+                   {error && (
+                       <div style={{ 
+                           marginTop: '20px', 
+                           padding: '12px', 
+                           background: 'rgba(239, 68, 68, 0.1)', 
+                           border: '1px solid rgba(239, 68, 68, 0.2)', 
+                           borderRadius: '12px', 
+                           color: 'var(--danger)', 
+                           fontSize: '0.9rem',
+                           display: 'flex',
+                           alignItems: 'center',
+                           gap: '8px'
+                       }}>
+                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                               <circle cx="12" cy="12" r="10"></circle>
+                               <line x1="12" y1="8" x2="12" y2="12"></line>
+                               <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                           </svg>
+                           {error}
+                       </div>
+                   )}
+
+                   {/* Actions */}
+                   <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+                       <button 
+                           type="button" 
+                           onClick={handleClose} 
+                           disabled={loading}
+                           style={{
+                               flex: 1,
+                               padding: '14px',
+                               borderRadius: '14px',
+                               border: '1px solid var(--border-subtle)',
+                               background: 'transparent',
+                               color: 'var(--text-secondary)',
+                               fontWeight: '600',
+                               cursor: 'pointer',
+                               transition: 'all 0.2s'
+                           }}
+                           onMouseOver={e => {
+                               if(!loading) {
+                                   e.currentTarget.style.background = 'var(--bg-root)';
+                                   e.currentTarget.style.color = 'var(--text-primary)';
+                               }
+                           }}
+                           onMouseOut={e => {
+                               if(!loading) {
+                                   e.currentTarget.style.background = 'transparent';
+                                   e.currentTarget.style.color = 'var(--text-secondary)';
+                               }
+                           }}
+                       >
+                           Cancel
+                       </button>
+                       <button 
+                           type="submit" 
+                           disabled={loading}
+                           style={{
+                               flex: 1,
+                               padding: '14px',
+                               borderRadius: '14px',
+                               border: 'none',
+                               background: 'var(--primary-gradient)',
+                               color: 'white',
+                               fontWeight: '600',
+                               cursor: loading ? 'not-allowed' : 'pointer',
+                               opacity: loading ? 0.7 : 1,
+                               boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
+                               transition: 'transform 0.2s, box-shadow 0.2s',
+                               display: 'flex',
+                               alignItems: 'center',
+                               justifyContent: 'center',
+                               gap: '8px'
+                           }}
+                           onMouseOver={e => {
+                               if(!loading) {
+                                   e.currentTarget.style.transform = 'translateY(-2px)';
+                                   e.currentTarget.style.boxShadow = '0 8px 16px rgba(79, 70, 229, 0.4)';
+                               }
+                           }}
+                           onMouseOut={e => {
+                               if(!loading) {
+                                   e.currentTarget.style.transform = 'translateY(0)';
+                                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.3)';
+                               }
+                           }}
+                       >
+                           {loading ? (
+                               <>
+                                   <span style={{
+                                       width: '16px',
+                                       height: '16px',
+                                       border: '2px solid white',
+                                       borderTopColor: 'transparent',
+                                       borderRadius: '50%',
+                                       display: 'inline-block',
+                                       animation: 'spin 1s linear infinite'
+                                   }}></span>
+                                   Saving...
+                               </>
+                           ) : 'Save Changes'}
+                       </button>
+                   </div>
+               </form>
+           </div>
        </div>
-    </div>
+       <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .fade-out { animation: fadeOut 0.3s ease-in forwards; }
+        .scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .scale-out { animation: scaleOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes scaleOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+      `}</style>
+    </div>,
+    document.body
   );
 }

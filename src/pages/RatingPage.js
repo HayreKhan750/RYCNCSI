@@ -12,6 +12,8 @@ import Header from '../components/common/Header';
 import '../components/student-dashboard/StudentDashboard.css';
 import '../styles/RatingPage.css';
 
+import PremiumModal from '../components/common/PremiumModal';
+
 const RatingPage = () => {
   const { instructorId } = useParams();
   const navigate = useNavigate();
@@ -29,16 +31,14 @@ const RatingPage = () => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [feedback, setFeedback] = useState('');
   const [existingRating, setExistingRating] = useState(null);
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'alert' });
 
   // Fetch Data
   useEffect(() => {
     if (!instructor) {
         dispatch(fetchInstructors());
     }
-    // Fetch feedbacks for this instructor to show reviews
     dispatch(fetchFeedbacks({ instructorId }));
-    
-    // Fetch my feedbacks to check if I already rated
     if (user?.uid) {
         dispatch(fetchFeedbacks({ studentId: user.uid }));
     }
@@ -57,17 +57,21 @@ const RatingPage = () => {
       }
   }, [myFeedbacks, instructorId]);
 
+  const showModal = (title, message, type = 'alert', onConfirm = null) => {
+      setModalConfig({ isOpen: true, title, message, type, onConfirm });
+  };
+
   const handleSubmit = async () => {
-    if (ratingValue === 0) return alert("Please select a star rating");
-    if (!user) return alert("You must be logged in to rate");
+    if (ratingValue === 0) return showModal("Rating Required", "Please select a star rating before submitting.", "alert");
+    if (!user) return showModal("Login Required", "You must be logged in to rate an instructor.", "alert");
 
     const ratingData = {
       instructorId,
       studentId: user.uid,
       studentName: user.displayName,
       ratingValue,
-      rating: ratingValue, // Alias for service compatibility
-      courseId: 'general', // Default course ID since we are rating instructor directly
+      rating: ratingValue,
+      courseId: 'general',
       tags: selectedTags,
       feedback,
       timestamp: Date.now()
@@ -76,15 +80,14 @@ const RatingPage = () => {
     try {
       if (existingRating) {
           await dispatch(updateFeedback({ id: existingRating.id, updates: ratingData })).unwrap();
-          alert("Rating updated successfully!");
+          showModal("Success!", "Your rating has been updated successfully.", "alert", () => navigate('/dashboard'));
       } else {
           await dispatch(submitFeedback(ratingData)).unwrap();
-          alert("Rating submitted successfully!");
+          showModal("Success!", "Your rating has been submitted successfully.", "alert", () => navigate('/dashboard'));
       }
-      navigate('/dashboard');
     } catch (error) {
       console.error("Error submitting rating:", error);
-      alert("Failed to submit rating. Please try again.");
+      showModal("Error", "Failed to submit rating. Please try again.", "danger");
     }
   };
 
@@ -122,34 +125,64 @@ const RatingPage = () => {
       <div className="rating-content-grid">
         {/* Rating Form */}
         <div className="rating-form-section glass-card">
-          <h2>{existingRating ? "Edit Your Rating" : "Rate this Instructor"}</h2>
+          <h2 style={{ fontSize: '1.8rem', marginBottom: '24px', background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {existingRating ? "Edit Your Rating" : "Rate this Instructor"}
+          </h2>
           
           <div className="form-group">
-            <label>Overall Rating</label>
-            <StarRating rating={ratingValue} setRating={setRatingValue} size={40} />
+            <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>Overall Rating</label>
+            <div style={{ background: 'var(--bg-root)', padding: '16px', borderRadius: '16px', display: 'inline-block', border: '1px solid var(--border-subtle)' }}>
+                <StarRating rating={ratingValue} setRating={setRatingValue} size={40} />
+            </div>
           </div>
 
           <div className="form-group">
-            <label>What was your experience like?</label>
+            <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>What was your experience like?</label>
             <TagSelector selectedTags={selectedTags} setSelectedTags={setSelectedTags} />
           </div>
 
           <div className="form-group">
-            <label>Detailed Feedback</label>
+            <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>Detailed Feedback</label>
             <textarea
-              className="feedback-input"
+              className="feedback-input premium-input"
               placeholder="Tell students about your experience..."
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               rows={5}
+              style={{
+                  width: '100%',
+                  padding: '16px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-root)',
+                  color: 'var(--text-primary)',
+                  fontSize: '1rem',
+                  lineHeight: '1.5',
+                  resize: 'vertical',
+                  outline: 'none',
+                  transition: 'all 0.3s ease',
+                  fontFamily: 'inherit',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+              }}
+              onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--primary)';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(99, 102, 241, 0.1)';
+              }}
+              onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border-subtle)';
+                  e.target.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.05)';
+              }}
             />
-            <div className="char-counter">{feedback.length} chars</div>
+            <div className="char-counter" style={{ textAlign: 'right', marginTop: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                {feedback.length} chars
+            </div>
           </div>
 
           <button 
-            className="submit-rating-btn" 
+            className="action-btn-premium" 
             onClick={handleSubmit} 
             disabled={submitting}
+            style={{ marginTop: '16px', fontSize: '1.1rem', padding: '16px' }}
           >
             {submitting ? "Submitting..." : (existingRating ? "Update Rating" : "Submit Rating")}
           </button>
@@ -164,6 +197,19 @@ const RatingPage = () => {
         </div>
       </div>
       </div>
+
+      <PremiumModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={() => {
+            if (modalConfig.onConfirm) modalConfig.onConfirm();
+            setModalConfig({ ...modalConfig, isOpen: false });
+        }}
+        confirmText="OK"
+      />
     </div>
   );
 };
