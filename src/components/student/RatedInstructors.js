@@ -12,8 +12,22 @@ export default function RatedInstructors({ instructors }) {
         <div key={inst.instructorId || inst.instructorName} className="premium-card">
            <div className="card-content">
              <div className="avatar-container">
-                <div className="premium-avatar">
-                  {(inst.instructorName || 'I').charAt(0)}
+                <div className="premium-avatar" style={{
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                }}>
+                  {inst.photoURL ? (
+                    <img 
+                        src={inst.photoURL} 
+                        alt={inst.instructorName} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                    />
+                  ) : (
+                    (inst.instructorName || 'I').charAt(0)
+                  )}
                 </div>
              </div>
 

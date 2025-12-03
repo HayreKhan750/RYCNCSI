@@ -110,7 +110,14 @@ export const instructorService = {
           // Match with Firestore
           let match = firestoreInstructors.find(f => f.email && f.email.toLowerCase() === val.email);
           if (!match) {
-              match = firestoreInstructors.find(f => f.displayName && f.displayName.toLowerCase() === val.instructorName.toLowerCase());
+              const valName = val.instructorName.toLowerCase().trim();
+              match = firestoreInstructors.find(f => {
+                  if (!f.displayName) return false;
+                  const fName = f.displayName.toLowerCase().trim();
+                  return fName === valName || 
+                         (fName.includes(valName) && valName.length > 3) || 
+                         (valName.includes(fName) && fName.length > 3);
+              });
           }
 
           if (match) {
@@ -135,7 +142,9 @@ export const instructorService = {
                   isRegistered: true,
                   avgRating,
                   ratingCount: totalCount,
-                  photo: match.photoURL || photo
+                  photo: match.photoURL || photo,
+                  photoURL: match.photoURL || photo, // Ensure photoURL is available
+                  profilePictureUrl: match.profilePictureUrl || match.photoURL || photo // Ensure profilePictureUrl is available
               });
           } else {
               const avgRating = totalCount > 0 ? totalRating / totalCount : 0;
@@ -145,7 +154,9 @@ export const instructorService = {
                   isRegistered: false,
                   avgRating,
                   ratingCount: totalCount,
-                  photo: photo
+                  photo: photo,
+                  photoURL: photo,
+                  profilePictureUrl: photo
               });
           }
       });
@@ -194,7 +205,9 @@ export const instructorService = {
                   isRegistered: true,
                   avgRating,
                   ratingCount,
-                  photo
+                  photo,
+                  photoURL: photo,
+                  profilePictureUrl: photo
               });
           }
       });
@@ -223,6 +236,8 @@ export const instructorService = {
                   email: data.email,
                   department: data.department,
                   photo: data.photoURL || data.profilePictureUrl,
+                  profilePictureUrl: data.profilePictureUrl || data.photoURL, // Ensure this is set
+                  photoURL: data.photoURL || data.profilePictureUrl, // Ensure this is set
                   bio: data.bio,
                   role: data.role
               };

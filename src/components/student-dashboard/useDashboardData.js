@@ -123,6 +123,7 @@ export default function useDashboardData(user) {
                   if (data && reviewerStats[uid]) {
                       reviewerStats[uid].name = data.displayName || data.email?.split('@')[0] || 'Student';
                       reviewerStats[uid].department = data.department || 'CNCS';
+                      reviewerStats[uid].photoURL = data.photoURL || data.profilePictureUrl; // Fetch photoURL
                   }
               });
 

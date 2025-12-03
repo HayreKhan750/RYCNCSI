@@ -11,8 +11,22 @@ export default function PopularReviewers({ reviewers }) {
       {reviewers.map((reviewer, index) => (
         <div key={reviewer.studentId} className="premium-card reviewer-card">
            <div className="card-content-row">
-               <div className="premium-avatar-small">
-                  {(reviewer.name || 'S').charAt(0)}
+               <div className="premium-avatar-small" style={{
+                   overflow: 'hidden',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   padding: 0
+               }}>
+                  {reviewer.photoURL ? (
+                    <img 
+                        src={reviewer.photoURL} 
+                        alt={reviewer.name} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                    />
+                  ) : (
+                    (reviewer.name || 'S').charAt(0)
+                  )}
                </div>
                <div className="reviewer-info">
                    <h4 className="reviewer-name">{reviewer.name || 'Student'}</h4>

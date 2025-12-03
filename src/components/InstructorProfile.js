@@ -71,7 +71,7 @@ export default function InstructorProfile() {
             totalRatings: stats.totalRatings,
             myCoursesCount: myCourses.length
         }}
-        onEdit={(!routeInstructorId || routeInstructorId === user?.uid) ? () => setIsEditing(true) : null} 
+        onEdit={(!routeInstructorId || routeInstructorId === user?.uid || (user?.email && routeInstructorId?.toLowerCase() === user.email.toLowerCase())) ? () => setIsEditing(true) : null} 
         isEditing={isEditing} 
       />
 

@@ -49,7 +49,7 @@ export default function InstructorDashboard({ user }) {
           case 'Respond to Reviews':
               document.getElementById('feedback-panel')?.scrollIntoView({ behavior: 'smooth' });
               break;
-          case 'View My Public Profile':
+          case 'View My Profile':
               if (user?.uid) navigate(`/instructor/${user.uid}`);
               break;
           case 'Download Analytics Report':
@@ -75,9 +75,6 @@ export default function InstructorDashboard({ user }) {
              <p style={{opacity:0.7, marginTop:5}}>Here's what's happening with your courses today.</p>
          </div>
          <div style={{display:'flex', gap:15, alignItems:'center'}}>
-            <button className="btn-premium-glass" onClick={() => setShowEditProfile(true)}>
-                <span>✏️</span> Edit Profile
-            </button>
             <RoleSwitcher />
          </div>
       </div>

@@ -23,8 +23,22 @@ export default function TopInstructors({ instructors }) {
            
            <div className="card-content">
              <div className="avatar-container">
-                <div className="premium-avatar">
-                  {getDisplayName(inst).charAt(0)}
+                <div className="premium-avatar" style={{
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                }}>
+                  {(inst.photoURL || inst.profilePictureUrl || inst.photo) ? (
+                    <img 
+                        src={inst.photoURL || inst.profilePictureUrl || inst.photo} 
+                        alt={getDisplayName(inst)} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                    />
+                  ) : (
+                    getDisplayName(inst).charAt(0)
+                  )}
                 </div>
                 <div className="avatar-glow"></div>
              </div>

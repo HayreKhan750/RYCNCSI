@@ -182,8 +182,25 @@ export default function RateCourses({ user }) {
              )}
 
              <div className="avatar-container" style={{marginBottom: '20px'}}>
-                <div className="premium-avatar" style={{width: '80px', height: '80px', fontSize: '2rem'}}>
-                  {(inst.instructorName || inst.name || 'T').charAt(0)}
+                <div className="premium-avatar" style={{
+                    width: '80px', 
+                    height: '80px', 
+                    fontSize: '2rem',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0
+                }}>
+                  {(inst.photoURL || inst.profilePictureUrl || inst.photo) ? (
+                    <img 
+                        src={inst.photoURL || inst.profilePictureUrl || inst.photo} 
+                        alt={inst.instructorName} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                    />
+                  ) : (
+                    (inst.instructorName || inst.name || 'T').charAt(0)
+                  )}
                 </div>
                 <div className="avatar-glow"></div>
              </div>
