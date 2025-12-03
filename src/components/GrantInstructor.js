@@ -42,7 +42,11 @@ export default function GrantInstructor() {
 
     } catch (error) {
       console.error(error);
-      setStatus('Error: ' + error.message);
+      if (error.message.includes('offline')) {
+          setStatus('Network Error: You seem to be offline. Please check your connection and try again.');
+      } else {
+          setStatus('Error: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }

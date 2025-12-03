@@ -1,9 +1,43 @@
 import React, { useState } from 'react';
+import PremiumModal from '../common/PremiumModal';
+import AdminEditUserModal from './AdminEditUserModal';
 
-export default function AdminUsers({ users, onDelete, onApprove }) {
+export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdateStatus }) {
   const [filter, setFilter] = useState('student'); // 'student' | 'instructor'
+  const [actionOpen, setActionOpen] = useState(null);
+  
+  // Modal States
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', type: 'warning', onConfirm: null });
+  const [editModal, setEditModal] = useState({ open: false, user: null });
 
   const filteredUsers = users.filter(u => u.role === filter);
+
+  const handleActionClick = (id) => {
+      setActionOpen(actionOpen === id ? null : id);
+  };
+
+  const handleEditClick = (user) => {
+      setEditModal({ open: true, user });
+      setActionOpen(null);
+  };
+
+  const handleSaveEdit = (uid, updatedData) => {
+      onUpdateStatus(uid, 'updated', updatedData); // Assuming onUpdateStatus can handle generic updates or we need a new prop
+  };
+
+  const confirmAction = (title, message, type, action) => {
+      setConfirmModal({
+          open: true,
+          title,
+          message,
+          type,
+          onConfirm: () => {
+              action();
+              setConfirmModal(prev => ({ ...prev, open: false }));
+              setActionOpen(null);
+          }
+      });
+  };
 
   return (
     <div>
@@ -26,7 +60,7 @@ export default function AdminUsers({ users, onDelete, onApprove }) {
           <input type="text" placeholder="Search users..." className="adm-search" />
       </div>
 
-      <div className="adm-glass adm-table-container">
+      <div className="adm-glass adm-table-container" style={{minHeight: 400}}>
          <table className="adm-table">
              <thead>
                  <tr>
@@ -42,37 +76,83 @@ export default function AdminUsers({ users, onDelete, onApprove }) {
                      <tr key={user.id}>
                          <td>
                              <div style={{display:'flex', alignItems:'center', gap:12}}>
-                                 <div style={{width:32, height:32, borderRadius:'50%', background:'#333', overflow:'hidden'}}>
+                                 <div style={{width:32, height:32, borderRadius:'50%', background:'#333', overflow:'hidden', flexShrink:0}}>
                                      {user.profilePictureUrl ? (
                                          <img src={user.profilePictureUrl} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}} />
                                      ) : (
-                                         <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem'}}>
-                                             {user.name?.[0] || 'U'}
+                                         <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem', color:'white'}}>
+                                             {(user.name || user.displayName || user.email || 'U').charAt(0).toUpperCase()}
                                          </div>
                                      )}
                                  </div>
-                                 <span style={{fontWeight:500}}>{user.name || 'Unknown'}</span>
+                                 <div style={{display:'flex', flexDirection:'column'}}>
+                                     <span style={{fontWeight:500}}>{user.name || user.displayName || 'Unknown User'}</span>
+                                     <span style={{fontSize:'0.75rem', opacity:0.5}}>{user.department || 'General'}</span>
+                                 </div>
                              </div>
                          </td>
                          <td>{user.email}</td>
                          <td>
-                             {filter === 'instructor' && !user.status ? (
+                             {user.isBanned ? (
+                                 <span className="status-badge danger">Banned</span>
+                             ) : user.isSuspended ? (
+                                 <span className="status-badge warning">Suspended</span>
+                             ) : filter === 'instructor' && !user.status ? (
                                  <span className="status-badge warning">Pending</span>
                              ) : (
                                  <span className="status-badge success">Active</span>
                              )}
                          </td>
                          <td style={{opacity:0.7}}>
-                            {user.createdAt?.seconds ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : '-'}
+                            {user.createdAt?.seconds ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'Unknown'}
                          </td>
-                         <td>
-                             <div style={{display:'flex', gap:8}}>
-                                 <button className="adm-btn">Edit</button>
-                                 {filter === 'instructor' && user.status !== 'approved' && (
-                                     <button className="adm-btn primary" onClick={() => onApprove(user.id)}>Approve</button>
-                                 )}
-                                 <button className="adm-btn danger" onClick={() => onDelete(user.id)}>Delete</button>
-                             </div>
+                         <td style={{position:'relative'}}>
+                             <button className="adm-btn" onClick={() => handleActionClick(user.id)}>Actions ▼</button>
+                             
+                             {actionOpen === user.id && (
+                                 <div className="adm-dropdown" style={{
+                                     position:'absolute', 
+                                     right:0, 
+                                     top:'100%', 
+                                     zIndex:10, 
+                                     background:'var(--adm-card-dark)', 
+                                     backdropFilter: 'blur(12px)',
+                                     border:'1px solid var(--adm-border-dark)', 
+                                     borderRadius:12, 
+                                     padding:8,
+                                     width: 180,
+                                     boxShadow: '0 10px 25px -5px rgba(0,0,0,0.4)',
+                                     display: 'flex',
+                                     flexDirection: 'column',
+                                     gap: 4
+                                 }}>
+                                     <button className="adm-dropdown-item" onClick={() => handleEditClick(user)}>
+                                         <span>✏️</span> Edit Details
+                                     </button>
+                                     
+                                     {filter === 'instructor' && user.status !== 'approved' && (
+                                         <button className="adm-dropdown-item success" onClick={() => confirmAction('Approve Instructor', `Are you sure you want to approve ${user.name}?`, 'success', () => onApprove(user.id))}>
+                                             <span>✅</span> Approve
+                                         </button>
+                                     )}
+                                     
+                                     {!user.isBanned && (
+                                        <button className="adm-dropdown-item danger" onClick={() => confirmAction('Ban User', `Are you sure you want to ban ${user.name}?`, 'danger', () => onUpdateStatus(user.id, 'banned', 'Admin Action'))}>
+                                            <span>🚫</span> Ban User
+                                        </button>
+                                     )}
+                                     
+                                     {user.isBanned && (
+                                        <button className="adm-dropdown-item success" onClick={() => confirmAction('Unban User', `Are you sure you want to unban ${user.name}?`, 'success', () => onUpdateStatus(user.id, 'active', 'Unbanned'))}>
+                                            <span>🔄</span> Unban
+                                        </button>
+                                     )}
+
+                                     <button className="adm-dropdown-item danger" onClick={() => confirmAction('Delete User', `Are you sure you want to delete ${user.name}? This action cannot be undone.`, 'danger', () => onDelete(user.id))}>
+                                         <span>🗑️</span> Delete
+                                     </button>
+                                 </div>
+                             )}
                          </td>
                      </tr>
                  ))}
@@ -84,6 +164,24 @@ export default function AdminUsers({ users, onDelete, onApprove }) {
              </tbody>
          </table>
       </div>
+
+      <PremiumModal 
+          isOpen={confirmModal.open}
+          onClose={() => setConfirmModal({ ...confirmModal, open: false })}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          type={confirmModal.type}
+          onConfirm={confirmModal.onConfirm}
+          confirmText="Confirm"
+          cancelText="Cancel"
+      />
+
+      <AdminEditUserModal 
+          isOpen={editModal.open}
+          onClose={() => setEditModal({ ...editModal, open: false })}
+          user={editModal.user}
+          onSave={handleSaveEdit}
+      />
     </div>
   );
 }

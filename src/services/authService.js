@@ -61,12 +61,18 @@ export const authService = {
 
   // Get User Profile from Firestore
   getUserProfile: async (uid) => {
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return serializeFirestoreData(docSnap.data());
+    try {
+      const docRef = doc(db, 'users', uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return serializeFirestoreData(docSnap.data());
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      // If offline, we might want to return a basic profile or null to avoid blocking
+      return null; 
     }
-    return null;
   },
 
   // Google Login

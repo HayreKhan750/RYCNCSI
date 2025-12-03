@@ -1,12 +1,60 @@
 import React from 'react';
 
-export default function VisualCharts({ data }) {
+export default function VisualCharts({ data, compact = false }) {
   // Data validation
   const trend = data.trend || [];
   const tags = data.tags || [];
   const distribution = data.distribution || [];
 
   const maxTagVal = Math.max(...tags.map(d => d.value), 1);
+
+  if (compact) {
+      return (
+        <div style={{height: '100%', width: '100%', padding: 20}}>
+           {/* Line Chart Only for Compact View */}
+           <h4 style={{opacity:0.7, marginBottom:10, marginTop: 0}}>Rating Trend</h4>
+           <div style={{height: 160, position:'relative', borderLeft:'1px solid var(--border-subtle)', borderBottom:'1px solid var(--border-subtle)'}}>
+               <svg viewBox="0 0 100 50" preserveAspectRatio="none" style={{width:'100%', height:'100%', overflow:'visible'}}>
+                   <defs>
+                      <linearGradient id="lineGradientCompact" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="var(--primary)" />
+                          <stop offset="100%" stopColor="var(--accent-pink)" />
+                      </linearGradient>
+                   </defs>
+                   {trend.length > 1 && (
+                       <polyline
+                           points={trend.map((d, i) => {
+                               const x = (i / (trend.length - 1)) * 100;
+                               const y = 50 - (d.value * 10);
+                               return `${x},${y}`;
+                           }).join(' ')}
+                           fill="none"
+                           stroke="url(#lineGradientCompact)"
+                           strokeWidth="2"
+                           strokeLinecap="round"
+                           filter="drop-shadow(0 0 4px rgba(99, 102, 241, 0.3))"
+                       />
+                   )}
+                   {trend.map((d, i) => (
+                       <circle 
+                          key={i} 
+                          cx={(i / (trend.length - 1)) * 100} 
+                          cy={50 - (d.value * 10)} 
+                          r="2" 
+                          fill="var(--bg-elevated)"
+                          stroke="var(--primary)"
+                          strokeWidth="1"
+                       />
+                   ))}
+               </svg>
+           </div>
+           <div style={{display:'flex', justifyContent:'space-between', marginTop:5, fontSize:'0.7rem', opacity:0.5}}>
+               <span>{trend[0]?.label}</span>
+               <span>{trend[trend.length-1]?.label}</span>
+           </div>
+        </div>
+      );
+  }
 
   return (
     <div className="glass-card chart-wrapper" style={{display:'block', height:'auto', padding:30}}>

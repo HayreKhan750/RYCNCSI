@@ -112,6 +112,7 @@ export default function useDashboardData(user) {
                       }
                       return { uid, data: null };
                   } catch (err) {
+                      console.warn("Offline: Could not fetch reviewer details", err);
                       return { uid, data: null };
                   }
               });

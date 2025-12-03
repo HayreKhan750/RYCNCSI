@@ -281,7 +281,12 @@ export function useStudentProfile(user) {
     try {
       let profilePictureUrl = profile?.profilePictureUrl;
 
-      if (imageFile) {
+      // 1. Check for Cloudinary URL in formData
+      if (formData.photoURL) {
+          profilePictureUrl = formData.photoURL;
+      }
+      // 2. Fallback to legacy file upload
+      else if (imageFile) {
         const resultAction = await dispatch(uploadProfilePicture({ uid: user.uid, file: imageFile }));
         if (uploadProfilePicture.fulfilled.match(resultAction)) {
             profilePictureUrl = resultAction.payload;
@@ -290,9 +295,13 @@ export function useStudentProfile(user) {
         }
       }
 
+      // Remove photoURL from formData to avoid duplication/confusion, but keep it if needed for other parts
+      const { photoURL, ...otherData } = formData;
+
       const updates = {
-        ...formData,
+        ...otherData,
         profilePictureUrl,
+        photoURL: profilePictureUrl // Sync both fields
       };
 
       const resultAction = await dispatch(updateUserProfile({ uid: user.uid, data: updates }));

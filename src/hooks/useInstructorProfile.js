@@ -16,10 +16,16 @@ export default function useInstructorProfile(routeInstructorId) {
   const instructorKey = (routeInstructorId || (user?.email || '')).toLowerCase();
 
 
+  const [isInitializing, setIsInitializing] = useState(true);
+
   useEffect(() => {
     const targetId = routeInstructorId || user?.uid;
     if (targetId) {
-        dispatch(fetchInstructorProfile(targetId));
+        setIsInitializing(true);
+        dispatch(fetchInstructorProfile(targetId))
+            .finally(() => setIsInitializing(false));
+    } else {
+        setIsInitializing(false);
     }
   }, [dispatch, routeInstructorId, user]);
 
@@ -163,25 +169,38 @@ export default function useInstructorProfile(routeInstructorId) {
   const updateProfile = async (newProfileData, imageFile) => {
      if (!user?.uid || !db) return;
      
+     // 1. Determine the new profile picture URL
      let profilePictureUrl = profile?.profilePictureUrl || '';
 
-      if (imageFile && storage) {
+     // If a new URL is passed in the data (from Cloudinary), use it
+     if (newProfileData.photoURL) {
+         profilePictureUrl = newProfileData.photoURL;
+     }
+     // Fallback: If legacy imageFile is passed (shouldn't happen with new UI), upload it
+     else if (imageFile && storage) {
         const storageRef = ref(storage, `profilePictures/${user.uid}`);
         await uploadBytes(storageRef, imageFile);
         profilePictureUrl = await getDownloadURL(storageRef);
-      }
+     }
 
       const userRef = doc(db, 'users', user.uid);
+      
+      // 2. Construct payload
+      // Remove photoURL from spread to avoid duplication if we use profilePictureUrl
+      const { photoURL, ...otherData } = newProfileData;
+
       const payload = {
-        ...newProfileData,
-        profilePictureUrl,
+        ...otherData,
+        profilePictureUrl, // Standardize on this field for Firestore
+        photoURL: profilePictureUrl, // Keep this for compatibility if needed
         updatedAt: serverTimestamp(),
         email: user.email,
         role: profile?.role || 'instructor',
       };
 
       await setDoc(userRef, payload, { merge: true });
-      // Dispatch update to Redux if needed, or rely on fetch
+      
+      // 3. Force refresh
       dispatch(fetchInstructorProfile(user.uid));
   };
 
@@ -230,7 +249,7 @@ export default function useInstructorProfile(routeInstructorId) {
     myRatings: myRatings || [],
     feedbacks: myRatings || [], // Alias for compatibility
     profile,
-    loading,
+    loading: loading || isInitializing,
     stats: stats,
     badges,
     chartData,

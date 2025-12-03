@@ -5,7 +5,11 @@ import {
   deleteUser as deleteUserAction, 
   approveInstructor as approveInstructorAction, 
   deleteRating as deleteRatingAction, 
-  updateRatingStatus as updateRatingStatusAction 
+  updateRatingStatus as updateRatingStatusAction,
+  registerUser as registerUserAction,
+  updateUserStatus as updateUserStatusAction,
+  updateUserProfile as updateUserProfileAction,
+  banUser as banUserAction
 } from '../../store/slices/adminSlice';
 import { 
   selectAdminStats, 
@@ -62,6 +66,10 @@ export function useAdminData() {
     deleteRating, 
     updateRatingStatus, 
     flagRating, 
+  registerUser: (data) => dispatch(registerUserAction(data)),
+    updateUserStatus: (uid, status, details) => dispatch(updateUserStatusAction({ uid, status, details })),
+    updateUserProfile: (uid, data) => dispatch(updateUserProfileAction({ uid, data })),
+    banUser: (uid, reason) => dispatch(banUserAction({ uid, reason })),
     refresh: () => dispatch(fetchDashboardData()) 
   };
 }

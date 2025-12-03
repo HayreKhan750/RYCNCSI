@@ -110,6 +110,10 @@
   color: var(--adm-accent);
 }
 
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
 /* Main Content */
 .adm-main {
   flex: 1;
@@ -129,6 +133,22 @@
   font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.adm-dashboard-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  background: linear-gradient(to right, #fff, #818cf8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.light .adm-dashboard-title {
+  background: linear-gradient(to right, #18181b, #818cf8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .adm-subtitle {
@@ -251,16 +271,39 @@
 .light .chart-grid { stroke: rgba(0,0,0,0.05); }
 
 /* Inputs */
-.adm-search {
+/* Inputs */
+.adm-search, .adm-input, .adm-select {
   background: rgba(0,0,0,0.2);
   border: 1px solid var(--adm-border-dark);
   padding: 10px 16px;
   border-radius: 8px;
   color: white;
-  width: 300px;
+  width: 100%;
+  transition: var(--transition);
 }
-.light .adm-search { background: white; border-color: #e4e4e7; color: black; }
-.adm-search:focus { outline: none; border-color: var(--adm-accent); }
+.adm-search { width: 300px; }
+
+.light .adm-search, 
+.light .adm-input, 
+.light .adm-select { 
+  background: white; 
+  border-color: #e4e4e7; 
+  color: #18181b; 
+}
+
+.adm-search:focus, 
+.adm-input:focus, 
+.adm-select:focus { 
+  outline: none; 
+  border-color: var(--adm-accent); 
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* Fix for select options in light mode */
+.light .adm-select option {
+  background: white;
+  color: #18181b;
+}
 
 /* Animation */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -271,3 +314,30 @@
   .adm-nav-item span { display: none; }
   .adm-logo { font-size: 1rem; text-align: center; padding: 0; }
 }
+
+/* Dropdown Items */
+.adm-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--adm-text-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.light .adm-dropdown-item { color: var(--adm-text-light-primary); }
+
+.adm-dropdown-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+.light .adm-dropdown-item:hover { background: rgba(0,0,0,0.05); }
+
+.adm-dropdown-item.danger:hover { background: rgba(239, 68, 68, 0.1); color: var(--adm-danger); }
+.adm-dropdown-item.success:hover { background: rgba(16, 185, 129, 0.1); color: var(--adm-success); }

@@ -1,0 +1,179 @@
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+
+export default function AdminEditUserModal({ isOpen, onClose, user, onSave }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    role: 'student',
+    department: '',
+    bio: ''
+  });
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || user.displayName || '',
+        role: user.role || 'student',
+        department: user.department || '',
+        bio: user.bio || ''
+      });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      setIsClosing(false);
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 300);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(user.id, formData);
+    handleClose();
+  };
+
+  if (!isOpen && !isClosing) return null;
+
+  return ReactDOM.createPortal(
+    <div 
+      className={`modal-overlay ${isClosing ? 'fade-out' : 'fade-in'}`}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20
+      }}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
+    >
+      <div 
+        className={`modal-content ${isClosing ? 'scale-out' : 'scale-in'}`}
+        style={{
+          background: 'var(--bg-elevated)',
+          width: '100%',
+          maxWidth: '500px',
+          borderRadius: '24px',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          padding: '32px',
+          position: 'relative'
+        }}
+      >
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>Edit User</h3>
+            <button onClick={handleClose} style={{background:'none', border:'none', fontSize:'1.5rem', cursor:'pointer', color:'var(--text-secondary)'}}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+            <div className="adm-form-group">
+                <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Full Name</label>
+                <input 
+                    type="text" 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                    className="adm-input" 
+                    required 
+                />
+            </div>
+
+            <div className="adm-form-group" style={{marginTop: 15}}>
+                <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Role</label>
+                <select 
+                    value={formData.role} 
+                    onChange={(e) => setFormData({...formData, role: e.target.value})} 
+                    className="adm-select"
+                >
+                    <option value="student">Student</option>
+                    <option value="instructor">Instructor</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            {formData.role === 'instructor' && (
+                <div className="adm-form-group" style={{marginTop: 15}}>
+                    <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Department</label>
+                    <input 
+                        type="text" 
+                        value={formData.department} 
+                        onChange={(e) => setFormData({...formData, department: e.target.value})} 
+                        className="adm-input" 
+                    />
+                </div>
+            )}
+
+            <div className="adm-form-group" style={{marginTop: 15}}>
+                <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Bio</label>
+                <textarea 
+                    value={formData.bio} 
+                    onChange={(e) => setFormData({...formData, bio: e.target.value})} 
+                    className="adm-input" 
+                    rows={3}
+                />
+            </div>
+
+            <div style={{marginTop: 30, display:'flex', gap:12}}>
+                <button 
+                    type="button" 
+                    onClick={handleClose}
+                    style={{
+                        flex: 1,
+                        padding: '12px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-subtle)',
+                        background: 'transparent',
+                        color: 'var(--text-secondary)',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Cancel
+                </button>
+                <button 
+                    type="submit" 
+                    style={{
+                        flex: 1,
+                        padding: '12px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: 'var(--primary-gradient)',
+                        color: 'white',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                    }}
+                >
+                    Save Changes
+                </button>
+            </div>
+        </form>
+      </div>
+      <style>{`
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .fade-out { animation: fadeOut 0.3s ease-in forwards; }
+        .scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .scale-out { animation: scaleOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      `}</style>
+    </div>,
+    document.body
+  );
+}

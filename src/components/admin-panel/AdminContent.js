@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-export default function AdminContent({ ratings, logs, onDeleteRating, updateRatingStatus, flagRating }) {
-  const [tab, setTab] = useState('ratings'); // 'ratings' | 'logs'
+export default function AdminContent({ ratings, logs, onDeleteRating, updateRatingStatus, flagRating, view = 'ratings' }) {
   const [filter, setFilter] = useState('all'); // 'all' | 'flagged' | 'pending' | 'reviewed'
   const [search, setSearch] = useState('');
 
@@ -26,32 +25,29 @@ export default function AdminContent({ ratings, logs, onDeleteRating, updateRati
 
   return (
     <div>
-      <div style={{display:'flex', gap:12, marginBottom:24}}>
-          <button className={`adm-btn ${tab === 'ratings' ? 'primary' : ''}`} onClick={() => setTab('ratings')}>Ratings & Feedback</button>
-          <button className={`adm-btn ${tab === 'logs' ? 'primary' : ''}`} onClick={() => setTab('logs')}>Audit Logs</button>
-      </div>
+      {/* No internal tabs - controlled by parent via 'view' prop */}
 
-      {tab === 'ratings' && (
+      {view === 'ratings' && (
           <div className="adm-glass adm-table-container">
              <div style={{padding: '20px', display: 'flex', gap: '15px', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
                 <input 
                   type="text" 
                   placeholder="Search feedback..." 
-                  className="admin-input" 
+                  className="adm-search" 
                   style={{width: '300px'}}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
                 <select 
-                  className="admin-input" 
-                  style={{width: '150px'}}
+                  className="adm-search" 
+                  style={{width: '150px', cursor:'pointer'}}
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                 >
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="flagged">Flagged</option>
-                  <option value="reviewed">Reviewed</option>
+                  <option value="all" style={{color:'black'}}>All Status</option>
+                  <option value="pending" style={{color:'black'}}>Pending</option>
+                  <option value="flagged" style={{color:'black'}}>Flagged</option>
+                  <option value="reviewed" style={{color:'black'}}>Reviewed</option>
                 </select>
              </div>
 
@@ -98,7 +94,7 @@ export default function AdminContent({ ratings, logs, onDeleteRating, updateRati
           </div>
       )}
 
-      {tab === 'logs' && (
+      {view === 'logs' && (
           <div className="adm-glass adm-table-container">
              <table className="adm-table">
                  <thead>

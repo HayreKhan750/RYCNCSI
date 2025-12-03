@@ -10,7 +10,8 @@ export default function PremiumModal({
   onConfirm, 
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  inputPlaceholder = ''
+  inputPlaceholder = '',
+  ...props
 }) {
   const [inputValue, setInputValue] = useState('');
   const [isClosing, setIsClosing] = useState(false);

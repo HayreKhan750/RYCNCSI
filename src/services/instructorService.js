@@ -7,6 +7,7 @@ import { serializeFirestoreData } from '../utils/serialization';
 export const instructorService = {
   // Fetch Master List (JSON + Firestore + Ratings)
   fetchAllInstructors: async () => {
+    try {
       // 1. Parse JSON
       const jsonInstructorsMap = new Map();
       if (scheduleData && Array.isArray(scheduleData.schedule)) {
@@ -43,15 +44,26 @@ export const instructorService = {
 
       // 2. Fetch Firestore Instructors
       const q = query(collection(db, 'users'), where('role', '==', 'instructor'));
-      const querySnapshot = await getDocs(q);
-      const firestoreInstructors = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      let firestoreInstructors = [];
+      try {
+          const querySnapshot = await getDocs(q);
+          firestoreInstructors = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+      } catch (err) {
+          console.warn("Offline: Could not fetch instructors from Firestore", err);
+      }
 
       // 3. Fetch All Feedbacks
       const ratingsQ = query(collection(db, 'feedbacks'));
-      const ratingsSnap = await getDocs(ratingsQ);
+      let ratingsSnap = { docs: [] };
+      try {
+          ratingsSnap = await getDocs(ratingsQ);
+      } catch (err) {
+          console.warn("Offline: Could not fetch feedbacks", err);
+      }
+
       const ratingMap = {}; 
       
       ratingsSnap.docs.forEach(doc => {
@@ -188,6 +200,11 @@ export const instructorService = {
       });
 
       return serializeFirestoreData(mergedInstructors);
+    } catch (error) {
+      console.error("Error fetching instructors:", error);
+      // Return empty array instead of crashing
+      return [];
+    }
   },
 
   // Fetch Single Profile

@@ -29,9 +29,14 @@ export default function RateCourses({ user }) {
   };
 
   const filteredAndSortedInstructors = useMemo(() => {
-    let result = [...instructors];
+    // 1. Calculate Global Ranks based on rating
+    const withRanks = [...instructors]
+        .sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0))
+        .map((inst, idx) => ({ ...inst, globalRank: idx + 1 }));
 
-    // Filter
+    let result = withRanks;
+
+    // 2. Filter
     if (searchTerm) {
         const lower = searchTerm.toLowerCase();
         result = result.filter(inst => 
@@ -41,7 +46,7 @@ export default function RateCourses({ user }) {
         );
     }
 
-    // Sort
+    // 3. Sort
     result.sort((a, b) => {
         if (sortBy === 'rating') {
             return (b.avgRating || 0) - (a.avgRating || 0);
@@ -79,8 +84,8 @@ export default function RateCourses({ user }) {
   return (
     <div className="rate-courses-page premium-container" style={{padding: '40px 20px', maxWidth: '1200px', margin: '0 auto'}}>
       <div style={{textAlign: 'center', marginBottom: '40px'}}>
-          <h2 style={{fontSize: '3rem', fontWeight: '800', marginBottom: '10px', background: 'linear-gradient(to right, #fff, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Rate Instructors</h2>
-          <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '1.1rem'}}>Find and rate your instructors to help the community.</p>
+          <h2 style={{fontSize: '3rem', fontWeight: '800', marginBottom: '10px', background: 'linear-gradient(to right, var(--text-primary), #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Rate Instructors</h2>
+          <p style={{color: 'var(--text-secondary)', fontSize: '1.1rem'}}>Find and rate your instructors to help the community.</p>
       </div>
 
       <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'20px', marginBottom:'50px'}}>
@@ -96,9 +101,9 @@ export default function RateCourses({ user }) {
                 width: '100%', 
                 padding: '16px 24px', 
                 borderRadius: '50px', 
-                background: 'rgba(255,255,255,0.05)', 
-                border: '1px solid rgba(255,255,255,0.1)', 
-                color: 'white', 
+                background: 'var(--bg-elevated)', 
+                border: '1px solid var(--border-subtle)', 
+                color: 'var(--text-primary)', 
                 fontSize: '1.1rem', 
                 boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
                 outline: 'none',
@@ -115,8 +120,8 @@ export default function RateCourses({ user }) {
                     padding:'8px 16px', 
                     borderRadius:'20px', 
                     border:'none', 
-                    background: sortBy === 'rating' ? 'var(--neon-primary)' : 'rgba(255,255,255,0.1)',
-                    color:'white',
+                    background: sortBy === 'rating' ? 'var(--neon-primary)' : 'var(--bg-elevated)',
+                    color: sortBy === 'rating' ? 'white' : 'var(--text-primary)',
                     cursor:'pointer',
                     transition:'all 0.3s'
                 }}
@@ -129,8 +134,8 @@ export default function RateCourses({ user }) {
                     padding:'8px 16px', 
                     borderRadius:'20px', 
                     border:'none', 
-                    background: sortBy === 'name' ? 'var(--neon-primary)' : 'rgba(255,255,255,0.1)',
-                    color:'white',
+                    background: sortBy === 'name' ? 'var(--neon-primary)' : 'var(--bg-elevated)',
+                    color: sortBy === 'name' ? 'white' : 'var(--text-primary)',
                     cursor:'pointer',
                     transition:'all 0.3s'
                 }}
@@ -143,8 +148,8 @@ export default function RateCourses({ user }) {
                     padding:'8px 16px', 
                     borderRadius:'20px', 
                     border:'none', 
-                    background: sortBy === 'department' ? 'var(--neon-primary)' : 'rgba(255,255,255,0.1)',
-                    color:'white',
+                    background: sortBy === 'department' ? 'var(--neon-primary)' : 'var(--bg-elevated)',
+                    color: sortBy === 'department' ? 'white' : 'var(--text-primary)',
                     cursor:'pointer',
                     transition:'all 0.3s'
                 }}
@@ -158,13 +163,13 @@ export default function RateCourses({ user }) {
         {filteredAndSortedInstructors.map((inst, index) => (
           <div key={inst.id || `json-${index}`} className="premium-card" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', textAlign: 'center', position:'relative', overflow:'hidden'}}>
              
-             {/* Rank Badge for Top 3 when sorted by rating */}
-             {sortBy === 'rating' && index < 3 && (
+             {/* Rank Badge for Top 3 Global */}
+             {sortBy === 'rating' && inst.globalRank <= 3 && (
                  <div style={{
                      position:'absolute', 
                      top:'10px', 
                      left:'10px', 
-                     background: index === 0 ? 'gold' : index === 1 ? 'silver' : '#cd7f32',
+                     background: inst.globalRank === 1 ? 'gold' : inst.globalRank === 2 ? 'silver' : '#cd7f32',
                      color:'black',
                      fontWeight:'bold',
                      padding:'4px 10px',
@@ -172,7 +177,7 @@ export default function RateCourses({ user }) {
                      fontSize:'0.8rem',
                      boxShadow:'0 2px 10px rgba(0,0,0,0.2)'
                  }}>
-                     #{index + 1}
+                     #{inst.globalRank}
                  </div>
              )}
 

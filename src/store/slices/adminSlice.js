@@ -89,6 +89,52 @@ export const updateRatingStatus = createAsyncThunk(
   }
 );
 
+export const registerUser = createAsyncThunk(
+  'admin/registerUser',
+  async (userData, { rejectWithValue }) => {
+    try {
+      const newUser = await adminService.registerUser(userData);
+      await adminService.logAction('REGISTER_USER', newUser.id, `Registered ${userData.role}: ${userData.email}`);
+      return newUser;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const updateUserStatus = createAsyncThunk(
+  'admin/updateUserStatus',
+  async ({ uid, status, details }, { rejectWithValue }) => {
+    try {
+      await adminService.updateUserStatus(uid, status, details);
+      await adminService.logAction('UPDATE_USER_STATUS', uid, `Status changed to ${status}`);
+      return { uid, status, details };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const updateUserProfile = createAsyncThunk(
+  'admin/updateUserProfile',
+  async ({ uid, data }, { rejectWithValue }) => {
+    try {
+      const updated = await adminService.updateUserProfile(uid, data);
+      await adminService.logAction('UPDATE_USER_PROFILE', uid, 'Updated profile details');
+      return updated;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const banUser = createAsyncThunk(
+  'admin/banUser',
+  async ({ uid, reason }, { dispatch, rejectWithValue }) => {
+      return dispatch(updateUserStatus({ uid, status: 'banned', details: reason }));
+  }
+);
+
 const adminSlice = createSlice({
   name: 'admin',
   initialState: {
@@ -163,6 +209,28 @@ const adminSlice = createSlice({
           if (index !== -1) {
               state.reports[index].status = 'resolved';
               state.reports[index].resolution = action.payload.resolution;
+          }
+      })
+      // Register User
+      .addCase(registerUser.fulfilled, (state, action) => {
+          state.users.push(action.payload);
+          if (action.payload.role === 'student') state.stats.totalStudents++;
+          if (action.payload.role === 'instructor') state.stats.totalInstructors++;
+      })
+      // Update User Status
+      .addCase(updateUserStatus.fulfilled, (state, action) => {
+          const index = state.users.findIndex(u => u.id === action.payload.uid);
+          if (index !== -1) {
+              state.users[index].status = action.payload.status;
+              // Update other fields if needed, e.g. isBanned
+              if (action.payload.status === 'banned') state.users[index].isBanned = true;
+          }
+      })
+      // Update User Profile
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+          const index = state.users.findIndex(u => u.id === action.payload.uid);
+          if (index !== -1) {
+              state.users[index] = { ...state.users[index], ...action.payload };
           }
       });
   },

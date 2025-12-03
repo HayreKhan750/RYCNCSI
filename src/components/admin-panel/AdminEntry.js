@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleTheme } from '../../store/slices/themeSlice';
-import { useAdminData } from './useAdminData';
 import AdminLayout from './AdminLayout';
 import AdminDashboard from './AdminDashboard';
 import AdminUsers from './AdminUsers';
+import AdminRegisterUser from './AdminRegisterUser';
 import AdminContent from './AdminContent';
+import AdminSettings from './AdminSettings';
+import { useAdminData } from './useAdminData';
 import './AdminPanel.css';
 
 export default function AdminEntry() {
@@ -13,8 +15,8 @@ export default function AdminEntry() {
   const { user } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
   const theme = mode; // Alias for compatibility
+  
   const { 
-    loading: dataLoading, 
     stats, 
     users, 
     ratings, 
@@ -23,13 +25,15 @@ export default function AdminEntry() {
     approveInstructor, 
     deleteRating,
     updateRatingStatus,
-    flagRating
+    flagRating,
+    registerUser,
+    updateUserStatus,
+    banUser
   } = useAdminData();
 
   const [activePage, setActivePage] = useState('dashboard');
 
   // Access Control
-  // Assuming AdminRoute wraps this component in App.js, but double check here for safety
   if (!user) return null; 
   if (user?.role !== 'admin') {
       return (
@@ -42,29 +46,31 @@ export default function AdminEntry() {
       );
   }
 
-  if (dataLoading) {
-      return (
-          <div style={{height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background: theme === 'dark' ? '#09090b' : '#f8fafc', color: theme === 'dark' ? 'white' : 'black'}}>
-              Loading Control Panel...
-          </div>
-      );
-  }
-
   const renderPage = () => {
       switch(activePage) {
           case 'users':
-              return <AdminUsers users={users} onDelete={deleteUser} onApprove={approveInstructor} />;
+              return <AdminUsers 
+                        users={users} 
+                        onDelete={deleteUser} 
+                        onApprove={approveInstructor} 
+                        onBan={banUser}
+                        onUpdateStatus={updateUserStatus}
+                     />;
+          case 'register':
+              return <div className="fade-in"><AdminRegisterUser onRegister={registerUser} /></div>;
           case 'content':
-          case 'logs': // Combined content/logs logic for now or split if preferred
+          case 'logs': 
               return <AdminContent 
                         ratings={ratings} 
                         logs={logs} 
                         onDeleteRating={deleteRating} 
                         updateRatingStatus={updateRatingStatus}
                         flagRating={flagRating}
+                        flagRating={flagRating}
+                        view={activePage === 'logs' ? 'logs' : 'ratings'}
                      />;
           case 'settings':
-              return <div className="adm-glass" style={{padding:40, textAlign:'center'}}>Settings Module Placeholder</div>;
+              return <div className="fade-in"><AdminSettings /></div>;
           case 'dashboard':
           default:
               return <AdminDashboard stats={stats} />;

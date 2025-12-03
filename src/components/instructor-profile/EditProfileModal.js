@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import UploadProfileImage from '../common/UploadProfileImage';
 
 export default function EditProfileModal({ profile, onSave, onClose }) {
   const [formData, setFormData] = useState({
@@ -18,7 +19,8 @@ export default function EditProfileModal({ profile, onSave, onClose }) {
         setFormData({
             name: profile.name || profile.instructorName || '',
             department: profile.dept || profile.department || '',
-            bio: profile.bio || ''
+            bio: profile.bio || '',
+            photoURL: profile.profilePictureUrl || profile.photoURL || ''
         });
         setPreviewUrl(profile.profilePictureUrl || profile.photoURL || '');
     }
@@ -62,8 +64,9 @@ export default function EditProfileModal({ profile, onSave, onClose }) {
         await onSave({
             name: formData.name,
             department: formData.department,
-            bio: formData.bio
-        }, imageFile);
+            bio: formData.bio,
+            photoURL: formData.photoURL
+        });
         handleClose();
     } catch (err) {
         console.error(err);
@@ -146,57 +149,16 @@ export default function EditProfileModal({ profile, onSave, onClose }) {
                    
                    {/* Avatar Upload */}
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
-                       <div style={{ position: 'relative', group: 'avatar' }}>
-                           <div style={{
-                               width: '120px',
-                               height: '120px',
-                               borderRadius: '50%',
-                               border: '4px solid var(--bg-elevated)',
-                               background: 'var(--bg-root)',
-                               overflow: 'hidden',
-                               boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                               display: 'flex',
-                               alignItems: 'center',
-                               justifyContent: 'center',
-                               fontSize: '3rem',
-                               color: 'var(--text-muted)'
-                           }}>
-                               {previewUrl ? (
-                                   <img src={previewUrl} alt="Preview" style={{width:'100%', height:'100%', objectFit:'cover'}} />
-                               ) : (
-                                   (formData.name || 'I').charAt(0).toUpperCase()
-                               )}
-                           </div>
-                           
-                           <label 
-                               style={{
-                                   position: 'absolute',
-                                   bottom: '5px',
-                                   right: '5px',
-                                   background: 'var(--primary)',
-                                   color: 'white',
-                                   width: '36px',
-                                   height: '36px',
-                                   borderRadius: '50%',
-                                   display: 'flex',
-                                   alignItems: 'center',
-                                   justifyContent: 'center',
-                                   cursor: 'pointer',
-                                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                   border: '2px solid var(--bg-elevated)',
-                                   transition: 'transform 0.2s'
-                               }}
-                               onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                               onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-                               title="Change Photo"
-                           >
-                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                   <circle cx="12" cy="13" r="4"></circle>
-                               </svg>
-                               <input type="file" accept="image/*" onChange={handleImageChange} hidden />
-                           </label>
-                       </div>
+                       <UploadProfileImage 
+                           currentImage={formData.photoURL || previewUrl} 
+                           onUploadSuccess={(url) => {
+                               setFormData(prev => ({ ...prev, photoURL: url }));
+                               setPreviewUrl(url);
+                           }}
+                           userType="instructor"
+                           userId={profile?.id}
+                           name={formData.name}
+                       />
                        <h2 style={{ margin: '16px 0 4px', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Edit Profile</h2>
                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Update your instructor details</p>
                    </div>

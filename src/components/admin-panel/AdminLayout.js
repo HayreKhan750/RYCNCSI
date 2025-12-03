@@ -3,11 +3,12 @@ import RoleSwitcher from '../RoleSwitcher';
 
 export default function AdminLayout({ children, activePage, onNavigate, themeMode, toggleTheme, user }) {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'users', label: 'User Management', icon: '👥' },
-    { id: 'content', label: 'Content & Flags', icon: '🛡' },
+    { id: 'dashboard', label: 'Overview', icon: '📊' },
+    { id: 'users', label: 'Users', icon: '👥' },
+    { id: 'register', label: 'Register', icon: '➕' },
+    { id: 'content', label: 'Content & Flags', icon: '🛡️' },
     { id: 'logs', label: 'Audit Logs', icon: '📜' },
-    { id: 'settings', label: 'Settings', icon: '⚙' },
+    { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
   return (
@@ -28,9 +29,13 @@ export default function AdminLayout({ children, activePage, onNavigate, themeMod
           ))}
         </nav>
         
-        <div className="adm-nav-item" style={{marginTop:'auto'}} onClick={() => alert('Logout logic here')}>
-           <span>🚪</span>
-           <span>Logout</span>
+        <div 
+          className="adm-nav-item logout-btn" 
+          style={{marginTop:'auto', borderTop:'1px solid var(--adm-border-dark)', borderRadius:0, padding:'20px 16px'}} 
+          onClick={() => alert('Logout logic here')}
+        >
+           <span style={{color:'var(--adm-danger)'}}>🚪</span>
+           <span style={{color:'var(--adm-danger)', fontWeight:600}}>Logout</span>
         </div>
       </aside>
 

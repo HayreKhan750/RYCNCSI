@@ -20,6 +20,7 @@ import { serializeFirestoreData } from '../utils/serialization';
 export const feedbackService = {
   // Fetch Feedbacks (Global or Filtered)
   fetchFeedbacks: async (filters = {}) => {
+    try {
       let q = collection(db, 'feedbacks');
       // Note: Firestore requires composite indexes for complex queries.
       // We'll start simple and filter in memory if needed or add indexes.
@@ -43,6 +44,10 @@ export const feedbackService = {
           ...d.data(),
           timestamp: d.data().createdAt?.toMillis ? d.data().createdAt.toMillis() : Date.now()
       }));
+    } catch (error) {
+      console.warn("Offline: Could not fetch feedbacks", error);
+      return [];
+    }
   },
 
   // Submit Feedback

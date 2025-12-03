@@ -134,5 +134,69 @@ export const adminService = {
           createdAt: serverTimestamp()
       });
       return { id: docRef.id, ...reportData };
+  },
+
+  // Register User (Firestore Profile)
+  registerUser: async (userData) => {
+      // Check if user already exists in 'users' by email? 
+      // Ideally we should, but for now let's just create the doc.
+      // We'll use addDoc, or setDoc if we want to enforce ID. 
+      // Since we don't have the Auth UID yet, we'll use addDoc and let the system link later?
+      // Actually, if we use addDoc, the ID will be random. When the user signs up, they get a new UID.
+      // This creates a disconnect.
+      // Strategy: We create a document with a specific ID? No.
+      // Strategy: We create a document where the ID is the email? No, bad practice.
+      // Strategy: We create a document with random ID, but store email. 
+      // When user signs up, we need a Cloud Function to copy this data to the new UID doc?
+      // OR, we just tell the admin: "This creates a placeholder. User must sign up."
+      // Let's use addDoc for now, but mark it as 'pre-registered'.
+      // Actually, the best way without Cloud Functions is:
+      // Admin creates a doc. When user signs up, the app checks if a doc with this email exists?
+      // Firestore queries are cheap.
+      // Let's stick to: Admin creates a doc. We'll add a field 'isPreRegistered: true'.
+      
+      const docRef = await addDoc(collection(db, 'users'), {
+          ...userData,
+          createdAt: serverTimestamp(),
+          isPreRegistered: true,
+          status: 'active' // Default to active
+      });
+      return { id: docRef.id, ...userData };
+  },
+
+  // Update User Status (Ban, Suspend, Restrict)
+  updateUserStatus: async (uid, status, details) => {
+      const ref = doc(db, 'users', uid);
+      const updates = { status };
+      
+      if (status === 'banned') {
+          updates.isBanned = true;
+          updates.banReason = details;
+          updates.bannedAt = serverTimestamp();
+      } else if (status === 'suspended') {
+          updates.isSuspended = true;
+          updates.suspendReason = details;
+          updates.suspendedAt = serverTimestamp();
+      } else if (status === 'restricted') {
+          updates.isRestricted = true;
+          updates.restrictionDetails = details;
+      } else if (status === 'active') {
+          updates.isBanned = false;
+          updates.isSuspended = false;
+          updates.isRestricted = false;
+      }
+
+      await updateDoc(ref, updates);
+      return { uid, status, details };
+  },
+
+  // Update User Profile
+  updateUserProfile: async (uid, data) => {
+      const ref = doc(db, 'users', uid);
+      await updateDoc(ref, {
+          ...data,
+          updatedAt: serverTimestamp()
+      });
+      return { uid, ...data };
   }
 };
