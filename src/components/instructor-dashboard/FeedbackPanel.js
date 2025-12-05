@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
+import useContentModeration from '../../hooks/useContentModeration';
 
 export default function FeedbackPanel({ ratings, stats, onReply }) {
   const [replyText, setReplyText] = useState({});
   const [expandedId, setExpandedId] = useState(null);
 
+  const { validateContent } = useContentModeration();
+
   const handleReplySubmit = async (ratingId) => {
       const text = replyText[ratingId];
       if (!text) return;
+
+      // Validate Content
+      if (!validateContent(text)) return;
+
       const success = await onReply(ratingId, text);
       if (success) {
           alert('Reply posted!');

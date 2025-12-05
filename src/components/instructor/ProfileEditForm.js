@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useContentModeration from '../../hooks/useContentModeration';
 
 export default function ProfileEditForm({ profile, onSave, onCancel, saving }) {
   const [form, setForm] = useState({
@@ -19,8 +20,17 @@ export default function ProfileEditForm({ profile, onSave, onCancel, saving }) {
     }
   };
 
+  const { validateContent } = useContentModeration();
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate Name
+    if (!validateContent(form.name)) return;
+    
+    // Validate Bio
+    if (!validateContent(form.bio)) return;
+
     onSave(form, imageFile);
   };
 

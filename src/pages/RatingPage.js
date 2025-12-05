@@ -13,6 +13,7 @@ import '../components/student-dashboard/StudentDashboard.css';
 import '../styles/RatingPage.css';
 
 import PremiumModal from '../components/common/PremiumModal';
+import useContentModeration from '../hooks/useContentModeration';
 
 const RatingPage = () => {
   const { instructorId } = useParams();
@@ -32,6 +33,9 @@ const RatingPage = () => {
   const [feedback, setFeedback] = useState('');
   const [existingRating, setExistingRating] = useState(null);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'alert' });
+
+  // Content Moderation Hook
+  const { validateContent, checkSpelling, isChecking, suggestion, applySuggestion, dismissSuggestion } = useContentModeration();
 
   // Fetch Data
   useEffect(() => {
@@ -65,6 +69,15 @@ const RatingPage = () => {
     if (ratingValue === 0) return showModal("Rating Required", "Please select a star rating before submitting.", "alert");
     if (!user) return showModal("Login Required", "You must be logged in to rate an instructor.", "alert");
 
+    // 1. Validate Content (Foul Language)
+    const isValid = validateContent(feedback);
+    if (!isValid) return; // Modal will be opened by the hook
+
+    // 2. Check Spelling (AI) - Optional: Could be triggered by a separate button or here
+    // For now, we'll just proceed if valid, but let's check spelling if user hasn't seen it
+    // If we want to force spelling check, we can do it here. 
+    // Let's assume we just want to block foul language for sure.
+    
     const ratingData = {
       instructorId,
       studentId: user.uid,
@@ -173,15 +186,67 @@ const RatingPage = () => {
                   e.target.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.05)';
               }}
             />
-            <div className="char-counter" style={{ textAlign: 'right', marginTop: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                {feedback.length} chars
+            
+            {/* AI Spelling Suggestion Preview */}
+            {suggestion && (
+                <div className="ai-suggestion-box" style={{
+                    marginTop: '10px',
+                    padding: '15px',
+                    background: 'rgba(99, 102, 241, 0.1)',
+                    border: '1px solid var(--primary)',
+                    borderRadius: '12px',
+                    animation: 'fadeIn 0.3s ease'
+                }}>
+                    <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', color:'var(--primary)', fontWeight:'bold'}}>
+                        <span>✨ AI Suggestion</span>
+                    </div>
+                    <p style={{marginBottom:'10px', fontSize:'0.95rem', color:'var(--text-primary)'}}>
+                        {suggestion.corrected}
+                    </p>
+                    <div style={{display:'flex', gap:'10px'}}>
+                        <button 
+                            onClick={() => setFeedback(applySuggestion())}
+                            style={{
+                                padding: '6px 12px', borderRadius: '8px', border: 'none',
+                                background: 'var(--primary)', color: 'white', cursor: 'pointer', fontSize: '0.9rem'
+                            }}
+                        >
+                            Apply Fix
+                        </button>
+                        <button 
+                            onClick={dismissSuggestion}
+                            style={{
+                                padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)',
+                                background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem'
+                            }}
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'8px'}}>
+                 <button 
+                    onClick={() => checkSpelling(feedback)}
+                    disabled={isChecking || !feedback}
+                    style={{
+                        background: 'none', border: 'none', color: 'var(--primary)', 
+                        cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '5px'
+                    }}
+                 >
+                    {isChecking ? 'Checking...' : '✨ Check Spelling & Grammar'}
+                 </button>
+                 <div className="char-counter" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {feedback.length} chars
+                 </div>
             </div>
           </div>
 
           <button 
             className="action-btn-premium" 
             onClick={handleSubmit} 
-            disabled={submitting}
+            disabled={submitting || isChecking}
             style={{ marginTop: '16px', fontSize: '1.1rem', padding: '16px' }}
           >
             {submitting ? "Submitting..." : (existingRating ? "Update Rating" : "Submit Rating")}

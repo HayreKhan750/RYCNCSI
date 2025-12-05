@@ -85,6 +85,7 @@ export default function StudentProfile({ showHeader = true }) {
               ratings={myRatings} 
               userReactions={userReactions} 
               user={user} 
+              isOwnProfile={isOwnProfile}
            />
         )}
         

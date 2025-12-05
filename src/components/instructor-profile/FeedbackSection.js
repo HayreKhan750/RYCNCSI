@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { timeAgo } from '../../utils/timeAgo';
+import useContentModeration from '../../hooks/useContentModeration';
 
 export default function FeedbackSection({ feedbacks, onReply, onLike, onReplyDelete, onReplyVote, canReply }) {
   const { user } = useSelector((state) => state.auth);
   const [expandedId, setExpandedId] = useState(null);
   const [replyText, setReplyText] = useState({});
 
+  const { validateContent } = useContentModeration();
+
   const handleReply = async (feedbackId) => {
       if(!replyText[feedbackId]) return;
+
+      // Validate Content
+      if (!validateContent(replyText[feedbackId])) return;
       
       const replyData = {
           text: replyText[feedbackId],

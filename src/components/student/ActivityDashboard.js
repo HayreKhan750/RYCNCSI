@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { toggleReaction, flagFeedback } from '../../utils/feedbackInteractions';
+import { toggleReaction, flagFeedback, postReply } from '../../utils/feedbackInteractions';
 import { useNavigate } from 'react-router-dom';
 import PremiumModal from '../common/PremiumModal';
+import useContentModeration from '../../hooks/useContentModeration';
 
-export default function ActivityDashboard({ ratings, userReactions, user }) {
+export default function ActivityDashboard({ ratings, userReactions, user, isOwnProfile }) {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'confirm' });
+  const [replyText, setReplyText] = useState({});
+  const { validateContent } = useContentModeration();
   
   // Optimistic UI state
   const [optimisticRatings, setOptimisticRatings] = useState(ratings);
@@ -85,6 +88,48 @@ export default function ActivityDashboard({ ratings, userReactions, user }) {
       setExpandedId(expandedId === id ? null : id);
   };
 
+  const submitReply = async (feedbackId) => {
+      const text = replyText[feedbackId];
+      if (!text || !text.trim()) return;
+
+      // Content Moderation
+      if (!validateContent(text)) return;
+
+      // Optimistic Update for Reply
+      const ratingIndex = optimisticRatings.findIndex(r => r.id === feedbackId);
+      if (ratingIndex !== -1) {
+          const newRatings = [...optimisticRatings];
+          const target = { ...newRatings[ratingIndex] };
+          
+          const newReply = {
+              id: Date.now().toString(), // Temp ID
+              text: text,
+              authorName: user.displayName || user.name || 'User',
+              authorId: user.uid,
+              createdAt: new Date().toISOString() // ISO string for immediate display
+          };
+
+          target.replies = [...(target.replies || []), newReply];
+          newRatings[ratingIndex] = target;
+          setOptimisticRatings(newRatings);
+          setReplyText(prev => ({ ...prev, [feedbackId]: '' })); // Clear input
+      }
+
+      try {
+        await postReply({ 
+            feedbackId, 
+            authorId: user.uid, 
+            authorRole: 'student',
+            authorName: user.displayName || user.name || 'User',
+            text 
+        });
+      } catch (e) {
+          console.error("Failed to submit reply", e);
+          // Revert optimistic update if needed (omitted for brevity)
+      }
+  };
+
+
   if (!optimisticRatings?.length) {
     return (
       <div className="glass-panel" style={{padding: 40, textAlign: 'center', opacity: 0.7}}>
@@ -100,36 +145,93 @@ export default function ActivityDashboard({ ratings, userReactions, user }) {
   return (
     <div className="activity-feed">
     <div className="activity-feed-premium" style={{display:'flex', flexDirection:'column', gap: 24}}>
-      {optimisticRatings.map((rating) => (
-        <div key={rating.id} className="premium-card activity-card-premium" style={{flexDirection:'column', padding: 0, overflow:'visible'}}>
-          <div className="activity-header-premium" style={{padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-             <div className="activity-meta">
-                <span className="activity-type" style={{background:'rgba(99, 102, 241, 0.1)', color:'#818cf8', padding:'4px 12px', borderRadius:20, fontSize:'0.8rem', fontWeight:600}}>Rated Instructor</span>
-                <span className="activity-date" style={{marginLeft: 12, opacity: 0.5, fontSize:'0.85rem'}}>
-                    {rating.createdAt?.toDate ? rating.createdAt.toDate().toLocaleDateString() : 'Just now'}
-                </span>
+      {optimisticRatings.map((rating) => {
+          const hasReplies = rating.replies && rating.replies.length > 0;
+          // Logic: If own profile, can only reply if there are existing replies.
+          const canReply = !isOwnProfile || hasReplies;
+
+          return (
+        <div key={rating.id} className="premium-card activity-card-premium" style={{
+            flexDirection:'column', 
+            padding: 0, 
+            overflow:'hidden', // Changed to hidden to contain children
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '24px',
+            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.3)'
+        }}>
+          {/* Header */}
+          <div className="activity-header-premium" style={{
+              padding: '20px 24px', 
+              borderBottom: '1px solid var(--border-subtle)', 
+              display:'flex', 
+              justifyContent:'space-between', 
+              alignItems:'center',
+              background: 'linear-gradient(to right, rgba(255,255,255,0.02), transparent)'
+          }}>
+             <div className="activity-meta" style={{display:'flex', alignItems:'center'}}>
+                <div style={{
+                    width: 40, height: 40, borderRadius: '50%', 
+                    background: 'var(--primary-gradient)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.2rem', marginRight: 12, color: 'white'
+                }}>
+                    {(rating.instructorName || 'T').charAt(0)}
+                </div>
+                <div>
+                    <h4 style={{margin:0, fontSize:'1.1rem', color:'var(--text-primary)', cursor:'pointer'}} onClick={() => navigate(`/instructor/${rating.instructorId}`)}>
+                        {rating.instructorName || 'Instructor'}
+                    </h4>
+                    <span className="activity-date" style={{opacity: 0.5, fontSize:'0.85rem', color:'var(--text-secondary)'}}>
+                        {rating.createdAt?.toDate ? rating.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                    </span>
+                </div>
              </div>
-             <div className="activity-rating" style={{fontWeight:'800', color:'#fbbf24', fontSize:'1.4rem', textShadow:'0 0 10px rgba(251, 191, 36, 0.3)'}}>
-                {rating.rating || rating.overall} ★
+             <div className="activity-rating" style={{
+                 fontWeight:'800', 
+                 color:'#fbbf24', 
+                 fontSize:'1.4rem', 
+                 background: 'rgba(251, 191, 36, 0.1)',
+                 padding: '4px 12px',
+                 borderRadius: '12px',
+                 border: '1px solid rgba(251, 191, 36, 0.2)'
+             }}>
+                {rating.rating || rating.overall} <span style={{fontSize:'1rem'}}>★</span>
              </div>
           </div>
           
+          {/* Content */}
           <div className="activity-content" style={{padding: '24px'}}>
-             <h4 style={{cursor:'pointer', fontSize:'1.2rem', margin:'0 0 8px', color:'white'}} onClick={() => navigate(`/instructor/${rating.instructorId}`)}>
-                {rating.instructorName || rating.instructorId || 'Unknown Instructor'}
-             </h4>
-             <p className="dept-name" style={{opacity:0.6, fontSize:'0.9rem', marginBottom:16, textTransform:'uppercase', letterSpacing:'0.5px'}}>
-                {rating.deptName || rating.courseTitle || 'General'}
+             <p className="dept-name" style={{
+                 opacity:0.7, fontSize:'0.85rem', marginBottom:12, 
+                 textTransform:'uppercase', letterSpacing:'1px', fontWeight: 600, color: 'var(--primary)'
+             }}>
+                {rating.deptName || rating.courseTitle || 'General Course'}
              </p>
              
              {(rating.comment || rating.feedback) && (
-                 <div className="activity-comment" style={{background:'rgba(0,0,0,0.2)', padding:'16px', borderRadius:'12px', fontStyle:'italic', borderLeft:'3px solid var(--neon-primary)'}}>"{rating.comment || rating.feedback}"</div>
+                 <div className="activity-comment" style={{
+                     background:'var(--bg-root)', 
+                     padding:'20px', 
+                     borderRadius:'16px', 
+                     fontStyle:'italic', 
+                     borderLeft:'4px solid var(--primary)',
+                     color: 'var(--text-primary)',
+                     lineHeight: 1.6,
+                     fontSize: '1.05rem'
+                 }}>
+                     "{rating.comment || rating.feedback}"
+                 </div>
              )}
              
              {rating.tags && (
-                 <div style={{display:'flex', gap:8, marginTop:16, flexWrap:'wrap'}}>
+                 <div style={{display:'flex', gap:8, marginTop:20, flexWrap:'wrap'}}>
                     {rating.tags.map(tag => (
-                        <span key={tag} style={{fontSize:'0.75rem', padding:'6px 14px', borderRadius:20, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)'}}>
+                        <span key={tag} style={{
+                            fontSize:'0.8rem', padding:'6px 14px', borderRadius:20, 
+                            background:'var(--bg-root)', border:'1px solid var(--border-subtle)',
+                            color: 'var(--text-secondary)'
+                        }}>
                             #{tag}
                         </span>
                     ))}
@@ -137,39 +239,103 @@ export default function ActivityDashboard({ ratings, userReactions, user }) {
              )}
           </div>
 
-          <div className="activity-actions" style={{padding: '16px 24px', background:'rgba(0,0,0,0.1)', display:'flex', gap: 12, borderTop:'1px solid rgba(255,255,255,0.05)'}}>
-             <button className="action-btn-premium" onClick={() => handleReaction(rating.id, 'like')} style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.7)', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
-                👍 {rating.likesCount || 0}
+          {/* Actions */}
+          <div className="activity-actions" style={{
+              padding: '16px 24px', 
+              background:'rgba(0,0,0,0.02)', 
+              display:'flex', gap: 16, 
+              borderTop:'1px solid var(--border-subtle)'
+          }}>
+             <button className="action-btn-premium" onClick={() => handleReaction(rating.id, 'like')} style={{background:'transparent', border:'none', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, transition: 'color 0.2s', fontSize: '0.95rem'}}>
+                <span style={{color: userReactions[rating.id] === 'like' ? 'var(--primary)' : 'inherit'}}>👍</span> {rating.likesCount || 0}
              </button>
-             <button className="action-btn-premium" onClick={() => handleReaction(rating.id, 'dislike')} style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.7)', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
-                👎 {rating.dislikesCount || 0}
+             <button className="action-btn-premium" onClick={() => handleReaction(rating.id, 'dislike')} style={{background:'transparent', border:'none', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, transition: 'color 0.2s', fontSize: '0.95rem'}}>
+                <span style={{color: userReactions[rating.id] === 'dislike' ? 'var(--danger)' : 'inherit'}}>👎</span> {rating.dislikesCount || 0}
              </button>
-             <button className="action-btn-premium" onClick={() => toggleReplies(rating.id)} style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.7)', cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
+             <button className="action-btn-premium" onClick={() => toggleReplies(rating.id)} style={{background:'transparent', border:'none', color: expandedId === rating.id ? 'var(--primary)' : 'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, transition: 'color 0.2s', fontSize: '0.95rem'}}>
                 💬 {rating.replies?.length || 0} Replies
              </button>
-             <button className="action-btn-premium secondary" style={{marginLeft:'auto', color:'#ef4444', background:'transparent', border:'none', cursor:'pointer'}} onClick={() => openFlagModal(rating.id)}>
+             <button className="action-btn-premium secondary" style={{marginLeft:'auto', color:'var(--text-muted)', background:'transparent', border:'none', cursor:'pointer', fontSize: '0.9rem'}} onClick={() => openFlagModal(rating.id)}>
                 🚩 Flag
              </button>
           </div>
 
           {/* Threaded Replies View */}
           {expandedId === rating.id && (
-              <div className="replies-section" style={{padding: '0 24px 24px', background:'rgba(0,0,0,0.1)'}}>
+              <div className="replies-section" style={{padding: '0 24px 24px', background:'rgba(0,0,0,0.02)'}}>
+                  {/* Existing Replies */}
                   {rating.replies && rating.replies.length > 0 ? (
-                      rating.replies.map((reply, idx) => (
-                          <div key={idx} style={{marginTop: 16, paddingLeft: 16, borderLeft: '2px solid var(--neon-primary)'}}>
-                              <div style={{fontSize:'0.85rem', fontWeight:'bold', marginBottom: 4, color:'var(--neon-primary)'}}>{reply.authorName || 'User'}</div>
-                              <div style={{fontSize:'0.9rem', opacity: 0.9}}>{reply.text}</div>
-                              <div style={{fontSize:'0.75rem', opacity: 0.5, marginTop: 4}}>{new Date(reply.createdAt).toLocaleDateString()}</div>
-                          </div>
-                      ))
+                      <div style={{display: 'flex', flexDirection: 'column', gap: 16, marginTop: 20}}>
+                          {rating.replies.map((reply, idx) => (
+                              <div key={idx} style={{display: 'flex', gap: 12}}>
+                                  <div style={{
+                                      minWidth: 32, height: 32, borderRadius: '50%', 
+                                      background: 'var(--bg-root)', border: '1px solid var(--border-subtle)',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem'
+                                  }}>
+                                      {(reply.authorName || 'U').charAt(0)}
+                                  </div>
+                                  <div style={{flex: 1}}>
+                                      <div style={{background: 'var(--bg-root)', padding: '12px 16px', borderRadius: '0 16px 16px 16px', border: '1px solid var(--border-subtle)'}}>
+                                          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                              <span style={{fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)'}}>{reply.authorName || 'User'}</span>
+                                              <span style={{fontSize: '0.75rem', opacity: 0.5}}>{new Date(reply.createdAt || Date.now()).toLocaleDateString()}</span>
+                                          </div>
+                                          <p style={{margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.5}}>{reply.text}</p>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
                   ) : (
-                      <div style={{opacity: 0.6, fontStyle: 'italic', padding:'16px 0'}}>No replies yet. Be the first to reply!</div>
+                      <div style={{opacity: 0.6, fontStyle: 'italic', padding:'24px 0', textAlign: 'center', color: 'var(--text-secondary)'}}>No replies yet.</div>
                   )}
+
+                  {/* Reply Input Area */}
+                  <div style={{marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-subtle)'}}>
+                      {canReply ? (
+                          <div style={{display: 'flex', gap: 12}}>
+                              <input 
+                                  type="text" 
+                                  placeholder="Write a reply..." 
+                                  value={replyText[rating.id] || ''}
+                                  onChange={(e) => setReplyText(prev => ({...prev, [rating.id]: e.target.value}))}
+                                  style={{
+                                      flex: 1, padding: '12px 16px', borderRadius: '24px', 
+                                      border: '1px solid var(--border-subtle)', background: 'var(--bg-root)',
+                                      color: 'var(--text-primary)', outline: 'none'
+                                  }}
+                                  onKeyDown={(e) => e.key === 'Enter' && submitReply(rating.id)}
+                              />
+                              <button 
+                                  onClick={() => submitReply(rating.id)}
+                                  disabled={!replyText[rating.id]}
+                                  style={{
+                                      background: replyText[rating.id] ? 'var(--primary-gradient)' : 'var(--bg-root)',
+                                      color: replyText[rating.id] ? 'white' : 'var(--text-muted)',
+                                      border: replyText[rating.id] ? 'none' : '1px solid var(--border-subtle)',
+                                      padding: '0 20px', borderRadius: '24px', cursor: replyText[rating.id] ? 'pointer' : 'default',
+                                      fontWeight: 600, transition: 'all 0.2s'
+                                  }}
+                              >
+                                  Send
+                              </button>
+                          </div>
+                      ) : (
+                          <div style={{
+                              padding: '12px', background: 'rgba(99, 102, 241, 0.1)', 
+                              borderRadius: '12px', color: 'var(--primary)', fontSize: '0.9rem',
+                              textAlign: 'center', border: '1px solid rgba(99, 102, 241, 0.2)'
+                          }}>
+                              🔒 Waiting for others to join the conversation before you can reply.
+                          </div>
+                      )}
+                  </div>
               </div>
           )}
         </div>
-      ))}
+      );
+      })}
     </div>
     
     <PremiumModal 

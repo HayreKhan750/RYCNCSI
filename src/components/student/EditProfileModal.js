@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UploadProfileImage from '../common/UploadProfileImage';
+import useContentModeration from '../../hooks/useContentModeration';
 
 export default function EditProfileModal({ profile, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState(profile?.profilePictureUrl);
   const [isClosing, setIsClosing] = useState(false);
+  const { validateContent } = useContentModeration();
 
   useEffect(() => {
     // Lock body scroll
@@ -51,6 +53,12 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
         setError("Full Name is required");
         return;
     }
+
+    // Validate Name
+    if (!validateContent(formData.name)) return;
+
+    // Validate Bio
+    if (!validateContent(formData.bio)) return;
 
     setLoading(true);
     setError('');

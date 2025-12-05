@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useContentModeration from '../../hooks/useContentModeration';
 
 export default function RatingsList({ ratings, searchTerm, repliesByFeedback, onPostReply, user }) {
   const [replyDrafts, setReplyDrafts] = useState({});
@@ -18,11 +19,16 @@ export default function RatingsList({ ratings, searchTerm, repliesByFeedback, on
     setReplyDrafts((prev) => ({ ...prev, [feedbackId]: text }));
   };
 
+  const { validateContent } = useContentModeration();
+
   const handleReplySubmit = async (feedbackId) => {
     const text = (replyDrafts[feedbackId] || '').trim();
     const parentId = replyParents[feedbackId] || null;
     if (!text) return;
     
+    // Validate Content
+    if (!validateContent(text)) return;
+
     await onPostReply(feedbackId, text, parentId);
     
     // Clear draft

@@ -8,6 +8,7 @@ import AdminRoute from './routes/AdminRoute';
 import GlobalLoader from './components/common/GlobalLoader';
 import ThemeProvider from './components/common/ThemeProvider';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import FoulLanguageModal from './components/modals/FoulLanguageModal';
 
 // Lazy Load Components
 const AuthEntry = lazy(() => import('./components/auth-system/AuthEntry'));
@@ -111,6 +112,7 @@ export default function App() {
           </Suspense>
         </div>
       </ErrorBoundary>
+      <FoulLanguageModal />
     </ThemeProvider>
   );
 }

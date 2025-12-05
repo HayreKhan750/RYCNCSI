@@ -16,9 +16,17 @@ const uiSlice = createSlice({
     },
     setGlobalLoading: (state, action) => {
       state.globalLoading = action.payload;
+    },
+    openFoulModal: (state, action) => {
+        state.foulModalOpen = true;
+        state.foulViolations = action.payload || [];
+    },
+    closeFoulModal: (state) => {
+        state.foulModalOpen = false;
+        state.foulViolations = [];
     }
   },
 });
 
-export const { toggleTheme, toggleSidebar, setGlobalLoading } = uiSlice.actions;
+export const { toggleTheme, toggleSidebar, setGlobalLoading, openFoulModal, closeFoulModal } = uiSlice.actions;
 export default uiSlice.reducer;
