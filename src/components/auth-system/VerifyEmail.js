@@ -1,25 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { resendVerification } from '../../store/slices/authSlice';
+import { resendVerification, checkAuthState } from '../../store/slices/authSlice';
 import { auth } from '../../firebase';
+import { authService } from '../../services/authService';
 
 export default function VerifyEmail({ onVerified }) {
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
   const [user, setUser] = useState(auth.currentUser);
 
+  const handleVerification = async (currentUser) => {
+      try {
+          // Explicitly finalize registration (Write to DB)
+          // This moves data from 'pending_registrations' to 'users'
+          await authService.finalizeRegistration(currentUser);
+      } catch (e) {
+          console.error("Finalization failed (might already be done):", e);
+      }
+      // Then sync state (Read) which will trigger AuthEntry redirect
+      dispatch(checkAuthState()); 
+  };
+
   useEffect(() => {
+      // Check immediately on mount (for reloads)
+      if (auth.currentUser?.emailVerified) {
+          handleVerification(auth.currentUser);
+      }
+
       const interval = setInterval(async () => {
           if (auth.currentUser) {
               await auth.currentUser.reload();
               if (auth.currentUser.emailVerified) {
                   clearInterval(interval);
-                  onVerified();
+                  handleVerification(auth.currentUser);
               }
           }
       }, 3000);
       return () => clearInterval(interval);
-  }, [onVerified]);
+  }, [dispatch]);
 
   return (
     <div className="auth-card" style={{textAlign:'center'}}>
@@ -47,9 +65,26 @@ export default function VerifyEmail({ onVerified }) {
       >
         {loading ? 'Sending...' : 'Resend Verification Email'}
       </button>
+
+      {/* Force Refresh Button */}
+      <button 
+        className="auth-btn auth-btn-primary" 
+        style={{marginTop: 10}}
+        onClick={() => window.location.reload()}
+      >
+        I have verified, let me in!
+      </button>
       
       <div style={{marginTop:20, fontSize:'0.8rem', color:'var(--auth-text-secondary)'}}>
-          Wrong email? <span className="auth-link" onClick={() => window.location.reload()}>Sign Out</span>
+          Wrong email? <span className="auth-link" onClick={() => {
+              auth.signOut();
+              window.location.href = '/login';
+          }}>Sign Out</span>
+      </div>
+
+      {/* Debug Info */}
+      <div style={{marginTop: 10, fontSize: '0.7rem', opacity: 0.3}}>
+          UID: {user?.uid || 'Unknown'} <br/>
       </div>
     </div>
   );

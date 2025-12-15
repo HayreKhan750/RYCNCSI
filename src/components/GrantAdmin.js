@@ -1,56 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { grantAdminAccess } from '../store/slices/adminSlice';
+import { checkAuthState } from '../store/slices/authSlice';
 
 export default function GrantAdmin() {
-  const [user, setUser] = useState(null);
-  const [status, setStatus] = useState('');
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { operationStatus, loading } = useSelector((state) => state.admin);
 
   useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-          setUser(currentUser);
-      });
-      return () => unsubscribe();
-  }, []);
-
-  const handleGrant = async () => {
+    // Ensure we have fresh auth state
     if (!user) {
-        setStatus('Please sign in first!');
-        return;
+        dispatch(checkAuthState());
     }
-    setLoading(true);
-    setStatus('Processing...');
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
+  }, [dispatch, user]);
 
-      if (!userDoc.exists()) {
-        // Create doc if missing
-        await setDoc(userRef, {
-            email: user.email,
-            role: 'admin',
-            uid: user.uid
-        });
-        setStatus(`Created user doc and granted Admin access to ${user.email}`);
-      } else {
-        await updateDoc(userRef, {
-            role: 'admin'
-        });
-        setStatus(`Success! Granted Admin access to ${user.email}`);
-      }
-
-    } catch (error) {
-      console.error(error);
-      if (error.message.includes('offline')) {
-          setStatus('Network Error: You seem to be offline. Please check your connection and try again.');
-      } else {
-          setStatus('Error: ' + error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+  const handleGrant = () => {
+    if (!user) return;
+    dispatch(grantAdminAccess({ uid: user.uid, email: user.email }));
   };
 
   return (
@@ -60,7 +27,11 @@ export default function GrantAdmin() {
           <div>
               <p>Logged in as: <strong>{user.email}</strong></p>
               <p>UID: {user.uid}</p>
-              <button onClick={handleGrant} disabled={loading} style={{ padding: 10, fontSize: '1.2rem', cursor: 'pointer' }}>
+              <button 
+                onClick={handleGrant} 
+                disabled={loading} 
+                style={{ padding: 10, fontSize: '1.2rem', cursor: 'pointer' }}
+              >
                 {loading ? 'Processing...' : 'Promote Me to Admin'}
               </button>
           </div>
@@ -71,7 +42,11 @@ export default function GrantAdmin() {
           </div>
       )}
       
-      <p style={{ marginTop: 20, fontWeight: 'bold', color: status.includes('Success') ? 'green' : 'red' }}>{status}</p>
+      {operationStatus && (
+        <p style={{ marginTop: 20, fontWeight: 'bold', color: operationStatus.success ? 'green' : 'red' }}>
+            {operationStatus.message}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,14 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { db } from '../../firebase';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchInstructors } from '../../store/slices/instructorSlice';
+import { submitFeedback } from '../../store/slices/feedbackSlice';
+import { feedbackService } from '../../services/feedbackService';
 import scheduleData from '../../assets/my-file.optimized.json';
 import '../../styles/RatingPage.css';
 
@@ -20,7 +14,10 @@ const profanityBlocked = (text) => {
 };
 
 export default function RateInstructor() {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const instructorState = useSelector((state) => state.instructors);
+  
   const [departments, setDepartments] = useState([]); // from schedule JSON
   const [instructors, setInstructors] = useState([]); // derived from selected course
   const [sections, setSections] = useState([]); // courses for selected department
@@ -44,6 +41,13 @@ export default function RateInstructor() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [showToast, setShowToast] = useState(false);
+
+  // Ensure instructors are loaded for rating matching
+  useEffect(() => {
+      if (instructorState.status === 'idle') {
+          dispatch(fetchInstructors());
+      }
+  }, [dispatch, instructorState.status]);
 
   // load departments from schedule JSON once
   useEffect(() => {
@@ -85,7 +89,7 @@ export default function RateInstructor() {
     setCoursesById(courseMap);
   }, [deptId, departments]);
 
-  // load instructors for selected course (from JSON) and sort by rating
+  // load instructors for selected course (from JSON) and sort by rating from Redux
   useEffect(() => {
     const fetchAndSortInstructors = async () => {
         setInstructors([]);
@@ -106,38 +110,32 @@ export default function RateInstructor() {
 
         const list = instructorsArr.map((inst) => {
           const key = (inst.email || inst.name || '').toLowerCase();
+          // Find in Redux store to get real rating
+          // Logic: search by id/email matching or name matching
+          const found = Object.values(instructorState.byId).find(
+              reduxInst => {
+                  const rName = (reduxInst.fullName || reduxInst.instructorName || '').toLowerCase();
+                  const rEmail = (reduxInst.email || '').toLowerCase();
+                  return rName === key || rEmail === key; // simplistic match
+              }
+          );
+
           return {
             id: key,
             displayName: inst.name,
             email: inst.email || null,
-            avgRating: 0 // Default
+            // Use Redux rating or 0
+            avgRating: found?.avgRating || found?.ratingStats?.average || 0
           };
         }).filter((i) => i.id);
 
-        // Fetch ratings for these instructors to sort them
-        try {
-            const ratingsPromises = list.map(async (inst) => {
-                const q = query(collection(db, 'feedbacks'), where('instructorId', '==', inst.id));
-                const snap = await getDocs(q);
-                if (snap.empty) return { ...inst, avgRating: 0 };
-                
-                const total = snap.docs.reduce((sum, d) => sum + (d.data().rating || 0), 0);
-                const avg = total / snap.size;
-                return { ...inst, avgRating: avg };
-            });
-
-            const enrichedList = await Promise.all(ratingsPromises);
-            // Sort by average rating descending
-            enrichedList.sort((a, b) => b.avgRating - a.avgRating);
-            setInstructors(enrichedList);
-        } catch (err) {
-            console.error("Error sorting instructors:", err);
-            setInstructors(list); // Fallback to unsorted
-        }
+        // Sort by average rating descending
+        list.sort((a, b) => b.avgRating - a.avgRating);
+        setInstructors(list);
     };
 
     fetchAndSortInstructors();
-  }, [deptId, courseId, coursesById]);
+  }, [deptId, courseId, coursesById, instructorState.byId]);
 
   const overall = useMemo(() => {
     const vals = Object.values(ratings).filter(Boolean);
@@ -166,15 +164,9 @@ export default function RateInstructor() {
     if (v) { setError(v); return; }
     setLoading(true);
     try {
-      // duplicate guard
-      const dupQ = query(
-        collection(db, 'feedbacks'),
-        where('studentId','==', user.uid),
-        where('instructorId','==', instructorId),
-        where('courseId','==', courseId)
-      );
-      const dupSnap = await getDocs(dupQ);
-      if (!dupSnap.empty) {
+      // duplicate guard via Service
+      const isDuplicate = await feedbackService.checkDuplicateFeedback(user.uid, instructorId, courseId);
+      if (isDuplicate) {
         setError('You have already rated this instructor for this course.');
         setLoading(false);
         return;
@@ -195,12 +187,20 @@ export default function RateInstructor() {
         courseTitle: selectedCourse?.title || null,
         ratings,
         overall,
-        comment,
+        text: comment, // Schema alignment
+        comment, // (Legacy support)
         tags,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        status: 'published',
+        meta: {
+            likes: 0,
+            dislikes: 0,
+            hasReply: false
+        }
+        // createdAt/updatedAt handled by Service/Thunk
       };
-      await addDoc(collection(db, 'feedbacks'), payload);
+      
+      await dispatch(submitFeedback(payload)).unwrap();
+
       setSuccess('Feedback submitted successfully');
       setShowToast(true);
       setTimeout(()=> setShowToast(false), 2000);

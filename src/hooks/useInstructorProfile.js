@@ -1,12 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchInstructorProfile } from '../store/slices/instructorSlice';
+import { fetchInstructorProfile, updateInstructorProfile } from '../store/slices/instructorSlice';
 import { addReply, deleteReply, voteReply } from '../store/slices/feedbackSlice';
 import { selectActiveProfile } from '../store/selectors/instructorSelectors';
-import { db, storage } from '../firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import scheduleData from '../assets/my-file.optimized.json';
+// Service calls moved to Thunk
 
 export default function useInstructorProfile(routeInstructorId) {
   const dispatch = useDispatch();
@@ -14,7 +11,6 @@ export default function useInstructorProfile(routeInstructorId) {
   const { user } = useSelector((state) => state.auth);
 
   const instructorKey = (routeInstructorId || (user?.email || '')).toLowerCase();
-
 
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -31,87 +27,48 @@ export default function useInstructorProfile(routeInstructorId) {
 
   // Calculate Stats
   const stats = useMemo(() => {
-      if (!myRatings || myRatings.length === 0) {
-          return { 
-              averageRating: 0, 
-              avgRating: 0,
-              totalRatings: 0, 
-              ratingCount: 0,
-              totalStudents: 0,
-              reviewCount: 0,
-              engagement: 0,
-              topTags: []
-          };
-      }
-      const avg = (myRatings.reduce((sum, r) => sum + (r.rating || 0), 0) / myRatings.length).toFixed(1);
-      const reviewCount = myRatings.filter(r => r.feedback && r.feedback.trim().length > 0).length;
-      const engagement = myRatings.reduce((acc, r) => acc + (r.likes || 0) + (r.replies?.length || 0), 0);
+      // Base stats from Profile (Server-Side Source of Truth)
+      let averageRating = profile?.avgRating !== undefined ? Number(profile.avgRating).toFixed(1) : 0;
+      let totalRatings = profile?.totalRatings !== undefined ? Number(profile.totalRatings) : 0;
+
+      // Derived stats from downloaded ratings (Client-Side / Recent Activity)
+      const visibleRatings = myRatings || [];
+      const reviewCount = visibleRatings.filter(r => r.feedback && r.feedback.trim().length > 0).length;
+      const engagement = visibleRatings.reduce((acc, r) => acc + (r.likes || 0) + (r.replies?.length || 0), 0);
       
       const tagCounts = {};
-      myRatings.forEach(f => {
+      visibleRatings.forEach(f => {
           if (Array.isArray(f.tags)) {
               f.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
           }
       });
       const topTags = Object.entries(tagCounts).sort((a,b) => b[1] - a[1]).map(e => e[0]);
 
+      // Fallback if profile stats are missing (e.g. legacy data) but we have ratings
+      if ((!averageRating || averageRating === 0) && visibleRatings.length > 0) {
+           averageRating = (visibleRatings.reduce((sum, r) => sum + (r.rating || 0), 0) / visibleRatings.length).toFixed(1);
+           totalRatings = visibleRatings.length;
+      }
+
       return {
-          averageRating: avg,
-          avgRating: avg,
-          totalRatings: myRatings.length,
-          ratingCount: myRatings.length,
-          totalStudents: 0, // Will calculate with courses
-          reviewCount,
+          averageRating,
+          avgRating: averageRating,
+          totalRatings,
+          ratingCount: totalRatings, // Alias
+          totalStudents: 0, 
+          reviewCount, // This is technically "Visible Review Count", but acceptable for now
           engagement,
           topTags
       };
-  }, [myRatings]);
+  }, [profile, myRatings]);
 
   // Calculate Courses
   const myCourses = useMemo(() => {
-      if (!profile) return [];
-      
-      const courses = [];
-      const schedule = Array.isArray(scheduleData?.schedule) ? scheduleData.schedule : [];
-      const emailForMatching = profile.email;
-
-      schedule.forEach((dept) => {
-        const deptName = dept.department;
-        const deptCourses = Array.isArray(dept.courses) ? dept.courses : [];
-
-        deptCourses.forEach((course) => {
-          let instructorsArr;
-          if (Array.isArray(course.instructor)) {
-            instructorsArr = course.instructor;
-          } else if (course.instructor) {
-            instructorsArr = [{ name: course.instructor, email: null }];
-          } else {
-            instructorsArr = [];
-          }
-
-          const teachesHere = instructorsArr.some((inst) => {
-            if (emailForMatching && inst.email) {
-                return inst.email.toLowerCase() === emailForMatching.toLowerCase();
-            }
-            return (inst.name || '').toLowerCase() === (profile.instructorName || profile.name || '').toLowerCase();
-          });
-
-          if (teachesHere) {
-            courses.push({
-              id: `${deptName || 'dept'}-${course.course_code || course.course_title}`,
-              department: deptName,
-              courseTitle: course.course_title,
-              courseCode: course.course_code,
-              lectureHours: course.lecture_hours,
-              period: course.period,
-              room: course.room,
-              studentCount: course.student_count,
-              instructors: instructorsArr,
-            });
-          }
-        });
-      });
-      return courses;
+      // Use the courses already populated in the profile object from Firestore (via AdminImporter)
+      if (profile && Array.isArray(profile.courses)) {
+          return profile.courses;
+      }
+      return [];
   }, [profile]);
 
   // Calculate Badges & Chart Data
@@ -167,41 +124,21 @@ export default function useInstructorProfile(routeInstructorId) {
   }, [myRatings, stats]);
 
   const updateProfile = async (newProfileData, imageFile) => {
-     if (!user?.uid || !db) return;
+     if (!user?.uid) return;
      
-     // 1. Determine the new profile picture URL
-     let profilePictureUrl = profile?.profilePictureUrl || '';
-
-     // If a new URL is passed in the data (from Cloudinary), use it
-     if (newProfileData.photoURL) {
-         profilePictureUrl = newProfileData.photoURL;
+     try {
+        await dispatch(updateInstructorProfile({ 
+            uid: user.uid, 
+            data: newProfileData, 
+            imageFile 
+        })).unwrap();
+        
+        // Refresh to ensure everything is synced
+        dispatch(fetchInstructorProfile(user.uid));
+     } catch (e) {
+         console.error("Failed to update profile", e);
+         throw e;
      }
-     // Fallback: If legacy imageFile is passed (shouldn't happen with new UI), upload it
-     else if (imageFile && storage) {
-        const storageRef = ref(storage, `profilePictures/${user.uid}`);
-        await uploadBytes(storageRef, imageFile);
-        profilePictureUrl = await getDownloadURL(storageRef);
-     }
-
-      const userRef = doc(db, 'users', user.uid);
-      
-      // 2. Construct payload
-      // Remove photoURL from spread to avoid duplication if we use profilePictureUrl
-      const { photoURL, ...otherData } = newProfileData;
-
-      const payload = {
-        ...otherData,
-        profilePictureUrl, // Standardize on this field for Firestore
-        photoURL: profilePictureUrl, // Keep this for compatibility if needed
-        updatedAt: serverTimestamp(),
-        email: user.email,
-        role: profile?.role || 'instructor',
-      };
-
-      await setDoc(userRef, payload, { merge: true });
-      
-      // 3. Force refresh
-      dispatch(fetchInstructorProfile(user.uid));
   };
 
   const postReply = async (feedbackId, replyData) => {

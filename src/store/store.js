@@ -8,9 +8,11 @@ import feedbackReducer from './slices/feedbackSlice';
 import adminReducer from './slices/adminSlice';
 import notificationReducer from './slices/notificationSlice';
 import navigationReducer from './slices/navigationSlice';
+import managementReducer from './slices/managementSlice';
 
-export const store = configureStore({
-  reducer: {
+import { combineReducers } from '@reduxjs/toolkit';
+
+const appReducer = combineReducers({
     auth: authReducer,
     instructors: instructorReducer,
     ui: uiReducer,
@@ -20,7 +22,19 @@ export const store = configureStore({
     admin: adminReducer,
     notifications: notificationReducer,
     navigation: navigationReducer,
-  },
+    management: managementReducer,
+});
+
+const rootReducer = (state, action) => {
+  if (action.type === 'auth/logout/fulfilled') {
+    // Clear state on logout (preserve theme if desired, distinct logic if needed)
+    state = undefined;
+  }
+  return appReducer(state, action);
+};
+
+export const store = configureStore({
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

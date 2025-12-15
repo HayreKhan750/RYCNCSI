@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
+import { updateDoc, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function GrantInstructor() {
@@ -23,22 +23,39 @@ export default function GrantInstructor() {
     setLoading(true);
     setStatus('Processing...');
     try {
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
+      // 1. Create/Update Instructor Profile
+      const instructorRef = doc(db, 'instructors', user.uid);
+      const instructorDoc = await getDoc(instructorRef);
 
-      if (!userDoc.exists()) {
-        await setDoc(userRef, {
-            email: user.email,
-            role: 'instructor',
-            uid: user.uid
-        });
-        setStatus(`Created user doc and switched role to Instructor for ${user.email}`);
+      const instructorData = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email.split('@')[0],
+          name: user.displayName || user.email.split('@')[0],
+          role: 'instructor',
+          department: 'General',
+          bio: 'Instructor account granted via DevTools',
+          photoURL: user.photoURL || '',
+          courses: [],
+          stats: { rating: 0, totalReviews: 0 },
+          isRegistered: true
+      };
+
+      if (!instructorDoc.exists()) {
+          await setDoc(instructorRef, { ...instructorData, createdAt: new Date() });
       } else {
-        await updateDoc(userRef, {
-            role: 'instructor'
-        });
-        setStatus(`Success! Switched role to Instructor for ${user.email}`);
+          await updateDoc(instructorRef, { role: 'instructor' });
       }
+
+      // 2. CLEANUP: Remove from 'users' and 'students' if exists
+      // This ensures the strict "Instructors only in instructors collection" rule
+      const userRef = doc(db, 'users', user.uid);
+      const studentRef = doc(db, 'students', user.uid);
+      
+      await deleteDoc(doc(db, 'users', user.uid)).catch(() => {});
+      await deleteDoc(doc(db, 'students', user.uid)).catch(() => {});
+
+      setStatus(`Success! Switched role to Instructor for ${user.email}. (Moved to 'instructors' collection, removed from 'users'/'students')`);
 
     } catch (error) {
       console.error(error);

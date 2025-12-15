@@ -1,0 +1,1402 @@
+[
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Calculus I",
+        "Course No":"Math 2021",
+        "Instructors":"Hayredin",
+        "Email":"hayredin.ugr-2361-16@aau.edu.et"
+    },
+    {
+        "Dept":"Biology",
+        "Year":"II",
+        "Course Title":"Inclusiveness",
+        "Course No":"SNIE 1012",
+        "Instructors":"Wubit S.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"II",
+        "Course Title":"Mycology",
+        "Course No":"Biol 2063",
+        "Instructors":"Dr. Tesfaye A. & Jemal Y.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"II",
+        "Course Title":"Biological laboratory and field techniques",
+        "Course No":"Biol 2021",
+        "Instructors":"Dr Tegenu, Dr. Samson Tilahun, Dr. Shabel Alemu and Ketemaw D",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"II",
+        "Course Title":"Cell Biology",
+        "Course No":"Biol 2051",
+        "Instructors":"Dr. Tilaye Wubie",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"II",
+        "Course Title":"Phycology",
+        "Course No":"Biol 2031",
+        "Instructors":"Dr. Demek Kifle & Dr. Samson Tilahun",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"II",
+        "Course Title":"Invertebrate Zoology",
+        "Course No":"Biol 2041",
+        "Instructors":"Dr. Mesele Yihunie",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"II",
+        "Course Title":"Inorganic chemistry",
+        "Course No":"Chem 2091",
+        "Instructors":"Makida F.  ",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"II",
+        "Course Title":"Analytical Chemistry",
+        "Course No":"Chem 2211",
+        "Instructors":"Dr. Negussie N.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"II",
+        "Course Title":"Practical Analytical Chemistry",
+        "Course No":"Chem 2221",
+        "Instructors":"Dr. Negussie N.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"II",
+        "Course Title":"Mechanic and Heat for Chemists",
+        "Course No":"Phys 2031",
+        "Instructors":"Dr. Yitagesu E.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"II",
+        "Course Title":"Inclusiveness",
+        "Course No":"SNIE 1012",
+        "Instructors":" Wubit S.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"II",
+        "Course Title":"Global Trends",
+        "Course No":"GlTr 1012",
+        "Instructors":"Dr. Andargachew T.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"II",
+        "Course Title":"Applied Mathematics I for Chemists",
+        "Course No":"Math 2121",
+        "Instructors":"Dr.Samuel A.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"II",
+        "Course Title":"Introductory Statistics",
+        "Course No":"Stat 2011",
+        "Instructors":"Dr. Butte G.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"II",
+        "Course Title":"General Geology",
+        "Course No":"Geol 2011",
+        "Instructors":"Prof. Gezahegn Y. &  Dr. Haileyesus A.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"II",
+        "Course Title":"Crystallography & Mineralogy",
+        "Course No":"Geol 2031",
+        "Instructors":" Tadele T.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"II",
+        "Course Title":"Practical Crystallography & Mineralogy",
+        "Course No":"Geol 2032",
+        "Instructors":"Tadele T. & Aberash H.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"II",
+        "Course Title":"Paleontology",
+        "Course No":"Geol 2021",
+        "Instructors":"Dr. Addis Hailu",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"II",
+        "Course Title":"Practical Paleontology",
+        "Course No":"Geol 2022",
+        "Instructors":"Dr. Addis H. & Kalkidan A.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"II",
+        "Course Title":"Mathematics for Geologists",
+        "Course No":"Math 2171",
+        "Instructors":"Selamawit T.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"II",
+        "Course Title":"Introduction to Computer Science",
+        "Course No":"CoSc 2011",
+        "Instructors":"Befekadu B.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Fundamental Concepts of Algebra",
+        "Course No":"Math 2011",
+        "Instructors":"Dr. Yibeltal Y.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Calculus I",
+        "Course No":"Math 2021",
+        "Instructors":"Dr. Kassahun W.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Introduction to statistics",
+        "Course No":"Stat2181",
+        "Instructors":"Mekonnen T.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Introduction to Computer Sciences",
+        "Course No":"Comp 2041",
+        "Instructors":"Surafiel H.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Inclusivness",
+        "Course No":"  SNIE1012",
+        "Instructors":" Wubit S.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Global Trends",
+        "Course No":"GlTr1012",
+        "Instructors":"Dr. Andargachew T.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Introduction to statistics",
+        "Course No":"Stat2181",
+        "Instructors":"Sisay A.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"II",
+        "Course Title":"Inclusivness",
+        "Course No":"  SNIE1012",
+        "Instructors":"Mrs.Banchigize A.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"II",
+        "Course Title":"Calculus I",
+        "Course No":"Math 2021",
+        "Instructors":"Dr. Tilahun E.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"II",
+        "Course Title":"Experiments in Mechanics",
+        "Course No":"Phys 2101",
+        "Instructors":"Dr. Belayneh M.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"II",
+        "Course Title":"Inclusiveness",
+        "Course No":"SNIE 1012",
+        "Instructors":"Wudie N.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"II",
+        "Course Title":"Introduction to Computer Science",
+        "Course No":"Comp 2041",
+        "Instructors":"Surafiel H.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"II",
+        "Course Title":"Global Affairs ",
+        "Course No":"GlTr 1012",
+        "Instructors":"Dr. Andargachew T",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"II",
+        "Course Title":"Mechanics",
+        "Course No":"Phys 2001",
+        "Instructors":"Mr. Tesfu K.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"II",
+        "Course Title":"Physics of Oscillations and Waves",
+        "Course No":"Phys 2003",
+        "Instructors":"Dr. Endris M.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Calculus I",
+        "Course No":"Math 2041",
+        "Instructors":"Dagmawit M. ",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Linear Algebra I",
+        "Course No":"Math 2051",
+        "Instructors":"Selamawit T.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Introduction to Computer Science and application",
+        "Course No":"Comp 2011",
+        "Instructors":"Getahun G.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Basic Statistics",
+        "Course No":"Stat 2011",
+        "Instructors":"Dr. Merga B.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Global trends",
+        "Course No":"Gltr 2011",
+        "Instructors":"Dr. Andargachew T",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Calculus I",
+        "Course No":"Math 2041",
+        "Instructors":"Dr.Tilahun E. ",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Linear Algebra I",
+        "Course No":"Math 2051",
+        "Instructors":"Ato Ademe M.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"II",
+        "Course Title":"Basic Statistics",
+        "Course No":"Stat 2011",
+        "Instructors":"Melkie C.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Inclusiveness",
+        "Course No":"     SNIE1011",
+        "Instructors":"Wudie N.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Calculus I ",
+        "Course No":"Math 2021",
+        "Instructors":"Dr.  Manalebish D.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Linear Algebra ",
+        "Course No":"Math 2191",
+        "Instructors":"Selamawit T. ",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Statistics",
+        "Course No":"Stat 2181",
+        "Instructors":"Zelalem T.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Fundamentals of Electricity & Digital Electronics ",
+        "Course No":"ECEG 1351",
+        "Instructors":"Ato Abebe Demissie ",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Global Trends",
+        "Course No":"GlTr 1012",
+        "Instructors":"Dr. Haileyesus M.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Computer Science Programming II",
+        "Course No":"CoSc 2111",
+        "Instructors":"Nesredin S.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Calculus I ",
+        "Course No":"Math 2021",
+        "Instructors":"Yohannes Taye",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Linear Algebra ",
+        "Course No":"Math 2191",
+        "Instructors":"Dr. Tadesse B. ",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Statistics",
+        "Course No":"Stat 2181",
+        "Instructors":"Dr. Dejen T.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Global Trends",
+        "Course No":"GlTr 1012",
+        "Instructors":"Dr. Haileyesus M",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Calculus I ",
+        "Course No":"Math 2021",
+        "Instructors":"Dr .Yirgalem T.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Linear Algebra ",
+        "Course No":"Math 2191",
+        "Instructors":"Dr.Tilahun E. ",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Statistics",
+        "Course No":"Stat 2181",
+        "Instructors":"Dr. Taddesse K.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Fundamentals of Electricity & Digital Electronics ",
+        "Course No":"ECEG 1351",
+        "Instructors":"Samrawit Kassaye ",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Computer Science Programming II",
+        "Course No":"CoSc 2111",
+        "Instructors":"Mekonnen G",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Calculus I ",
+        "Course No":"Math 2021",
+        "Instructors":"Dr. Manalebish D.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Linear Algebra ",
+        "Course No":"Math 2191",
+        "Instructors":"Dr.Tadesse B. ",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"II",
+        "Course Title":"Introduction to Statistics",
+        "Course No":"Stat 2181",
+        "Instructors":"Yabebal A.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"III",
+        "Course Title":"General Microbiology ",
+        "Course No":"Biol 3063",
+        "Instructors":"Dr. Dagim J. & Jemal Y.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"III",
+        "Course Title":"Applied Entomology ",
+        "Course No":"Biol 3043",
+        "Instructors":"Prof. Habte Tekie & Dr. Yitbarek W\/Hawariat",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"III",
+        "Course Title":"Seed Plants ",
+        "Course No":"Biol 3031",
+        "Instructors":"Hanny L and Dr. Misganaw",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"III",
+        "Course Title":"Principles of Parasitology ",
+        "Course No":"Biol 3061",
+        "Instructors":"Dr. Tegenu G. and Saron F",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"III",
+        "Course Title":"Principles of Genetics ",
+        "Course No":"Biol3051 ",
+        "Instructors":"Dr. Helen Nigussie",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"III",
+        "Course Title":"Findamentals of Organic Chemistry ",
+        "Course No":"Chem 3091",
+        "Instructors":"Mohammedamin N.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology",
+        "Year":"III",
+        "Course Title":"Practical Organic Chemistry",
+        "Course No":"Chem 3093",
+        "Instructors":"Mohammedamin N.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology IV",
+        "Year":"IV",
+        "Course Title":"Aquatic Science & Wetland Management ",
+        "Course No":"Biol 4071",
+        "Instructors":"Prof. Brook L., Prof. Tadesse F. & Dr. Samson T.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology IV",
+        "Year":"IV",
+        "Course Title":"Wild life Ecology & Management ",
+        "Course No":"Biol 4021",
+        "Instructors":"Dr. Mesele Yihunie",
+        "Email":null
+    },
+    {
+        "Dept":"Biology IV",
+        "Year":"IV",
+        "Course Title":"Research Methode & Reporting in Science ",
+        "Course No":"Biol 4032",
+        "Instructors":"Dr. Araya G\/Silassie and Prof. Habte Tekie",
+        "Email":null
+    },
+    {
+        "Dept":"Biology IV",
+        "Year":"IV",
+        "Course Title":"Evolutoin ",
+        "Course No":"Biol 4025",
+        "Instructors":"Dr. Anagaw Atickem",
+        "Email":null
+    },
+    {
+        "Dept":"Biology IV",
+        "Year":"IV",
+        "Course Title":"Molecular Biology ",
+        "Course No":"Biol 4052",
+        "Instructors":"Dr. Zelalem G\/M.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology IV",
+        "Year":"IV",
+        "Course Title":"Fundamental of Biostatistics",
+        "Course No":"Stat4091",
+        "Instructors":"Melkie C.",
+        "Email":null
+    },
+    {
+        "Dept":"Biology IV",
+        "Year":"IV",
+        "Course Title":"Enterpreneurship",
+        "Course No":"MGMT 1012",
+        "Instructors":"Gemechis Fikadu ",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Instrumental Analysis I ",
+        "Course No":"Chem 3021",
+        "Instructors":"Dr. Merid T.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Practical Instrumental Analysis I ",
+        "Course No":"Chem 3023",
+        "Instructors":"Dr. Merid T. (Coordinator)",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Inorganic Chemistry II",
+        "Course No":"Chem 3031",
+        "Instructors":"Dr. Yaregal",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Practical Inorganic Chemistry I",
+        "Course No":"Chem 3033",
+        "Instructors":"Dr. Shewaye T.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Chemical Kintics and Electrochemistry ",
+        "Course No":"Chem 3051",
+        "Instructors":"Prof. Shimelis A.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Practical Physical Chemistry I",
+        "Course No":"Chem 3053",
+        "Instructors":"Hagos T. ",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Industrial Chemistry I ",
+        "Course No":"Chem 3121",
+        "Instructors":"Dr. Amare A.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry",
+        "Year":"III",
+        "Course Title":"Applied Mathematics III for Chemistry ",
+        "Course No":"Math  3121",
+        "Instructors":"Dr .Tsegaye G.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry IV",
+        "Year":"IV",
+        "Course Title":"Physical Organic Chmistry ",
+        "Course No":"Chem 4041",
+        "Instructors":"Prof. Wendimagegn M.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry IV",
+        "Year":"IV",
+        "Course Title":"Practical Organic Chemistry III",
+        "Course No":"Chem 4043",
+        "Instructors":"Dr. Mekonnene A.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry IV",
+        "Year":"IV",
+        "Course Title":"Quantum Chemistry ",
+        "Course No":"Chem 4051 ",
+        "Instructors":"Dr. Mesfin R. & Dr. Getachew G.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry IV",
+        "Year":"IV",
+        "Course Title":"Chemistry or Consumer Products ",
+        "Course No":"Chem 4121",
+        "Instructors":"Dr. Mezgebu W.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry IV",
+        "Year":"IV",
+        "Course Title":"Polymer Chemistry ",
+        "Course No":"Chem 4111",
+        "Instructors":"Dr. Mekonnen A.",
+        "Email":null
+    },
+    {
+        "Dept":"Chemistry IV",
+        "Year":"IV",
+        "Course Title":"Enterpreneurship",
+        "Course No":"MGMT 1012",
+        "Instructors":"Gemechis Fikadu ",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"III",
+        "Course Title":"Igeneous Petrology",
+        "Course No":"Geol 3061",
+        "Instructors":"Prof. Dereje & Tenaw",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"III",
+        "Course Title":" Mapping Sedimentary Terrain",
+        "Course No":"Geol 3252",
+        "Instructors":"Dr. Balemewal, Dr. Haileyesus & Dr. Addis",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"III",
+        "Course Title":"Practical Ingeous Petrology ",
+        "Course No":"Geol 3062",
+        "Instructors":"Aberash & Tenaw ",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"III",
+        "Course Title":"Geochemistry",
+        "Course No":"Geol 3031",
+        "Instructors":"Prof. Dereje & Mr. Andualem",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"III",
+        "Course Title":"Environmental Geology ",
+        "Course No":"Geol 3091",
+        "Instructors":"Dr. Bayisa R. & Dr. Haileyesus A.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science",
+        "Year":"III",
+        "Course Title":"Statistics for Geologists",
+        "Course No":"Stat 3001",
+        "Instructors":"Birikset Z.",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science IV",
+        "Year":"IV",
+        "Course Title":"Mapping Metamorphic Terrain ",
+        "Course No":"Geol 4272",
+        "Instructors":" Wubegzier,  Tadele &  Eyob",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science IV",
+        "Year":"IV",
+        "Course Title":"Economic Geology ",
+        "Course No":"Geol 4071",
+        "Instructors":"Prof. Worash &  Wubegzier",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science IV",
+        "Year":"IV",
+        "Course Title":" Practical Economic Geology ",
+        "Course No":"Geol 4072",
+        "Instructors":"Wubegzier",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science IV",
+        "Year":"IV",
+        "Course Title":"Engineering Geology ",
+        "Course No":"Geol 4032",
+        "Instructors":"Dr. Trufat",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science IV",
+        "Year":"IV",
+        "Course Title":"Exploration Geophysics ",
+        "Course No":"Geol 4042",
+        "Instructors":"Dr. Mebatsion & Wubayehu ",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science IV",
+        "Year":"IV",
+        "Course Title":"Groundwater Exploration &Development ",
+        "Course No":"Geol 4124",
+        "Instructors":"Dr. Tilahun",
+        "Email":null
+    },
+    {
+        "Dept":"Earth Science IV",
+        "Year":"IV",
+        "Course Title":"Elective I",
+        "Course No":null,
+        "Instructors":"TBA",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"III",
+        "Course Title":"Transformation Geometry ",
+        "Course No":"Math 3053",
+        "Instructors":"Dr. Zelalem T.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"III",
+        "Course Title":"Number Theory ",
+        "Course No":"Math 3091",
+        "Instructors":"Dr. Mesfin Masre",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"III",
+        "Course Title":"Calculus of Function of Several Variables ",
+        "Course No":"Math 3071",
+        "Instructors":"Dr .Tesfa B.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"III",
+        "Course Title":"Mechanics and Heat ",
+        "Course No":"Phys 3013",
+        "Instructors":"Dr. Yitagesu E.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"III",
+        "Course Title":"Experimental Physics  I",
+        "Course No":"Phys 3015",
+        "Instructors":"Mr. Tesfaye M\/Dr Tilahun T",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics",
+        "Year":"III",
+        "Course Title":"Linear Algebra II",
+        "Course No":"Math 3043",
+        "Instructors":"Dr. Tilahun A",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics IV",
+        "Year":"IV",
+        "Course Title":"Introduction to Research Methods ",
+        "Course No":"Math 4161",
+        "Instructors":"Dr .Tilahun A.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics IV",
+        "Year":"IV",
+        "Course Title":"Calculus Of Function of Complex Variables ",
+        "Course No":"Math 4071",
+        "Instructors":"Dr. Hundum L.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics IV",
+        "Year":"IV",
+        "Course Title":"Partial Differential of Equations ",
+        "Course No":"Math 4085",
+        "Instructors":"Dr. Tadesse A.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics IV",
+        "Year":"IV",
+        "Course Title":"Advanced Calculus of one Variable ",
+        "Course No":"Math 4101",
+        "Instructors":"Dr. Bahru T.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics IV",
+        "Year":"IV",
+        "Course Title":"Logic & Set Theory",
+        "Course No":"Math 4095",
+        "Instructors":"Dr .Kassahun W.",
+        "Email":null
+    },
+    {
+        "Dept":"Mathematics IV",
+        "Year":"IV",
+        "Course Title":"Enterpreneurship & Business Development ",
+        "Course No":"MGMT 1012",
+        "Instructors":"Gemechis Fikadu ",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"III",
+        "Course Title":"Classical Mechanics ",
+        "Course No":"Phys3301",
+        "Instructors":"Dr Endalkachew",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"III",
+        "Course Title":"Experiments in Oscillations and Waves ",
+        "Course No":"Phys 3101",
+        "Instructors":"Dr. Endris M.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"III",
+        "Course Title":"Fundamentals of Programming ",
+        "Course No":"Comp 3041",
+        "Instructors":"Daniel M",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"III",
+        "Course Title":"Modern Physics ",
+        "Course No":"Phys 3401",
+        "Instructors":"Mr. Tesfu K.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"III",
+        "Course Title":"Linear Algebra ",
+        "Course No":"Math 3043",
+        "Instructors":"Dagmawit M.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"III",
+        "Course Title":"Mathematical Methods of Physics I ",
+        "Course No":"Phys 3701",
+        "Instructors":"Dr. Ephrem T",
+        "Email":null
+    },
+    {
+        "Dept":"Physics",
+        "Year":"III",
+        "Course Title":"Electrodynamics I ",
+        "Course No":"Phys 3703",
+        "Instructors":"Dr. Mesfin T.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics IV",
+        "Year":"IV",
+        "Course Title":"Computational Physics ",
+        "Course No":"Phys 4203",
+        "Instructors":"Dr. Kenate N.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics IV",
+        "Year":"IV",
+        "Course Title":"Condensed Matter Physics I ",
+        "Course No":"Phys 4501 ",
+        "Instructors":"Dr. Tesgera B.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics IV",
+        "Year":"IV",
+        "Course Title":"Astronomy and Astrophysics I",
+        "Course No":"Phys4301",
+        "Instructors":"Dr. Negessa T.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics IV",
+        "Year":"IV",
+        "Course Title":"Enterpreneurship & Business Development ",
+        "Course No":"MGMT 1012",
+        "Instructors":"Gemechis Fikadu ",
+        "Email":null
+    },
+    {
+        "Dept":"Physics IV",
+        "Year":"IV",
+        "Course Title":"Quantum Mechanics II",
+        "Course No":"Phys 4401",
+        "Instructors":"Dr. Derbie H.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics IV",
+        "Year":"IV",
+        "Course Title":"Statistical Physics ",
+        "Course No":"Phys 4201",
+        "Instructors":"Dr. Lemi D.",
+        "Email":null
+    },
+    {
+        "Dept":"Physics IV",
+        "Year":"IV",
+        "Course Title":"Internship",
+        "Course No":"Phys 4941",
+        "Instructors":"Dr Belayneh M",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"III",
+        "Course Title":"Sampling Theory ",
+        "Course No":"Stat 3031",
+        "Instructors":"Dr. Derbachew A.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"III",
+        "Course Title":"Regression analysis",
+        "Course No":"Stat 3101",
+        "Instructors":"Yabebal A.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"III",
+        "Course Title":"Fundamentals of Database Systems ",
+        "Course No":"Comp 3021",
+        "Instructors":"Eyob A.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"III",
+        "Course Title":"Ststistical Comupting I",
+        "Course No":"Stat3021",
+        "Instructors":"Dr. Dejen T.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"III",
+        "Course Title":"Social & Economic Statistics ",
+        "Course No":"Stat 3072",
+        "Instructors":"Abrham K.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics",
+        "Year":"III",
+        "Course Title":"Numerical Methode for Statistics ",
+        "Course No":"Math 3062 ",
+        "Instructors":"Yohannes T.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics IV",
+        "Year":"IV",
+        "Course Title":"Statistical Theory of Distrbutions ",
+        "Course No":"Stat 4051",
+        "Instructors":"Dr. Shibru T. ",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics IV",
+        "Year":"IV",
+        "Course Title":"Demography ",
+        "Course No":"Stat 4071",
+        "Instructors":"Gete B.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics IV",
+        "Year":"IV",
+        "Course Title":"Econometrics ",
+        "Course No":" Stat 4061",
+        "Instructors":"Zelalem T.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics IV",
+        "Year":"IV",
+        "Course Title":"Statistical quality control ",
+        "Course No":"Stat 4081 ",
+        "Instructors":"Yabebal A.",
+        "Email":null
+    },
+    {
+        "Dept":"Statistics IV",
+        "Year":"IV",
+        "Course Title":"Applied Spatial Statistics ",
+        "Course No":"Stat 4121",
+        "Instructors":"Dr. Bedilu A.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":"Advanced Data base Systems ",
+        "Course No":"CoSc 3011",
+        "Instructors":"Fekerte G.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":"Data Structures and Algorithms ",
+        "Course No":"CoSc3111 ",
+        "Instructors":"Abdurahman D",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":"Computer Science Networking & Data Communication ",
+        "Course No":"CoSc3211 ",
+        "Instructors":"Solomon T",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":"Discrete Mathematics and Combinatory ",
+        "Course No":"Math 2231",
+        "Instructors":"Dr. Fikre Bogale",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":" Introduction to Software Engineering ",
+        "Course No":"CoSc3311",
+        "Instructors":"Aderaw S",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":"Applied Numercial Analysis ",
+        "Course No":"Math 3221",
+        "Instructors":"Dr. Temesgen A. ",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":"Discrete Mathematics and Combinatory ",
+        "Course No":"Math 2231",
+        "Instructors":"Dr. Mesfin Masre",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science",
+        "Year":"III",
+        "Course Title":" Introduction to Software Engineering ",
+        "Course No":"CoSc3311",
+        "Instructors":"Asderaw S.",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science IV",
+        "Year":"IV",
+        "Course Title":"Introduction to Aritifcal Intelligence ",
+        "Course No":"CoSc 4011 ",
+        "Instructors":"Samuel G",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science IV",
+        "Year":"IV",
+        "Course Title":"Wireless Communication and Mobile Comuting ",
+        "Course No":"CoSc 4111",
+        "Instructors":"Ashenafi K",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science IV",
+        "Year":"IV",
+        "Course Title":"Formal Language & Automata Theory ",
+        "Course No":"CoSc 4311",
+        "Instructors":"Mohammed A",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science IV",
+        "Year":"IV",
+        "Course Title":"Final Year Progect I ",
+        "Course No":"CoSc 4411",
+        "Instructors":"All Staffs",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science IV",
+        "Year":"IV",
+        "Course Title":"Technical Report Writing in Computer Science ",
+        "Course No":"CoSc 4511",
+        "Instructors":"All Staffs",
+        "Email":null
+    },
+    {
+        "Dept":"Computer Science IV",
+        "Year":"IV",
+        "Course Title":"Elective I ",
+        "Course No":"C0Sc 4021",
+        "Instructors":"Beimnet G.",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"IV",
+        "Course Title":"Introduction to Artificial Intelligence",
+        "Course No":"INSY4091",
+        "Instructors":"Mr. Melaku Girma",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"IV",
+        "Course Title":"Information System Project Management",
+        "Course No":"INSY4101",
+        "Instructors":"Dr. Lemma Lessa",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"IV",
+        "Course Title":"Human Computer Science Interaction",
+        "Course No":"INSY411",
+        "Instructors":"W\/ro Meseret Hailu",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"IV",
+        "Course Title":"Seminar in Information System",
+        "Course No":"INSY4123",
+        "Instructors":"Dr. Temtim Assefa",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"IV",
+        "Course Title":"Inclusiveness",
+        "Course No":"SNIE1012",
+        "Instructors":"Tsegaye G.",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Research Methods in Information Systems",
+        "Course No":"INSY3061",
+        "Instructors":"Ato Miftah Hassen",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Fundamentals of System Analysis & Design",
+        "Course No":"INSY3062",
+        "Instructors":"W\/ro Dagmawit Mohammed",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Computer Science Architecture & Operating Systems",
+        "Course No":"INSY2051",
+        "Instructors":"Ato Andargachew Asfaw",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Introduction to Systems and Networks",
+        "Course No":"INSY3071",
+        "Instructors":"Ato Tsegaye Birhanu",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Introduction to Internet Programming",
+        "Course No":"INSY3081",
+        "Instructors":"Ato Gebremichael Meshesha",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Event Driven Programming",
+        "Course No":"INSY2043",
+        "Instructors":"Ato Teshome Alemu",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Research Methods in Information Systems",
+        "Course No":"INSY3061",
+        "Instructors":"Mr. Aminu Mohammed",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"III",
+        "Course Title":"Introduction to Systems and Networks",
+        "Course No":"INSY3071",
+        "Instructors":"Dr. Workshet Lamenew",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"II",
+        "Course Title":"Foundations of Information Systems",
+        "Course No":"INSY2011",
+        "Instructors":"Ato Wendessen Endale",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"II",
+        "Course Title":"Fundamentals of Database Systems",
+        "Course No":"INSY2031",
+        "Instructors":"W\/ro Adey Edessa",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"II",
+        "Course Title":"Computer Science Programming II",
+        "Course No":"INSY2022",
+        "Instructors":"W\/ro Lemlem Hagos",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"II",
+        "Course Title":"Introduction to Management",
+        "Course No":"MGMT2121",
+        "Instructors":"TBA",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"II",
+        "Course Title":"Fundamentals of Accounting I",
+        "Course No":"AcFn2111",
+        "Instructors":"TBA",
+        "Email":null
+    },
+    {
+        "Dept":"Information Science",
+        "Year":"II",
+        "Course Title":"Introduction to Combinatorics and Graph Theory",
+        "Course No":"Math2032",
+        "Instructors":"Dr Yirgalem Tsegaye",
+        "Email":null
+    }
+]

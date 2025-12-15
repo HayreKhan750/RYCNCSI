@@ -17,11 +17,37 @@ export default function AdminDashboard({ stats }) {
   return (
     <div className="admin-dashboard fade-in">
       {/* Header */}
-      <div style={{marginBottom: 30}}>
-          <h1 className="adm-dashboard-title">
-              Admin Control Center
-          </h1>
-          <p style={{opacity: 0.7}}>Platform Overview & Statistics</p>
+      <div style={{marginBottom: 30, display:'flex', justifyContent:'space-between', alignItems:'flex-end'}}>
+          <div>
+            <h1 className="adm-dashboard-title">
+                Admin Control Center
+            </h1>
+            <p style={{opacity: 0.7}}>Platform Overview & Statistics</p>
+          </div>
+          <button 
+            onClick={async () => {
+                if(!window.confirm("Run Database Migration? This will copy legacy students to the new 'users' collection.")) return;
+                try {
+                    const { migrationService } = await import('../../services/migrationService');
+                    const res = await migrationService.migrateStudentsToUsers();
+                    alert(res.logs.join('\n'));
+                    window.location.reload(); // Refresh to show new stats
+                } catch(e) {
+                    alert("Migration Error: " + e.message);
+                }
+            }}
+            style={{
+                background: 'var(--adm-warning)', 
+                color: 'black',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+            }}
+          >
+              ⚠️ Run Migration Tool
+          </button>
       </div>
 
       {/* Stats Grid */}

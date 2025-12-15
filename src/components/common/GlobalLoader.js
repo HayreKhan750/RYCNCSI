@@ -2,9 +2,9 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 
 export default function GlobalLoader() {
-  const { loading } = useSelector((state) => state.auth);
+  const { globalLoading } = useSelector((state) => state.auth);
 
-  if (!loading) return null;
+  if (!globalLoading) return null;
 
   return (
     <div style={{

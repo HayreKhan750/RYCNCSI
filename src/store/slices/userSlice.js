@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../services/authService';
-import { storage } from '../../firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { cloudinaryService } from '../../services/cloudinaryService';
+// Removed: import { storage } from '../../firebase';
+// Removed: import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export const updateUserProfile = createAsyncThunk(
   'user/updateProfile',
@@ -19,9 +20,8 @@ export const uploadProfilePicture = createAsyncThunk(
   'user/uploadProfilePicture',
   async ({ uid, file }, { rejectWithValue }) => {
     try {
-      const storageRef = ref(storage, `profilePictures/${uid}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      // Use Cloudinary Service instead of Firebase Storage
+      const url = await cloudinaryService.uploadImage(file);
       
       // Update user profile with new URL
       await authService.updateUserProfile(uid, { photoURL: url, profilePictureUrl: url });

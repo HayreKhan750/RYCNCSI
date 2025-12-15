@@ -106,6 +106,13 @@ export default function useDashboardData(user) {
                   try {
                       // Check if we already have name? 
                       // Ideally we should cache users in Redux too (usersSlice), but for now fetch if missing
+                      // Prioritize 'students' collection for rich profile data (photos)
+                      const studentDoc = await getDoc(doc(db, 'students', uid));
+                      if (studentDoc.exists()) {
+                          return { uid, data: studentDoc.data() };
+                      }
+
+                      // Fallback to 'users'
                       const userDoc = await getDoc(doc(db, 'users', uid));
                       if (userDoc.exists()) {
                           return { uid, data: userDoc.data() };
@@ -121,9 +128,20 @@ export default function useDashboardData(user) {
               
               userResults.forEach(({ uid, data }) => {
                   if (data && reviewerStats[uid]) {
-                      reviewerStats[uid].name = data.displayName || data.email?.split('@')[0] || 'Student';
-                      reviewerStats[uid].department = data.department || 'CNCS';
-                      reviewerStats[uid].photoURL = data.photoURL || data.profilePictureUrl; // Fetch photoURL
+                      const candidates = [
+                          data.name, 
+                          data.displayName, 
+                          reviewerStats[uid].name,
+                          // Fallback to parsed if looks like email
+                          data.email ? data.email.split('@')[0] : null
+                      ].filter(Boolean);
+
+                      // Pick best name: proper name without 'ugr-' or numbers if possible
+                      const goodName = candidates.find(n => !n.includes('ugr-') && !n.includes('@') && !n.match(/\d{4}/)) || candidates[0];
+
+                      reviewerStats[uid].name = goodName;
+                      reviewerStats[uid].department = data.department || data.Dept || 'CNCS';
+                      reviewerStats[uid].photoURL = data.profilePictureUrl || data.photoURL || data.image; 
                   }
               });
 

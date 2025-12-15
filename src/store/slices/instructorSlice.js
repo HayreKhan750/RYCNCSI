@@ -39,6 +39,18 @@ export const fetchInstructorProfile = createAsyncThunk(
   }
 );
 
+export const updateInstructorProfile = createAsyncThunk(
+  'instructors/updateProfile',
+  async ({ uid, data }, { rejectWithValue }) => {
+    try {
+      const updated = await instructorService.updateInstructorProfile(uid, data);
+      return updated;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const initialState = {
   byId: {},
   allIds: [],
@@ -98,6 +110,12 @@ const instructorSlice = createSlice({
       .addCase(fetchInstructorProfile.rejected, (state, action) => {
         state.activeProfile.status = 'failed';
         state.activeProfile.error = action.payload;
+      })
+      // Update Profile
+      .addCase(updateInstructorProfile.fulfilled, (state, action) => {
+          if (state.activeProfile.data) {
+              state.activeProfile.data = { ...state.activeProfile.data, ...action.payload };
+          }
       })
       // Add Reply (Sync with Feedback Slice)
       .addCase(addReply.fulfilled, (state, action) => {

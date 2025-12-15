@@ -5,23 +5,38 @@ import { useDispatch } from 'react-redux';
 import { checkAuthState } from './store/slices/authSlice';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
+import ManagementRoute from './routes/ManagementRoute';
 import GlobalLoader from './components/common/GlobalLoader';
 import ThemeProvider from './components/common/ThemeProvider';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import FoulLanguageModal from './components/modals/FoulLanguageModal';
-
-// Lazy Load Components
+import GrantManagement from './components/GrantManagement'; // Dev tool (Eager Load)
 const AuthEntry = lazy(() => import('./components/auth-system/AuthEntry'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
 const AdminPanelEntry = lazy(() => import('./components/admin-panel/AdminEntry'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminImporter = lazy(() => import('./pages/AdminImporter'));
-const InstructorProfile = lazy(() => import('./components/instructor-profile/InstructorProfile'));
+// Fixed import duplication
+const InstructorDashboard = lazy(() => import('./components/instructor/InstructorDashboard'));
+const InstructorPublicProfile = lazy(() => import('./components/instructor/InstructorPublicProfile')); // Updated
+const InstructorReviewsPage = lazy(() => import('./components/instructor/InstructorReviewsPage'));
+const CoursesList = lazy(() => import('./components/instructor/CoursesList'));
+const AnalyticsPage = lazy(() => import('./components/instructor/AnalyticsPage')); // Added
+const InstructorSettings = lazy(() => import('./components/instructor/InstructorSettings')); // Added
 const StudentProfile = lazy(() => import('./components/StudentProfile'));
 const RatingPage = lazy(() => import('./pages/RatingPage'));
 const GrantAdmin = lazy(() => import('./components/GrantAdmin'));
 const GrantInstructor = lazy(() => import('./components/GrantInstructor'));
+// GrantManagement imported earlier
+
+// Management Components
+const ManagementDashboard = lazy(() => import('./components/Management/ManagementDashboard'));
+const DepartmentList = lazy(() => import('./components/Management/Department/DepartmentList'));
+const DepartmentDetail = lazy(() => import('./components/Management/Department/DepartmentDetail'));
+const InstructorExecutiveProfile = lazy(() => import('./components/Management/Instructor/InstructorExecutiveProfile'));
+const FeedbackConsole = lazy(() => import('./components/Management/Moderation/FeedbackConsole'));
+
 
 // MFA Components (Lazy load if not critical for initial render, but kept standard for now if small)
 const MfaPrompt = lazy(() => import('./components/auth/MfaPrompt'));
@@ -78,9 +93,39 @@ export default function App() {
                 </ProtectedRoute>
               } />
 
+              <Route path="/instructor/dashboard" element={
+                <ProtectedRoute>
+                  <InstructorDashboard />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/instructor/reviews" element={
+                <ProtectedRoute>
+                  <InstructorReviewsPage />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/instructor/courses" element={
+                <ProtectedRoute>
+                  <CoursesList />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/instructor/analytics" element={
+                <ProtectedRoute>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/instructor/settings" element={
+                <ProtectedRoute>
+                  <InstructorSettings />
+                </ProtectedRoute>
+              } />
+
               <Route path="/instructor/:id" element={
                 <ProtectedRoute>
-                  <InstructorProfile />
+                  <InstructorPublicProfile />
                 </ProtectedRoute>
               } />
 
@@ -91,15 +136,52 @@ export default function App() {
                   <AdminPanelEntry />
                 </AdminRoute>
               } />
-              <Route path="/admin/import" element={
-                <AdminRoute>
-                  <AdminImporter />
-                </AdminRoute>
+              <Route path="/admin/import" element={<AdminImporter />} />
+
+              {/* Management Routes */}
+              <Route path="/management/dashboard" element={
+                <ManagementRoute>
+                  <ManagementDashboard />
+                </ManagementRoute>
+              } />
+              <Route path="/management/departments" element={
+                <ManagementRoute>
+                  <DepartmentList />
+                </ManagementRoute>
+              } />
+              <Route path="/management/department/:deptName" element={
+                <ManagementRoute>
+                  <DepartmentDetail />
+                </ManagementRoute>
+              } />
+              <Route path="/management/instructor/:id" element={
+                <ManagementRoute>
+                  <InstructorExecutiveProfile />
+                </ManagementRoute>
+              } />
+              <Route path="/management/moderation" element={
+                <ManagementRoute>
+                  <FeedbackConsole />
+                </ManagementRoute>
               } />
 
+
               {/* Utility Routes */}
-              <Route path="/grant-admin" element={<GrantAdmin />} />
-              <Route path="/grant-instructor" element={<GrantInstructor />} />
+              <Route path="/grant-admin" element={
+                <ProtectedRoute>
+                  <GrantAdmin />
+                </ProtectedRoute>
+              } />
+              <Route path="/grant-instructor" element={
+                <ProtectedRoute>
+                  <GrantInstructor />
+                </ProtectedRoute>
+              } />
+              <Route path="/grant-management" element={
+                <ProtectedRoute>
+                  <GrantManagement />
+                </ProtectedRoute>
+              } />
               
               {/* MFA Routes - can be protected or public depending on flow */}
               <Route path="/mfa-enroll" element={<MfaEnroll />} />

@@ -1,7 +1,7 @@
 [
   {
     "origin": ["http://localhost:3000", "https://rycncsi.web.app", "https://rycncsi.firebaseapp.com"],
-    "method": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
+    "method": ["GET"],
     "maxAgeSeconds": 3600
   }
 ]

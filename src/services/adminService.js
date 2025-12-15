@@ -3,15 +3,20 @@ import {
   collection, 
   query, 
   where, 
-  getDocs, 
+  getDocs,
+  getDoc,
+  setDoc, 
   doc, 
   updateDoc, 
   serverTimestamp,
   addDoc,
   deleteDoc,
   orderBy,
-  limit
+  limit,
+  getCountFromServer,
 } from 'firebase/firestore';
+import { auth } from '../firebase'; // Import auth for Actor ID
+import { auditService } from './auditService';
 
 export const adminService = {
   // Fetch Reports
@@ -29,6 +34,10 @@ export const adminService = {
           resolution,
           resolvedAt: serverTimestamp()
       });
+      
+      const actorId = auth.currentUser ? auth.currentUser.uid : 'system';
+      await auditService.logAction(actorId, 'RESOLVE_REPORT', reportId);
+      
       return { id: reportId, status: 'resolved', resolution };
   },
 
@@ -40,70 +49,90 @@ export const adminService = {
           banReason: reason,
           bannedAt: serverTimestamp()
       });
+      
+      const actorId = auth.currentUser ? auth.currentUser.uid : 'system';
+      await auditService.logAction(actorId, 'BAN_USER', userId);
   },
 
-  // Fetch Dashboard Data
+  // Fetch Dashboard Data (Enterprise Optimized)
   fetchDashboardData: async () => {
-      const [studentSnap, instructorSnap, ratingSnap, logsSnap] = await Promise.all([
-          getDocs(query(collection(db, 'users'), where('role', '==', 'student'))),
-          getDocs(query(collection(db, 'users'), where('role', '==', 'instructor'))),
-          getDocs(query(collection(db, 'ratings'), orderBy('createdAt', 'desc'))), // Note: collection might be 'feedbacks' based on other files, checking useAdminData it says 'ratings'. Wait, other files use 'feedbacks'. useAdminData uses 'ratings'. I should probably standardize this.
-          // Let's check useAdminData again. It uses 'ratings'. But feedbackService uses 'feedbacks'.
-          // This is a discrepancy. I should probably use 'feedbacks' if that's the main one.
-          // However, if the current admin panel uses 'ratings', I might break it if I switch to 'feedbacks' without migrating data.
-          // But wait, the user said "Refactor existing codebase".
-          // Let's look at useAdminData.js again. Line 52: collection(db, 'ratings').
-          // Let's look at feedbackService.js. It uses 'feedbacks'.
-          // If the app is using 'feedbacks' for the main flow, 'ratings' in admin might be old or different.
-          // I'll stick to what useAdminData uses for now to be safe, OR I should check if 'ratings' collection actually exists and is used.
-          // Given the "Student Name Display Bug" fix involved 'feedbacks', it's likely 'feedbacks' is the source of truth.
-          // I will use 'feedbacks' here to align with the rest of the app, assuming 'ratings' was a mistake or legacy in useAdminData.
-          // Actually, let's double check if I should support both or switch.
-          // I'll use 'feedbacks' because that's what I've been working with.
-          getDocs(query(collection(db, 'admin_logs'), orderBy('timestamp', 'desc'), limit(20)))
-      ]);
+      // 1. Definition of Queries
+      const usersRef = collection(db, 'users');
+      const instRef = collection(db, 'instructors');
+      const feedRef = collection(db, 'feedbacks');
+      const logsRef = collection(db, 'audit_logs');
 
-      // If 'ratings' collection is empty, maybe try 'feedbacks'? 
-      // Safest bet: fetch 'feedbacks' as that is the active collection I know of.
-      // I will change it to 'feedbacks' to standardize.
-      
-      // Re-fetching 'feedbacks' instead of 'ratings'
-      const feedbackSnap = await getDocs(query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc')));
-
-      const users = [
-          ...studentSnap.docs.map(d => ({id: d.id, ...d.data()})),
-          ...instructorSnap.docs.map(d => ({id: d.id, ...d.data()}))
+      // 2. Count Queries (Metadata Only - Fast)
+      const countPromises = [
+          getCountFromServer(query(usersRef, where('role', '==', 'student'))),
+          getCountFromServer(instRef),
+          getCountFromServer(feedRef),
+          getCountFromServer(query(feedRef, where('status', '==', 'flagged')))
       ];
 
-      const ratings = feedbackSnap.docs.map(d => ({id: d.id, ...d.data()}));
-      const flaggedCount = ratings.filter(r => r.status === 'FLAGGED').length;
+      // 3. Data Queries (Content - Paginatable Limits)
+      const dataPromises = [
+          getDocs(query(usersRef, where('role', '==', 'student'), orderBy('createdAt', 'desc'), limit(20))),
+          getDocs(query(instRef, orderBy('createdAt', 'desc'), limit(20))), // Assuming instructors have createdAt
+          getDocs(query(feedRef, orderBy('createdAt', 'desc'), limit(20))),
+          getDocs(query(logsRef, orderBy('timestamp', 'desc'), limit(20)))
+      ];
 
-      const stats = {
-          totalStudents: studentSnap.size,
-          totalInstructors: instructorSnap.size,
-          totalRatings: feedbackSnap.size,
-          flaggedCount
-      };
+      try {
+          // Execute all in parallel
+          const [
+             studentCountSnap, instCountSnap, feedCountSnap, flaggedCountSnap
+          ] = await Promise.all(countPromises);
+          
+          const [
+             studentSnap, instSnap, feedSnap, logsSnap
+          ] = await Promise.all(dataPromises);
 
-      const logs = logsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+          // 4. Serialize Data
+          const recentStudents = studentSnap.docs.map(d => ({id: d.id, ...d.data()}));
+          const recentInstructors = instSnap.docs.map(d => ({id: d.id, ...d.data()}));
+          
+          // Helper to combine strictly for the "Recent Users" table if it expects a mixed list
+          // But ideally UI should separate them. For now, we return specific lists.
+          const users = [...recentStudents, ...recentInstructors].sort((a,b) => b.createdAt - a.createdAt).slice(0, 20);
 
-      return { stats, users, ratings, logs };
+          const ratings = feedSnap.docs.map(d => ({id: d.id, ...d.data()}));
+          const logs = logsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+
+          const stats = {
+              totalStudents: studentCountSnap.data().count,
+              totalInstructors: instCountSnap.data().count,
+              totalRatings: feedCountSnap.data().count,
+              flaggedCount: flaggedCountSnap.data().count
+          };
+
+          return { stats, users, ratings, logs };
+
+      } catch (error) {
+          console.error("Dashboard Load Failed:", error);
+          // Fallback to empty values to prevent crash
+          return { 
+              stats: { totalStudents: 0, totalInstructors: 0, totalRatings: 0, flaggedCount: 0 }, 
+              users: [], ratings: [], logs: [] 
+          };
+      }
   },
 
-  // Log Action
+  // Log Action (Legacy Wrapper - Redirect to Audit Service)
   logAction: async (action, target, details, adminId) => {
-      await addDoc(collection(db, 'admin_logs'), {
-          action,
-          target,
-          details,
-          timestamp: serverTimestamp(),
-          adminId: adminId || 'system'
-      });
+     await auditService.logAction(adminId || 'system', action, target);
   },
 
   // Delete User
   deleteUser: async (uid) => {
       await deleteDoc(doc(db, 'users', uid));
+      // Also attempt to delete from instructors to ensure consistency
+      // (Even if it doesn't exist, this is safe)
+      await deleteDoc(doc(db, 'instructors', uid));
+      
+      const actorId = auth.currentUser ? auth.currentUser.uid : 'system';
+      await auditService.logAction(actorId, 'DELETE_USER', uid);
+      
       return uid;
   },
 
@@ -117,6 +146,10 @@ export const adminService = {
   deleteRating: async (id) => {
       // Using 'feedbacks' collection
       await deleteDoc(doc(db, 'feedbacks', id));
+      
+      const actorId = auth.currentUser ? auth.currentUser.uid : 'system';
+      await auditService.logAction(actorId, 'DELETE_RATING', id);
+      
       return id;
   },
 
@@ -187,6 +220,10 @@ export const adminService = {
       }
 
       await updateDoc(ref, updates);
+      
+      const actorId = auth.currentUser ? auth.currentUser.uid : 'system';
+      await auditService.logAction(actorId, `UPDATE_STATUS_${status.toUpperCase()}`, uid);
+      
       return { uid, status, details };
   },
 
@@ -198,5 +235,53 @@ export const adminService = {
           updatedAt: serverTimestamp()
       });
       return { uid, ...data };
-  }
+  },
+  // Grant Role (Admin/Instructor)
+  grantRole: async (uid, role, email) => {
+      // 1. Update Core User Doc
+      const userRef = doc(db, 'users', uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+          // Create if missing (Safety net for legacy/glitched users)
+           await setDoc(userRef, {
+              uid,
+              email,
+              role,
+              createdAt: serverTimestamp(),
+              isRegistered: true 
+          });
+      } else {
+          await updateDoc(userRef, { role });
+      }
+
+      // 2. Role Specific Updates
+      if (role === 'admin') {
+          // Nothing extra needed for Admin usually, just the role claim/field
+      } else if (role === 'instructor') {
+          // Ensure they exist in 'instructors' collection
+          const instQ = query(collection(db, 'instructors'), where('userId', '==', uid));
+          const instSnap = await getDocs(instQ);
+          
+          if (instSnap.empty) {
+              // initialize placeholder instructor profile
+               await addDoc(collection(db, 'instructors'), {
+                  userId: uid,
+                  email,
+                  instructorName: userSnap.exists() ? (userSnap.data().displayName || email.split('@')[0]) : email.split('@')[0],
+                  bio: 'New Instructor',
+                  courses: [],
+                  stats: { rating: 0, totalReviews: 0 },
+                  createdAt: serverTimestamp()
+              });
+          }
+      }
+
+
+      
+      const actorId = auth.currentUser ? auth.currentUser.uid : 'system';
+      await auditService.logAction(actorId, `GRANT_ROLE_${role.toUpperCase()}`, uid);
+
+      return { uid, role };
+  },
 };

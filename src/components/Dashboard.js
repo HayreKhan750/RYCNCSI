@@ -7,7 +7,7 @@ import DashboardHome from './student-dashboard/DashboardHome';
 import RateCourses from './student-dashboard/RateCourses';
 import MyRatings from './student-dashboard/MyRatings';
 import StudentProfile from './StudentProfile';
-import InstructorDashboard from './instructor-dashboard/InstructorDashboard';
+import InstructorDashboard from './instructor/InstructorDashboard';
 import InstructorProfile from './instructor-profile/InstructorProfile';
 import MyFeedback from './student-dashboard/MyFeedback';
 import ReviewersDirectory from './student-dashboard/ReviewersDirectory';
@@ -42,6 +42,17 @@ export default function Dashboard() {
 
   // Check if instructor
   const isInstructor = user.role === 'instructor';
+  
+  if (user.role === 'MANAGEMENT') {
+      // Redirect to Management Portal
+      // We use useEffect to avoid render-phase side effects if strict mode is on, 
+      // but returning null + useEffect is cleaner. 
+      // However, we can just return null and expect the effect above to handle it? 
+      // No, the effect above handles !user.
+      // So we do:
+      setTimeout(() => navigate('/management/dashboard'), 0);
+      return null;
+  }
 
   // Helper for dev tool role switch
   const handleRoleSwitch = (newRole) => {
@@ -59,8 +70,13 @@ export default function Dashboard() {
 
       return (
         <div className={`dashboard-wrapper ${mode}`}>
-           <Header title="Instructor Dashboard" showBack={false} />
-           <InstructorDashboard user={user} />
+           {/* InstructorDashboard handles its own layout/hero, but we wrap it for consistent theme/margins if needed */}
+           {/* Actually, the new premium dashboard has its own full-page layout standards. */}
+           {/* We might want to remove the wrapper div or Header if InstructorDashboard provides it. */}
+           {/* Let's keep existing wrapper for safety but maybe hide header? */}
+           {/* The new DashboardHero serves as header. */}
+           {/* I will remove the Header here for instructor and let InstructorDashboard handle it. */}
+           <InstructorDashboard />
         </div>
       );
   }

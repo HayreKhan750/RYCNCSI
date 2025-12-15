@@ -135,6 +135,32 @@ export const banUser = createAsyncThunk(
   }
 );
 
+export const grantAdminAccess = createAsyncThunk(
+  'admin/grantAdminAccess',
+  async ({ uid, email }, { rejectWithValue }) => {
+    try {
+      const data = await adminService.grantRole(uid, 'admin', email);
+      await adminService.logAction('GRANT_ROLE', uid, 'Granted Admin Access');
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const grantInstructorAccess = createAsyncThunk(
+  'admin/grantInstructorAccess',
+  async ({ uid, email }, { rejectWithValue }) => {
+    try {
+      const data = await adminService.grantRole(uid, 'instructor', email);
+      await adminService.logAction('GRANT_ROLE', uid, 'Granted Instructor Access');
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const adminSlice = createSlice({
   name: 'admin',
   initialState: {
@@ -149,11 +175,29 @@ const adminSlice = createSlice({
       flaggedCount: 0
     },
     loading: false,
-    error: null
+    error: null,
+    operationStatus: null // For feedback on isolated operations like granting roles
   },
-  reducers: {},
+  reducers: {
+    clearOperationStatus: (state) => {
+        state.operationStatus = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
+      // Grant Roles
+      .addCase(grantAdminAccess.fulfilled, (state, action) => {
+          state.operationStatus = { success: true, message: `Admin access granted to ${action.payload.uid}` };
+      })
+      .addCase(grantAdminAccess.rejected, (state, action) => {
+          state.operationStatus = { success: false, message: action.payload };
+      })
+      .addCase(grantInstructorAccess.fulfilled, (state, action) => {
+          state.operationStatus = { success: true, message: `Instructor access granted to ${action.payload.uid}` };
+      })
+      .addCase(grantInstructorAccess.rejected, (state, action) => {
+          state.operationStatus = { success: false, message: action.payload };
+      })
       // Fetch Reports
       .addCase(fetchReports.pending, (state) => {
         state.loading = true;
@@ -236,4 +280,5 @@ const adminSlice = createSlice({
   },
 });
 
+export const { clearOperationStatus } = adminSlice.actions;
 export default adminSlice.reducer;

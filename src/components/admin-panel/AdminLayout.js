@@ -1,13 +1,24 @@
-import React from 'react';
+import { useDispatch } from 'react-redux';
+import { logoutUser } from '../../store/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
 import RoleSwitcher from '../RoleSwitcher';
 
 export default function AdminLayout({ children, activePage, onNavigate, themeMode, toggleTheme, user }) {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleLogout = async () => {
+      await dispatch(logoutUser());
+      navigate('/login');
+  };
+
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: '📊' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'register', label: 'Register', icon: '➕' },
     { id: 'content', label: 'Content & Flags', icon: '🛡️' },
     { id: 'logs', label: 'Audit Logs', icon: '📜' },
+    { id: 'import', label: 'Data Migration', icon: '📥' }, // New Item
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
@@ -21,7 +32,7 @@ export default function AdminLayout({ children, activePage, onNavigate, themeMod
             <div 
               key={item.id} 
               className={`adm-nav-item ${activePage === item.id ? 'active' : ''}`}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => item.id === 'import' ? navigate('/admin/import') : onNavigate(item.id)}
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
@@ -32,7 +43,7 @@ export default function AdminLayout({ children, activePage, onNavigate, themeMod
         <div 
           className="adm-nav-item logout-btn" 
           style={{marginTop:'auto', borderTop:'1px solid var(--adm-border-dark)', borderRadius:0, padding:'20px 16px'}} 
-          onClick={() => alert('Logout logic here')}
+          onClick={handleLogout}
         >
            <span style={{color:'var(--adm-danger)'}}>🚪</span>
            <span style={{color:'var(--adm-danger)', fontWeight:600}}>Logout</span>

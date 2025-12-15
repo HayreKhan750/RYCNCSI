@@ -34,7 +34,7 @@ export default function DashboardHome({ user, navigateTo }) {
       {/* Welcome Hero */}
       <div className="welcome-hero clickable" onClick={() => navigateTo('profile')}>
         <img 
-          src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} 
+          src={user.profilePictureUrl || user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} 
           alt="Profile" 
           className="student-avatar-large"
         />

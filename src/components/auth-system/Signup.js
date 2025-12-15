@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, clearError } from '../../store/slices/authSlice';
 import AuthInput from './AuthInput';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'; 
+import { db } from '../../firebase';
+import { instructorService } from '../../services/instructorService';
 
 export default function Signup({ onNavigate }) {
   const dispatch = useDispatch();
@@ -13,10 +16,28 @@ export default function Signup({ onNavigate }) {
     email: '',
     password: '',
     confirmPassword: '',
-    department: 'General',
+    department: '',
     role: 'student'
   });
   const [photo, setPhoto] = useState(null);
+  const [departments, setDepartments] = useState([]);
+
+  useEffect(() => {
+    // Fetch departments dynamically from Instructor Data
+    const fetchDepts = async () => {
+        try {
+            const instructors = await instructorService.fetchAllInstructors();
+            const uniqueDepts = [...new Set(instructors.map(i => i.department || i.Dept).filter(Boolean))].sort();
+            
+            if (uniqueDepts.length > 0) {
+                setDepartments(uniqueDepts);
+            }
+        } catch (e) {
+            console.error("Failed to fetch depts", e);
+        }
+    };
+    fetchDepts();
+  }, []);
 
   const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
 
@@ -29,7 +50,7 @@ export default function Signup({ onNavigate }) {
     dispatch(clearError());
     const resultAction = await dispatch(registerUser({ ...formData, file: photo }));
     if (registerUser.fulfilled.match(resultAction)) {
-        onNavigate('verify'); // Redirect to verification
+        onNavigate('verify'); 
     }
   };
 
@@ -50,20 +71,30 @@ export default function Signup({ onNavigate }) {
                 required
                 style={{flex:1}}
              />
+             
+             {/* Dynamic Department Input with Datalist */}
              <div className="auth-input-group" style={{flex:1}}>
-                <select 
+                <input 
+                    list="dept-list"
                     className="auth-input" 
                     name="department" 
                     value={formData.department} 
                     onChange={handleChange}
-                    style={{appearance:'none'}}
-                >
-                    <option value="General">General Dept</option>
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Information Tech">Information Tech</option>
-                    <option value="Software Eng">Software Eng</option>
-                </select>
-                <label className="auth-label" style={{transform:'translateY(-26px) translateX(-4px) scale(0.85)', color:'var(--auth-accent)', fontWeight:600}}>Department</label>
+                    placeholder=" "
+                    required
+                />
+                <label className="auth-label">Department</label>
+                <datalist id="dept-list">
+                    {departments.map((dept, i) => <option key={i} value={dept} />)}
+                    {/* Fallbacks if DB is empty */}
+                    {!departments.length && (
+                        <>
+                            <option value="Computer Science" />
+                            <option value="Information Systems" />
+                            <option value="Software Engineering" />
+                        </>
+                    )}
+                </datalist>
              </div>
         </div>
 
@@ -96,40 +127,34 @@ export default function Signup({ onNavigate }) {
         </div>
 
         {/* Role Selection */}
-        <div style={{display:'flex', gap:20, marginBottom:20}}>
-            <label style={{display:'flex', alignItems:'center', gap:8, cursor:'pointer'}}>
-                <input 
-                    type="radio" 
-                    name="role" 
-                    value="student" 
-                    checked={formData.role === 'student'} 
-                    onChange={handleChange}
-                /> 
+        <div style={{display:'flex', gap:20, marginBottom:20, justifyContent:'center'}}>
+            <label style={radioStyle}>
+                <input type="radio" name="role" value="student" checked={formData.role === 'student'} onChange={handleChange} style={{marginRight:8}} /> 
                 Student
             </label>
-            <label style={{display:'flex', alignItems:'center', gap:8, cursor:'pointer'}}>
-                <input 
-                    type="radio" 
-                    name="role" 
-                    value="instructor" 
-                    checked={formData.role === 'instructor'} 
-                    onChange={handleChange}
-                /> 
+            <label style={radioStyle}>
+                <input type="radio" name="role" value="instructor" checked={formData.role === 'instructor'} onChange={handleChange} style={{marginRight:8}} /> 
                 Instructor
+            </label>
+            <label style={radioStyle}>
+                <input type="radio" name="role" value="MANAGEMENT" checked={formData.role === 'MANAGEMENT'} onChange={handleChange} style={{marginRight:8}} /> 
+                Management
             </label>
         </div>
 
-        {/* Profile Upload */}
-        <div style={{marginBottom:20}}>
-            <label style={{display:'block', fontSize:'0.9rem', color:'var(--auth-text-secondary)', marginBottom:8}}>
-                Profile Picture (Optional)
-            </label>
+        {/* Premium File Upload */}
+        <div style={{marginBottom:24, textAlign:'center'}}>
             <input 
+                id="file-upload"
                 type="file" 
                 accept="image/*"
                 onChange={(e) => setPhoto(e.target.files[0])}
-                style={{fontSize:'0.9rem'}}
+                style={{display:'none'}}
             />
+            <label htmlFor="file-upload" className="auth-btn auth-btn-secondary" style={{cursor:'pointer', display:'inline-block', width:'auto', padding:'8px 24px', fontSize:'0.9rem'}}>
+                {photo ? `📷 ${photo.name.substring(0, 15)}${photo.name.length>15?'...':''}` : '📷 Choose Profile Picture'}
+            </label>
+            {photo && <div style={{fontSize:'0.75rem', color:'var(--auth-accent)', marginTop:4}}>Image Selected</div>}
         </div>
 
         <button type="submit" className="auth-btn auth-btn-primary" disabled={loading}>
@@ -143,3 +168,7 @@ export default function Signup({ onNavigate }) {
     </div>
   );
 }
+
+const radioStyle = {
+    display:'flex', alignItems:'center', cursor:'pointer', fontSize:'0.95rem', fontWeight:500, color:'var(--auth-text)'
+};

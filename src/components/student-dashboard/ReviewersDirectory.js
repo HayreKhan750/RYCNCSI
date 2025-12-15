@@ -1,84 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../firebase';
-import { collection, query, orderBy, limit, getDocs, where, documentId } from 'firebase/firestore';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchTopReviewers } from '../../store/slices/feedbackSlice';
 import SkeletonLoader from '../common/SkeletonLoader';
 
 export default function ReviewersDirectory() {
   const navigate = useNavigate();
-  const [reviewers, setReviewers] = useState([]);
+  const dispatch = useDispatch();
+  const { topReviewers } = useSelector((state) => state.feedbacks);
+  
+  // Local derived state for sorting/filtering
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('reviews'); // 'reviews' | 'helpful'
 
   useEffect(() => {
-    const fetchReviewers = async () => {
-      setLoading(true);
-      try {
-        // 1. Fetch recent feedbacks to find active reviewers
-        const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'), limit(200));
-        const snapshot = await getDocs(q);
-        
-        const statsMap = new Map();
-        
-        snapshot.docs.forEach(doc => {
-          const data = doc.data();
-          if (!data.studentId) return;
-
-          if (!statsMap.has(data.studentId)) {
-            statsMap.set(data.studentId, {
-              studentId: data.studentId,
-              name: data.studentName || 'Student',
-              department: data.studentDepartment || 'General',
-              reviewCount: 0,
-              helpfulCount: 0, // In a real app, we'd sum actual helpful votes
-              lastActive: data.createdAt?.toDate ? data.createdAt.toDate() : new Date()
-            });
-          }
-          
-          const stat = statsMap.get(data.studentId);
-          stat.reviewCount += 1;
-          // Simulate helpful votes if not present
-          stat.helpfulCount += (data.helpfulVotes || Math.floor(Math.random() * 5)); 
-        });
-
-        // 2. Fetch User Details for these IDs to get fresh names/photos
-        const studentIds = Array.from(statsMap.keys());
-        if (studentIds.length > 0) {
-            // Firestore 'in' query limit is 10
-            const chunks = [];
-            for (let i = 0; i < studentIds.length; i += 10) {
-                chunks.push(studentIds.slice(i, i + 10));
-            }
-
-            for (const chunk of chunks) {
-                const usersQ = query(collection(db, 'users'), where(documentId(), 'in', chunk));
-                const usersSnap = await getDocs(usersQ);
-                usersSnap.forEach(doc => {
-                    const userData = doc.data();
-                    if (statsMap.has(doc.id)) {
-                        const stat = statsMap.get(doc.id);
-                        stat.name = userData.name || userData.displayName || stat.name;
-                        stat.department = userData.department || stat.department;
-                        stat.photoURL = userData.profilePictureUrl || userData.photoURL;
-                    }
-                });
-            }
+    // If we already have data, don't show full loading, just background refresh? 
+    // Or just load once.
+    const load = async () => {
+        setLoading(true);
+        try {
+            await dispatch(fetchTopReviewers()).unwrap();
+        } catch (e) {
+            console.error("Failed to load reviewers", e);
+        } finally {
+            setLoading(false);
         }
-
-        setReviewers(Array.from(statsMap.values()));
-      } catch (error) {
-        console.error("Error fetching reviewers:", error);
-      } finally {
-        setLoading(false);
-      }
     };
-
-    fetchReviewers();
-  }, []);
+    load();
+  }, [dispatch]);
 
   // Filter and Sort
-  const filteredReviewers = reviewers
+  const filteredReviewers = topReviewers
     .filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
         if (sortBy === 'helpful') return b.helpfulCount - a.helpfulCount;

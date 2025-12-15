@@ -31,7 +31,14 @@ export default function RatingModal({ course, user, onClose }) {
         overall: rating, // Standardizing field name
         tags: tags,
         feedback: feedback,
+        text: feedback, // Schema alignment
         comment: feedback, // Alias for compatibility
+        status: 'published',
+        meta: {
+            likes: 0, 
+            dislikes: 0, 
+            hasReply: false
+        },
         createdAt: serverTimestamp(),
         timestamp: new Date().toISOString()
       });

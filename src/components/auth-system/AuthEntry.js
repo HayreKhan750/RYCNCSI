@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Optional if using router
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { auth } from '../../firebase';
 import AuthLayout from './AuthLayout';
 import Login from './Login';
@@ -12,31 +13,36 @@ import './AuthSystem.css';
 export default function AuthEntry() {
   const [view, setView] = useState('login'); // login, signup, forgot, verify
   const [showSplash, setShowSplash] = useState(true);
+  const { user, loading, initialized } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  // Check auth state on mount
+  // Check auth state on mount (Synced with Redux)
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-       if (user) {
-           if (user.emailVerified) {
-               // Already verified, redirect to dashboard
-               // Delay slightly for splash if needed
-               setTimeout(() => navigate('/dashboard'), 500);
-           } else {
-               setView('verify');
-           }
+    // Only redirect if Redux is initialized and we have a user
+    if (initialized && user) {
+       // Relaxed check: Allow if verified OR if profile indicates they are fully registered
+       // EMERGENCY BYPASS: Allow specific UID to enter to run migration
+       const ALLOWED_UIDS = ['dH2UzGIvfigE7CgUUYtETtpnwsJ2', 'eLowMYFctOSpM8748S1rHXfx6NV2'];
+       
+       if (user.isRegistered || ALLOWED_UIDS.includes(user.uid)) {
+           // Already verified or registered, redirect to dashboard
+           setTimeout(() => {
+               if (user.role === 'MANAGEMENT') navigate('/management/dashboard');
+               else if (user.role === 'admin') navigate('/admin');
+               else navigate('/dashboard');
+           }, 500);
+       } else {
+           setView('verify');
        }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
+    }
+  }, [user, initialized, navigate]);
+
+  // Removed duplicate user declaration
 
   const handleAuthSuccess = () => {
-      // Force check verification or redirect
-      if (auth.currentUser?.emailVerified) {
-          navigate('/dashboard');
-      } else {
-          setView('verify');
-      }
+      // Do nothing! Let the useEffect above handle the routing based on the comprehensive 'user' object from Redux.
+      // This ensures we respect 'isRegistered' from Firestore, not just the raw Firebase 'emailVerified' flag.
+      console.log("Login success, waiting for Redux to fetch profile and route...");
   };
 
   if (showSplash) {
@@ -62,9 +68,7 @@ export default function AuthEntry() {
             />
         )}
         {view === 'verify' && (
-            <VerifyEmail 
-                onVerified={() => navigate('/dashboard')} 
-            />
+            <VerifyEmail />
         )}
     </AuthLayout>
   );

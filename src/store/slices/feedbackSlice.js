@@ -98,9 +98,58 @@ export const toggleLike = createAsyncThunk(
   }
 );
 
+export const flagFeedback = createAsyncThunk(
+  'feedbacks/flag',
+  async (flagData, { rejectWithValue }) => {
+    try {
+      const id = await feedbackService.flagFeedback(flagData);
+      return id; // or flagData
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchTopReviewers = createAsyncThunk(
+  'feedbacks/fetchTopReviewers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await feedbackService.fetchTopReviewers();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchUserReactions = createAsyncThunk(
+  'feedbacks/fetchUserReactions',
+  async (userId, { rejectWithValue }) => {
+    try {
+      return await feedbackService.fetchUserReactions(userId);
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchUserFlags = createAsyncThunk(
+  'feedbacks/fetchUserFlags',
+  async (userId, { rejectWithValue }) => {
+    try {
+      return await feedbackService.fetchUserFlags(userId);
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const initialState = {
   byId: {},
   allIds: [],
+  topReviewers: [],
+  userReactions: {}, // { [feedbackId]: 'like' | 'dislike' }
+  userFlags: [],
   status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   error: null,
   submitStatus: 'idle'
@@ -206,6 +255,26 @@ const feedbackSlice = createSlice({
               feedback.likes = feedback.likedBy.length;
               feedback.dislikes = feedback.dislikedBy.length;
           }
+
+          // Update local reaction state
+          if (isLike === null) {
+              delete state.userReactions[feedbackId];
+          } else {
+              state.userReactions[feedbackId] = isLike ? 'like' : 'dislike';
+          }
+      })
+      // Top Reviewers
+      .addCase(fetchTopReviewers.fulfilled, (state, action) => {
+          state.topReviewers = action.payload;
+      })
+      // User Reactions
+      .addCase(fetchUserReactions.fulfilled, (state, action) => {
+          state.userReactions = action.payload;
+      })
+
+      // User Flags
+      .addCase(fetchUserFlags.fulfilled, (state, action) => {
+          state.userFlags = action.payload;
       });
   },
 });
