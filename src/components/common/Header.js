@@ -101,67 +101,8 @@ export default function Header({
         <div className="header-center">
             {title && <h1 className="header-title">{title}</h1>}
             {children}
-            
-                <button 
-                    onClick={async (e) => {
-                        e.stopPropagation();
-                        if(!window.confirm("Run Database Migration?")) return;
-                        try {
-                            const { migrationService } = await import('../../services/migrationService');
-                            const res = await migrationService.migrateStudentsToUsers();
-                            alert(res.logs.join('\n'));
-                            window.location.reload(); 
-                        } catch(err) {
-                            alert("Error: " + err.message);
-                        }
-                    }}
-                    style={{
-                        marginLeft: 15,
-                        background: '#eab308',
-                        color: 'black',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '4px 8px',
-                        fontSize: '0.7rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    ⚠️ Fix Students
-                </button>
-            )}
-            
-            {/* Instructor Migration Trigger */}
-            {user?.uid === 'dH2UzGIvfigE7CgUUYtETtpnwsJ2' && (
-                <button 
-                    onClick={async (e) => {
-                        e.stopPropagation();
-                        if(!window.confirm("Migrate Instructors?")) return;
-                        try {
-                            const { migrationService } = await import('../../services/migrationService');
-                            const res = await migrationService.migrateInstructors();
-                            alert(res.logs.join('\n'));
-                            window.location.reload(); 
-                        } catch(err) {
-                            alert("Error: " + err.message);
-                        }
-                    }}
-                    style={{
-                        marginLeft: 10,
-                        background: '#f97316', // Orange
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '4px 8px',
-                        fontSize: '0.7rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    ⚠️ Fix Instructors
-                </button>
-            )}
         </div>
+
 
         {/* Right Section: Actions */}
         <div className="header-right">

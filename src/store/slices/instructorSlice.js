@@ -51,6 +51,21 @@ export const updateInstructorProfile = createAsyncThunk(
   }
 );
 
+export const fetchAIInsights = createAsyncThunk(
+  'instructors/fetchAIInsights',
+  async (instructorId) => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      // Mock Data Return
+      return {
+          strengths: ['Clear Explanations', 'Responsive Enqaqement', 'Practical Examples'],
+          improvements: ['Faster Grading Turnaround', 'More Video Content'],
+          score: 88,
+          trend: 'up'
+      };
+  }
+);
+
 const initialState = {
   byId: {},
   allIds: [],
@@ -142,6 +157,17 @@ const instructorSlice = createSlice({
                   else reply.dislikes = (reply.dislikes || 0) + 1;
               }
           }
+      })
+      // AI Insights
+      .addCase(fetchAIInsights.pending, (state) => {
+          state.activeProfile.aiStatus = 'loading';
+      })
+      .addCase(fetchAIInsights.fulfilled, (state, action) => {
+          state.activeProfile.aiStatus = 'succeeded';
+          state.activeProfile.aiInsights = action.payload;
+      })
+      .addCase(fetchAIInsights.rejected, (state) => {
+          state.activeProfile.aiStatus = 'failed';
       });
   },
 });

@@ -162,25 +162,34 @@ export const checkAuthState = createAsyncThunk(
     'auth/checkState',
     async (_, { dispatch }) => {
         return new Promise((resolve) => {
-            authService.onAuthStateChanged(async (user) => {
+            const unsubscribe = authService.onAuthStateChanged(async (user) => {
+                unsubscribe(); // Unsubscribe immediately to prevent memory leaks/multiple resolves
+                
                 if (user) {
-                    try { await user.reload(); } catch(e) { /* ignore network error on reload */ }
-                    let profile = await authService.getUserProfile(user.uid);
-                    
-                    // Strict Read-Only: We do NOT auto-finalize here. 
-                    // Finalization must be triggered by the Verification Flow explicitly.
-                    // If profile is missing, we simply return null profile fields.
-
-
-                    resolve({
-                        uid: user.uid,
-                        email: user.email,
-                        displayName: user.displayName,
-                        photoURL: user.photoURL,
-                        role: profile?.role || 'student',
-                        department: profile?.department || '',
-                        ...profile
-                    });
+                    try {
+                        try { await user.reload(); } catch(e) { /* ignore network error on reload */ }
+                        let profile = await authService.getUserProfile(user.uid);
+                        
+                        resolve({
+                            uid: user.uid,
+                            email: user.email,
+                            displayName: user.displayName,
+                            photoURL: user.photoURL,
+                            role: profile?.role || 'student',
+                            department: profile?.department || '',
+                            ...profile
+                        });
+                    } catch (error) {
+                        console.error("Profile fetch failed during auth check:", error);
+                        // Fallback: Resolve with basic user info so app doesn't hang
+                        resolve({
+                            uid: user.uid,
+                            email: user.email,
+                            displayName: user.displayName,
+                            role: 'student', // Default safe role
+                            isRegistered: false // Force verification flow if profile fails
+                        });
+                    }
                 } else {
                     resolve(null);
                 }

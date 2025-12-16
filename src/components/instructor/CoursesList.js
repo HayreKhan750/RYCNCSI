@@ -1,22 +1,33 @@
 import React, { useState, useMemo } from 'react';
 import useInstructorProfile from '../../hooks/useInstructorProfile';
 import CourseCard from './CourseCard';
+import CreateCourseModal from './CreateCourseModal';
 import Header from '../common/Header';
 
 const CoursesList = () => {
     const { profile, loading } = useInstructorProfile();
     const [searchTerm, setSearchTerm] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // Simulate local state update until redux is fully wired for mutation
+    const [localCourses, setLocalCourses] = useState([]);
 
-    const courses = profile?.courses || [];
+    const allCourses = [...(profile?.courses || []), ...localCourses];
 
     const filteredCourses = useMemo(() => {
-        if (!searchTerm) return courses;
+        if (!searchTerm) return allCourses;
         const lowerTerm = searchTerm.toLowerCase();
-        return courses.filter(c => 
+        return allCourses.filter(c => 
             (c.courseTitle || c.title || '').toLowerCase().includes(lowerTerm) ||
             (c.courseCode || c.code || '').toLowerCase().includes(lowerTerm)
         );
-    }, [courses, searchTerm]);
+    }, [allCourses, searchTerm]);
+
+    const handleCreateCourse = (newCourse) => {
+        setLocalCourses(prev => [newCourse, ...prev]);
+        // Trigger generic success feedback if available or just alert
+        // alert("Course Created Successfully!"); 
+    };
 
     if (loading) return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -35,7 +46,10 @@ const CoursesList = () => {
                         <h1 className="page-title-xl">Access Course Content</h1>
                         <p className="page-subtitle-lg">Manage materials, view students, and track performance.</p>
                     </div>
-                     <button className="btn-create-course">
+                     <button 
+                        className="btn-create-course"
+                        onClick={() => setIsModalOpen(true)}
+                     >
                         <span>＋</span> Create New Course
                     </button>
                 </div>
@@ -66,13 +80,19 @@ const CoursesList = () => {
                         <div className="empty-icon-lg">📚</div>
                         <h3 className="empty-title">No courses found</h3>
                         <p className="empty-subtitle">
-                            {courses.length === 0 
+                            {allCourses.length === 0 
                                 ? "You haven't been assigned any courses yet. Contact your department head." 
                                 : "Try adjusting your search criteria we couldn't find matches."}
                         </p>
                     </div>
                 )}
             </div>
+
+            <CreateCourseModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleCreateCourse}
+            />
         </div>
     );
 };

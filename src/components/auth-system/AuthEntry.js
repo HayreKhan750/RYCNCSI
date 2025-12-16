@@ -40,9 +40,15 @@ export default function AuthEntry() {
   // Removed duplicate user declaration
 
   const handleAuthSuccess = () => {
-      // Do nothing! Let the useEffect above handle the routing based on the comprehensive 'user' object from Redux.
-      // This ensures we respect 'isRegistered' from Firestore, not just the raw Firebase 'emailVerified' flag.
-      console.log("Login success, waiting for Redux to fetch profile and route...");
+      // Primary handling is via useEffect, but we add a failsafe here.
+      console.log("Login success callback triggered.");
+      
+      // If user is already loaded in Redux (via the await dispatch in Login.js), we can redirect immediately
+      if (user) {
+           if (user.role === 'MANAGEMENT') navigate('/management/dashboard');
+           else if (user.role === 'admin') navigate('/admin');
+           else navigate('/dashboard');
+      }
   };
 
   if (showSplash) {

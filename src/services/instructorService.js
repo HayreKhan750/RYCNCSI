@@ -1,3 +1,4 @@
+import { serializeFirestoreData } from '../utils/serialization';
 import { db } from '../firebase';
 
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -17,7 +18,7 @@ export const instructorService = {
       
       const snapshot = await getDocs(q);
       
-      return snapshot.docs.map(doc => {
+      const instructors = snapshot.docs.map(doc => {
           const data = doc.data();
           return {
               id: doc.id,
@@ -30,6 +31,7 @@ export const instructorService = {
               profilePictureUrl: data.profilePictureUrl || ''
           };
       });
+      return serializeFirestoreData(instructors);
     } catch (error) {
       console.error("Error fetching instructors:", error);
       return [];
@@ -72,10 +74,11 @@ export const instructorService = {
 
           // Fetch Feedbacks
           // Using 'feedbacks' collection
+          // Optimization: Client-side Sort to avoid index issues if missing
           const feedbacksQ = query(
               collection(db, 'feedbacks'),
               where('instructorId', '==', docSnap.id),
-              orderBy('createdAt', 'desc'),
+              // orderBy('createdAt', 'desc'), // REMOVE to prevent 400 if index missing
               limit(50)
           );
           
@@ -86,11 +89,14 @@ export const instructorService = {
               timestamp: d.data().createdAt?.toMillis?.() || Date.now()
           }));
 
-          return {
+          // Client-side Sort
+          ratings.sort((a,b) => b.timestamp - a.timestamp);
+
+          return serializeFirestoreData({
               profile,
               ratings,
               replies: {} // Legacy or fetch separately
-          };
+          });
 
       } catch (error) {
           console.error("Error fetching profile:", error);
@@ -107,7 +113,7 @@ export const instructorService = {
               limit(5)
           );
           const snap = await getDocs(q);
-          return snap.docs.map(d => ({
+          const leaders = snap.docs.map(d => ({
               id: d.id,
               ...d.data(),
               fullName: d.data().fullName,
@@ -115,6 +121,7 @@ export const instructorService = {
               totalRatings: d.data().ratingStats?.totalRatings || 0,
               profilePictureUrl: d.data().profilePictureUrl
           }));
+          return serializeFirestoreData(leaders);
       } catch (e) {
           console.error("Leaderboard error:", e);
           return [];
@@ -138,7 +145,13 @@ export const instructorService = {
       };
       
       await updateDoc(docRef, updates);
-      return { id: docRef.id, ...updates }; // Return updated fields
+      // We can't actally serialize 'serverTimestamp()' directly here since it's a Sentinel.
+      // So we return 'new Date()' for the UI to consume immediately.
+      return serializeFirestoreData({ 
+          id: docRef.id, 
+          ...updates, 
+          updatedAt: new Date() 
+      }); 
   },
 
   // 5. Initialize Profile (Recovery/First-Time)

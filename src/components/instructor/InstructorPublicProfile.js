@@ -7,6 +7,7 @@ import DashboardHero from './DashboardHero';
 import ReviewList from '../common/ReviewList';
 import Header from '../common/Header';
 import EditProfileModal from './EditProfileModal';
+import MessageModal from './MessageModal';
 import './InstructorDashboard.css';
 
 const InstructorPublicProfile = () => {
@@ -27,6 +28,7 @@ const InstructorPublicProfile = () => {
 
     const [activeTab, setActiveTab] = useState('overview'); 
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isMessageOpen, setIsMessageOpen] = useState(false);
 
     // Edit Check: Can edit if it's my own profile
     const canEdit = user?.uid && (user.uid === profile?.userId || user.uid === profile?.id || user.uid === targetId);
@@ -138,9 +140,12 @@ const InstructorPublicProfile = () => {
                                     <div className="connect-content">
                                         <h3 className="connect-title">Connect</h3>
                                         <p className="connect-text">
-                                            Have questions about a course? Send a direct message.
+                                            Have questions about a course? Send <br/>a direct message.
                                         </p>
-                                        <button className="btn-message-instructor">
+                                        <button 
+                                            className="btn-message-instructor"
+                                            onClick={() => setIsMessageOpen(true)}
+                                        >
                                             Message Instructor
                                         </button>
                                     </div>
@@ -182,7 +187,7 @@ const InstructorPublicProfile = () => {
                     )}
                 </motion.div>
                 
-                {/* 4. EDIT MODAL */}
+                {/* 4. MODALS */}
                 {isEditOpen && canEdit && (
                     <EditProfileModal
                         profile={profile}
@@ -190,6 +195,12 @@ const InstructorPublicProfile = () => {
                         onClose={() => setIsEditOpen(false)}
                     />
                 )}
+                
+                <MessageModal 
+                    isOpen={isMessageOpen}
+                    onClose={() => setIsMessageOpen(false)}
+                    instructorName={profile?.fullName?.split(' ')[0]}
+                />
              </div>
 
              {/* Floating Edit Button (Mobile/Secondary) */}

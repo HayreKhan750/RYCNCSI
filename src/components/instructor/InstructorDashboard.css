@@ -1936,14 +1936,13 @@ body {
         radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
     background-attachment: fixed;
     position: relative;
-    overflow-x: hidden;
 }
 
 [data-theme="dark"] .instructor-dashboard-container::before {
     content: "";
-    position: absolute;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
+    position: fixed;
+    top: -50vh; left: -50vw;
+    width: 200vw; height: 200vh;
     background: radial-gradient(circle at center, rgba(99, 102, 241, 0.03), transparent 70%);
     animation: rotateBackground 60s linear infinite;
     z-index: 0;
@@ -2160,5 +2159,31 @@ body {
 .icon-glow {
     filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
     margin-right: 0.5rem;
+}
+
+
+/* AI Loading Overlay */
+.ai-loading-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    gap: 1rem;
+}
+.ai-spinner {
+    width: 30px; height: 30px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top: 3px solid #8b5cf6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 

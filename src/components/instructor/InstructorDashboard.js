@@ -11,12 +11,15 @@ import RecentFeedbackPanel from './RecentFeedbackPanel';
 import DashboardHero from './DashboardHero'; // Premium Hero
 import './InstructorDashboard.css';
 
+import { generateInstructorReport } from '../../utils/AppReportGenerator';
+
 const InstructorDashboard = () => {
     const { user } = useSelector(state => state.auth);
     const { mode } = useSelector(state => state.theme || { mode: 'light' });
     const { 
         profile, 
         stats, 
+        feedbacks,
         loading 
     } = useInstructorProfile();
     const navigate = useNavigate();
@@ -29,7 +32,8 @@ const InstructorDashboard = () => {
     ];
 
     const handleDownloadingReport = () => {
-        alert("Generating comprehensive PDF report...");
+        if (!profile) return;
+        generateInstructorReport(profile, stats, feedbacks);
     };
 
     if (loading) return <div className="dashboard-loading"><div className="spinner"></div></div>;
