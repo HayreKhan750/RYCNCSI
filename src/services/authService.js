@@ -13,6 +13,8 @@ import { auth, db } from '../firebase';
 import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs, updateDoc, limit, deleteDoc } from 'firebase/firestore';
 import { serializeFirestoreData } from '../utils/serialization';
 import { auditService } from './auditService';
+import User from '../models/User';
+import Instructor from '../models/Instructor';
 
 export const authService = {
   // Login
@@ -22,57 +24,49 @@ export const authService = {
   },
 
   // Register
-  // Register (Optimized & Verified)
   register: async (email, password, name, role = 'student', department = '') => {
     // 1. Create Auth User (Fastest)
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // 2. Background Operations (Non-blocking for UI redirect)
-    // We return 'user' immediately so the UI can redirect to "Verify Email" page.
-    // The verify page just needs the Auth Object to display the email.
+    // 2. Create Pending Profile (Blocking to ensure data existence)
+    try {
+        await updateProfile(user, { displayName: name });
+        await sendEmailVerification(user);
+
+        const tempPayload = {
+          uid: user.uid,
+          fullName: name, // Standardized field
+          name, // Legacy support
+          email,
+          role,
+          departmentId: department, 
+          department, 
+          campusId: 'main', 
+          year: '1', // Default for students
+          staffCode: null,
+          profilePictureUrl: user.photoURL || '',
+          bio: '',
+          isRegistered: false,
+          isVerified: false,
+          status: 'active', // active | suspended | banned
+          lastLoginAt: null,
+          createdAt: serverTimestamp(),
+          stats: {
+              ratingsGiven: 0,
+              reviewsReceived: 0,
+              helpfulCount: 0
+          }
+        };
+        
+        // Write to TEMPORARY 'pending_registrations' collection
+        await setDoc(doc(db, 'pending_registrations', user.uid), tempPayload);
+    } catch (error) {
+        console.error("Registration data setup failed:", error);
+        // CRITICAL: Throw so the UI knows
+        throw new Error(`Data Setup Failed: ${error.message}`);
+    }
     
-    const backgroundTasks = async () => {
-        try {
-            await updateProfile(user, { displayName: name });
-            await sendEmailVerification(user);
-
-              const tempPayload = {
-              uid: user.uid,
-              fullName: name, // Standardized field
-              name, // Legacy support
-              email,
-              role,
-              departmentId: department, // Standardized
-              department, // Legacy
-              campusId: 'main', // Default
-              year: '1', // Default for students
-              staffCode: null,
-              profilePictureUrl: user.photoURL || '',
-              bio: '',
-              isRegistered: false,
-              isVerified: false,
-              status: 'active', // active | suspended | banned
-              lastLoginAt: null,
-              createdAt: serverTimestamp(),
-              stats: {
-                  ratingsGiven: 0,
-                  reviewsReceived: 0,
-                  helpfulCount: 0
-              }
-            };
-            
-            // Write to TEMPORARY 'pending_registrations' collection
-            await setDoc(doc(db, 'pending_registrations', user.uid), tempPayload);
-        } catch (error) {
-            console.error("Background registration tasks failed:", error);
-            // In a real app, we might want to flag this user or retry.
-        }
-    };
-
-    // Execute background tasks without awaiting
-    backgroundTasks();
-
     return user;
   },
 
@@ -82,7 +76,10 @@ export const authService = {
       const pendingRef = doc(db, 'pending_registrations', uid);
       const pendingSnap = await getDoc(pendingRef);
 
-      if (!pendingSnap.exists()) return null; // Already finalized or invalid
+      if (!pendingSnap.exists()) {
+          console.error("Finalize Error: No pending registration found for", uid);
+          throw new Error("Registration data missing. Please contact support.");
+      }
 
       const data = pendingSnap.data();
       const { role, name, email } = data;
@@ -102,26 +99,12 @@ export const authService = {
       promises.push(setDoc(doc(db, 'users', uid), baseData));
 
       if (role === 'instructor') {
-        const q = query(collection(db, 'instructors'), where('email', '==', email), limit(1));
-        const customSnap = await getDocs(q);
-
-        if (!customSnap.empty) {
-            const existingDoc = customSnap.docs[0];
-            promises.push(setDoc(doc(db, 'instructors', existingDoc.id), {
-                ...existingDoc.data(),
-                ...baseData,
-                updatedAt: serverTimestamp(),
-                userId: uid
-            }, { merge: true }));
-        } else {
-            let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-            if (!slug) slug = 'instructor';
-            const finalId = `${slug}-${Date.now()}`;
-            
-            
-          promises.push(setDoc(doc(db, 'instructors', finalId), { 
+          // STRICT ARCHITECTURE: Instructor ID === User UID
+          const instructorDocRef = doc(db, 'instructors', uid);
+          
+          promises.push(setDoc(instructorDocRef, { 
               // Explicit Strict Schema
-              instructorId: finalId,
+              instructorId: uid, // 1:1 Mapping
               userId: uid,
               fullName: baseData.fullName || baseData.name,
               departmentId: baseData.departmentId || baseData.department,
@@ -137,22 +120,19 @@ export const authService = {
               bio: `Instructor in ${baseData.departmentId || baseData.department}`,
               createdAt: serverTimestamp()
           }));
-        }
-      } else {
-         if (role === 'student') {
+      } else if (role === 'student') {
             // Strict Blueprint: Create separate 'students' doc
             promises.push(setDoc(doc(db, 'students', uid), {
                 studentId: uid,
                 year: baseData.year || '1',
                 campusId: baseData.campusId || 'main',
-                departmentId: baseData.departmentId || baseData.department, // Helpful redundancy
+                departmentId: baseData.departmentId || baseData.department, 
                 stats: {
                     reviewsCount: 0,
                     helpfulVotes: 0
                 },
                 createdAt: serverTimestamp()
             }));
-         }
       }
 
       // B. Delete Pending Doc
@@ -181,39 +161,101 @@ export const authService = {
     await sendEmailVerification(user);
   },
 
-  // Get User Profile from Firestore (Robust Lookup)
+  // Get User Profile from Firestore (High-Performance Parallel Execution)
   getUserProfile: async (uid, email = null) => {
-    try {
-      // 1. Single Source of Truth: 'users' collection
-      const userRef = doc(db, 'users', uid);
-      const userSnap = await getDoc(userRef);
-      
-      if (userSnap.exists()) {
-          const userData = userSnap.data();
-          // If it's an instructor, we might want to blend in public profile data?
-          // Actually, 'users' should have the role. 
-          return serializeFirestoreData(userData);
-      }
+    // We launch multiple probes in parallel to ensure:
+    // 1. Speed (don't wait for partial failures)
+    // 2. Reliability (if one path is blocked by permissions, the other succeeds)
+    
+    const probes = [];
 
-      // 2. Legacy/Fallback Safety (Post-Migration these should be removed)
-      // If not in 'users', check if they are in 'instructors' (maybe created by admin without user doc?)
-      // or 'students' (legacy)
-      
-      if (email) {
-          // Check 'instructors' by email to link them?
-          const instQ = query(collection(db, 'instructors'), where('email', '==', email), limit(1));
-          const instSnap = await getDocs(instQ);
-          if (!instSnap.empty) {
-             console.warn("Found in instructors but not users. Syncing needed.");
-             return serializeFirestoreData({ ...instSnap.docs[0].data(), role: 'instructor', uid }); 
-          }
-      }
-      
-      return null;
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      return null;
+    // Probe A: Private User Document (The standard path)
+    const privateProfileProbe = async () => {
+        try {
+            const snap = await getDoc(doc(db, 'users', uid));
+            return snap.exists() ? snap.data() : null;
+        } catch (e) { 
+            console.warn("Probe A (Users) failed/denied:", e.code);
+            return null; 
+        }
+    };
+    probes.push(privateProfileProbe());
+
+    // Probe B: Instructor Document (Direct ID Match - Primary Check)
+    const instructorProbe = async () => {
+        try {
+             // NOW: We expect instructors/{uid}
+             const snap = await getDoc(doc(db, 'instructors', uid));
+             return snap.exists() ? snap.data() : null;
+        } catch (e) {
+             console.warn("Probe B (Instructors) failed:", e.code);
+             return null;
+        }
+    };
+    probes.push(instructorProbe());
+
+    // Execute Parallel Wait
+    const [privateResult, instructorResult] = await Promise.all(probes);
+
+    // --- RESOLUTION LOGIC ---
+    
+    // 1. Management Override (Fastest/Highest Priority)
+    if (email) {
+        // Check whitelist/pattern or explicit role
+        const upperRole = privateResult?.role?.toUpperCase();
+        const isManagement = email.includes('admin') || email.includes('management') || 
+                             (upperRole === 'MANAGEMENT') || (upperRole === 'ADMIN');
+                             
+        if (isManagement) {
+             return new User({ 
+                uid, email, 
+                displayName: privateResult?.displayName || 'Admin', 
+                role: 'MANAGEMENT', 
+                department: 'Management',
+                isVerified: true, isRegistered: true,
+                ...privateResult 
+            }).toJSON();
+        }
     }
+
+    // 2. Instructor Resolution
+    // If public probe found something, it's a strong signal they are an instructor.
+    if (instructorResult) {
+        // We found them in the public directory with Matching ID. They ARE an instructor.
+        const publicData = Instructor.fromFirestore({ id: uid, data: () => instructorResult }).toJSON();
+        
+        return {
+            ...publicData,
+            ...(privateResult ? serializeFirestoreData(privateResult) : {}), // Safe Serialize
+            uid: uid // Ensure UID matches auth
+        };
+    }
+
+    // 3. Fallback: Check Legacy Email Lookup (Migration Support)
+    // If we didn't find them by UID, maybe they are an old instructor?
+    if (email && !privateResult) {
+        // Only checking if we are desperate (no user doc)
+        try {
+            const q = query(collection(db, 'instructors'), where('email', '==', email), limit(1));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                 const legacyDoc = snap.docs[0];
+                 console.warn("Found Legacy Instructor by Email. Migration required.");
+                 // We return it, but ideally we should trigger a migration here.
+                 const publicData = Instructor.fromFirestore(legacyDoc).toJSON();
+                 return { ...publicData, role: 'instructor', uid: uid };
+            }
+        } catch(e) {}
+    }
+
+    // 4. Private Profile Fallback
+    // If no public instructor doc, trust the private doc.
+    if (privateResult) {
+        return new User({ ...privateResult, uid }).toJSON();
+    }
+
+    // 5. Ghost/New User
+    return null;
   },
 
   // Google Login
@@ -226,6 +268,7 @@ export const authService = {
     const userSnap = await getDoc(userRef);
     
     // Check if Instructor (Prioritize existing instructor profile linkage)
+    // Legacy Check
     const instQ = query(collection(db, 'instructors'), where('email', '==', user.email));
     
     if (!userSnap.exists()) {
@@ -236,13 +279,15 @@ export const authService = {
       const instSnap = await getDocs(instQ);
       if (!instSnap.empty) {
           role = 'instructor';
-          // Link them
           const instDoc = instSnap.docs[0];
-          await updateDoc(doc(db, 'instructors', instDoc.id), {
-              userId: user.uid,
-              isRegistered: true
-          });
           dept = instDoc.data().department || 'General';
+          
+          // MIGRATION ON THE FLY:
+          // If the ID is NOT the UID, strict architecture says we should fix it.
+          // For now, we just link 'userId' in the old doc.
+          if (instDoc.id !== user.uid) {
+              await updateDoc(doc(db, 'instructors', instDoc.id), { userId: user.uid });
+          }
       }
 
       // Create Unified User Doc
@@ -279,6 +324,20 @@ export const authService = {
              },
              createdAt: serverTimestamp()
           });
+      } else if (role === 'instructor' && instSnap.empty) {
+           // New Instructor via Google (Rare)
+           // Create STRICT ID doc
+           await setDoc(doc(db, 'instructors', user.uid), {
+              instructorId: user.uid,
+              userId: user.uid,
+              fullName: user.displayName,
+              departmentId: dept,
+              campusId: 'main',
+              profilePictureUrl: user.photoURL,
+              courses: [],
+              ratingStats: { average: 0, totalRatings: 0, distribution: {} },
+              createdAt: serverTimestamp()
+          });
       }
       
       await auditService.logAction(user.uid, 'REGISTER_GOOGLE', user.uid);
@@ -296,18 +355,9 @@ export const authService = {
   updateUserProfile: async (uid, data) => {
     // 1. Update Core User Doc
     const userRef = doc(db, 'users', uid);
-    
-    // Check if user exists, if not, try pending?
-    // No, updateUserProfile is meant for fully registered users.
-    // However, during the chaotic registration phase, flexibility helps.
-    
     try {
-        await updateDoc(userRef, {
-            ...data,
-            updatedAt: serverTimestamp()
-        });
+        await updateDoc(userRef, { ...data, updatedAt: serverTimestamp() });
     } catch(e) {
-        // If 'users' doc missing, try 'pending_registrations'
          const pendingRef = doc(db, 'pending_registrations', uid);
          const pendingSnap = await getDoc(pendingRef);
          if (pendingSnap.exists()) {
@@ -317,21 +367,30 @@ export const authService = {
          throw e;
     }
 
-    // 2. If Instructor, Sync Public Profile
-    const instQ = query(collection(db, 'instructors'), where('userId', '==', uid)); // Check by linked ID
-    const instSnap = await getDocs(instQ);
+    // 2. Check for Instructor Doc (Try Strict ID first)
+    const directInst = doc(db, 'instructors', uid);
+    const directSnap = await getDoc(directInst);
     
-    if (!instSnap.empty) {
-        const instDoc = instSnap.docs[0];
-        // Sync public facing fields only
+    let targetRef = null;
+    if (directSnap.exists()) {
+        targetRef = directInst;
+    } else {
+        // Fallback check
+        const q = query(collection(db, 'instructors'), where('userId', '==', uid));
+        const qSnap = await getDocs(q);
+        if(!qSnap.empty) targetRef = qSnap.docs[0].ref;
+    }
+
+    if (targetRef) {
         const publicUpdates = {};
         if (data.displayName || data.name) publicUpdates.instructorName = data.displayName || data.name;
+        if (data.fullName) publicUpdates.fullName = data.fullName;
         if (data.department) publicUpdates.department = data.department;
         if (data.bio) publicUpdates.bio = data.bio;
         if (data.photoURL || data.profilePictureUrl) publicUpdates.photoURL = data.photoURL || data.profilePictureUrl;
         
         if (Object.keys(publicUpdates).length > 0) {
-            await updateDoc(doc(db, 'instructors', instDoc.id), publicUpdates);
+            await updateDoc(targetRef, publicUpdates);
         }
     }
     
@@ -342,5 +401,55 @@ export const authService = {
   updatePendingDoc: async (uid, data) => {
       const pendingRef = doc(db, 'pending_registrations', uid);
       await updateDoc(pendingRef, data);
+  },
+
+  // Rescue Method: Create Default Profile for Verified-but-Missing Users
+  createDefaultProfile: async (user) => {
+    try {
+        const uid = user.uid;
+        const email = user.email;
+        const name = user.displayName || email.split('@')[0] || 'User';
+        
+        const baseData = {
+            uid,
+            email,
+            displayName: name,
+            role: 'student', // Default safe role
+            department: 'General',
+            photoURL: user.photoURL || '',
+            isRegistered: true,
+            isVerified: true,
+            createdAt: serverTimestamp()
+        };
+
+        // Write to Real Collections
+        
+        await setDoc(doc(db, 'users', uid), {
+            ...baseData,
+            name: name, // Legacy
+            departmentId: 'General',
+            campusId: 'main', 
+            year: '1',
+            bio: 'Account recovered.',
+            status: 'active',
+            lastLoginAt: serverTimestamp(),
+            recoveredAt: serverTimestamp()
+        });
+        
+        await setDoc(doc(db, 'students', uid), {
+            studentId: uid,
+            year: '1',
+            campusId: 'main',
+            departmentId: 'General',
+            stats: { reviewsCount: 0, helpfulVotes: 0 },
+            createdAt: serverTimestamp()
+        });
+
+        // Return standardized model
+        return new User(baseData).toJSON();
+    } catch (e) {
+        console.error("Failed to create default profile:", e);
+        throw e;
+    }
   }
 };

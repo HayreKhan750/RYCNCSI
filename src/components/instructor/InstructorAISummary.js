@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../firebase';
 import { useSelector } from 'react-redux';
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
 export default function InstructorAISummary() {
   const { user } = useSelector((state) => state.auth);
@@ -11,14 +11,22 @@ export default function InstructorAISummary() {
   const [regenLoading, setRegenLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    const ref = doc(db, 'ai_summaries', user.uid);
-    const unsub = onSnapshot(ref, (snap) => {
-      setSummary(snap.exists() ? snap.data() : null);
-      setLoading(false);
-    }, (e) => { setError(e.message || 'Failed to load summary'); setLoading(false); });
-    return () => unsub();
+    if (!user?.uid) return;
+    
+    const fetchSummary = async () => {
+        setLoading(true);
+        try {
+            const ref = doc(db, 'ai_summaries', user.uid);
+            const snap = await getDoc(ref);
+            setSummary(snap.exists() ? snap.data() : null);
+        } catch (e) {
+            setError(e.message || 'Failed to load summary');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    fetchSummary();
   }, [user?.uid]);
 
   const requestRegenerate = async () => {

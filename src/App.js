@@ -1,11 +1,12 @@
 import './App.css';
 import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { checkAuthState } from './store/slices/authSlice';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
 import ManagementRoute from './routes/ManagementRoute';
+import AuthGuard from './routes/AuthGuard'; // New explicit guard
 import GlobalLoader from './components/common/GlobalLoader';
 import ThemeProvider from './components/common/ThemeProvider';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -23,7 +24,9 @@ const InstructorPublicProfile = lazy(() => import('./components/instructor/Instr
 const InstructorReviewsPage = lazy(() => import('./components/instructor/InstructorReviewsPage'));
 const CoursesList = lazy(() => import('./components/instructor/CoursesList'));
 const AnalyticsPage = lazy(() => import('./components/instructor/AnalyticsPage')); // Added
+
 const InstructorSettings = lazy(() => import('./components/instructor/InstructorSettings')); // Added
+const InstructorSetup = lazy(() => import('./components/instructor/InstructorSetup')); // RECOVERY
 const StudentProfile = lazy(() => import('./components/StudentProfile'));
 const RatingPage = lazy(() => import('./pages/RatingPage'));
 const GrantAdmin = lazy(() => import('./components/GrantAdmin'));
@@ -45,10 +48,18 @@ const EmailOtpPrompt = lazy(() => import('./components/auth/EmailOtpPrompt'));
 
 export default function App() {
   const dispatch = useDispatch();
+  const { authStatus } = useSelector(state => state.auth);
 
   useEffect(() => {
+    // Only check if idle to avoid loops, or let thunk handle dedupe
     dispatch(checkAuthState());
   }, [dispatch]);
+
+  // Global "Halt" until Hydration is done (or failed back to idle)
+  // This prevents the "flash of login" or "flash of protected route"
+  if (authStatus === 'checking' || authStatus === 'authenticated') {
+       return <GlobalLoader />;
+  }
 
   return (
     <ThemeProvider>
@@ -62,7 +73,10 @@ export default function App() {
               <Route path="/login" element={<AuthEntry />} />
               <Route path="/signup" element={<AuthEntry />} />
               
-              {/* Protected Routes */}
+              {/* Protected Routes - Wrapped in AuthGuard logic via ProtectedRoute usually, but we check hydration globally above now.
+                  We still keep ProtectedRoute for the Redux 'isAuthenticated' boolean check which logically follows hydration.
+               */}
+              
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -121,6 +135,12 @@ export default function App() {
                 <ProtectedRoute>
                   <InstructorSettings />
                 </ProtectedRoute>
+              } />
+
+              <Route path="/instructor/setup" element={
+                  <ProtectedRoute>
+                      <InstructorSetup />
+                  </ProtectedRoute>
               } />
 
               <Route path="/instructor/:id" element={

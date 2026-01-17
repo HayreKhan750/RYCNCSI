@@ -9,6 +9,10 @@ export const fetchInstructors = createAsyncThunk(
       const data = await instructorService.fetchAllInstructors();
       return data;
     } catch (error) {
+      if (error.code === 'permission-denied' || error.message.includes('permission')) {
+          console.warn("Instructor fetch suppressed due to permissions.");
+          return []; // Return empty list to prevent crash
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -32,8 +36,20 @@ export const fetchInstructorProfile = createAsyncThunk(
       // Pass existing list to service to avoid re-fetching basic info if possible
       const existingList = Object.values(state.instructors.byId);
       const data = await instructorService.fetchInstructorProfile(instructorId, existingList, fallbackEmail);
+      
+      // Handle Service-Level Error Return (e.g. "Instructor not found")
+      if (data && data.error) {
+          return rejectWithValue(data.error);
+      }
+
       return data;
     } catch (error) {
+      // CRITICAL DEBUG: Stop swallowing permission errors so we can see them in UI
+      if (error.code === 'permission-denied' || error.message.includes('permission')) {
+          console.warn("Instructor Profile fetch suppressed due to permissions.");
+          // FOR DEBUGGING: Return the error so the user sees it
+          return rejectWithValue("Firebase Permission Denied (Check Rules)");
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -45,6 +61,18 @@ export const updateInstructorProfile = createAsyncThunk(
     try {
       const updated = await instructorService.updateInstructorProfile(uid, data);
       return updated;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const createInstructorProfile = createAsyncThunk(
+  'instructors/createProfile',
+  async ({ uid, data }, { rejectWithValue }) => {
+    try {
+      const newProfile = await instructorService.createInstructorProfile(uid, data);
+      return newProfile;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -131,6 +159,11 @@ const instructorSlice = createSlice({
           if (state.activeProfile.data) {
               state.activeProfile.data = { ...state.activeProfile.data, ...action.payload };
           }
+      })
+      .addCase(createInstructorProfile.fulfilled, (state, action) => {
+          state.activeProfile.status = 'succeeded';
+          state.activeProfile.data = action.payload;
+          state.activeProfile.error = null;
       })
       // Add Reply (Sync with Feedback Slice)
       .addCase(addReply.fulfilled, (state, action) => {

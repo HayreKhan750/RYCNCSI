@@ -7,7 +7,7 @@ import { selectActiveProfile } from '../store/selectors/instructorSelectors';
 
 export default function useInstructorProfile(routeInstructorId) {
   const dispatch = useDispatch();
-  const { data: profile, ratings: myRatings, replies: repliesByFeedback, loading } = useSelector(selectActiveProfile);
+  const { data: profile, ratings: myRatings, replies: repliesByFeedback, loading, error } = useSelector(selectActiveProfile);
   const { user } = useSelector((state) => state.auth);
 
   const instructorKey = (routeInstructorId || (user?.email || '')).toLowerCase();
@@ -187,6 +187,7 @@ export default function useInstructorProfile(routeInstructorId) {
     feedbacks: myRatings || [], // Alias for compatibility
     profile,
     loading: loading || isInitializing,
+    error,
     stats: stats,
     badges,
     chartData,

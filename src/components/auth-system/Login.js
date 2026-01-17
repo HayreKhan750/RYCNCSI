@@ -13,11 +13,10 @@ export default function Login({ onNavigate, onLoginSuccess }) {
     e.preventDefault();
     dispatch(clearError());
     const resultAction = await dispatch(loginUser(formData));
-    console.log('Login Result:', resultAction);
     if (loginUser.fulfilled.match(resultAction)) {
-        console.log('Login Fulfilled');
         onLoginSuccess();
     } else {
+        // Safe Error logging (only message)
         console.error('Login Failed:', resultAction.payload);
         alert(`Login Failed: ${resultAction.payload}`);
     }

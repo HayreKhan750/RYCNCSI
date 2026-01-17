@@ -1,4 +1,5 @@
 import { serializeFirestoreData } from '../utils/serialization';
+import Instructor from '../models/Instructor';
 import { db } from '../firebase';
 
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -62,15 +63,7 @@ export const instructorService = {
           }
 
           const data = docSnap.data();
-          const profile = {
-              id: docSnap.id, 
-              ...data,
-              fullName: data.fullName,
-              department: data.departmentId,
-              avgRating: data.ratingStats?.average || 0,
-              totalRatings: data.ratingStats?.totalRatings || 0,
-              profilePictureUrl: data.profilePictureUrl
-          };
+          const profile = Instructor.fromFirestore(docSnap).toJSON();
 
           // Fetch Feedbacks
           // Using 'feedbacks' collection
@@ -113,14 +106,7 @@ export const instructorService = {
               limit(5)
           );
           const snap = await getDocs(q);
-          const leaders = snap.docs.map(d => ({
-              id: d.id,
-              ...d.data(),
-              fullName: d.data().fullName,
-              avgRating: d.data().ratingStats?.average || 0,
-              totalRatings: d.data().ratingStats?.totalRatings || 0,
-              profilePictureUrl: d.data().profilePictureUrl
-          }));
+          const leaders = snap.docs.map(d => Instructor.fromFirestore(d).toJSON());
           return serializeFirestoreData(leaders);
       } catch (e) {
           console.error("Leaderboard error:", e);
@@ -170,9 +156,9 @@ export const instructorService = {
       }
 
       const name = userData.fullName || userData.displayName || 'Instructor';
-      let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      if (!slug) slug = 'instructor';
-      const finalId = `${slug}-${Date.now()}`;
+      // STRICT ID ENFORCEMENT: Instructor ID === User UID
+      // This prevents "Not Found" errors when looking up by ID.
+      const finalId = uid;
 
       const profileData = {
           instructorId: finalId,

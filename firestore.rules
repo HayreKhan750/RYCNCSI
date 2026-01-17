@@ -4,138 +4,78 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- HELPER FUNCTIONS ---
-
-    // 1. Authentication
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-
-    // 2. Role Access (Reads from the user's document as the Single Source of Truth)
-    function getUserData() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    // Check role strictly
-    function isRole(role) {
-        return isSignedIn() && getUserData().role == role;
-    }
-
-    function isAdmin() {
-      return isRole('admin');
-    }
-
-    function isManagement() {
-       return isRole('management') || isAdmin();
-    }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
     
-    function isStudent() {
-       return isRole('student');
-    }
+    // SAFE FALLBACK: Use DB check since we don't have Custom Claims yet.
+    function getUserData() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isRole(role) { return isSignedIn() && getUserData().role == role; }
 
-    function isInstructor() {
-       return isRole('instructor');
-    }
-
-    // 3. Data Validation
-    function hasRequiredFields(fields) {
-       return request.resource.data.keys().hasAll(fields);
-    }
+    function isAdmin() { return isRole('admin'); }
+    function isManagement() { return isRole('management') || isAdmin(); }
+    function isStudent() { return isRole('student'); }
+    function isInstructor() { return isRole('instructor'); }
+    
+    // INTEGRITY CHECKS
+    function notUpdating(field) { return !(field in request.resource.data) || resource.data[field] == request.resource.data[field]; }
+    function notChangingRole() { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdmin']); }
+    function notSpoofingStats() { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingStats', 'reviewsCount', 'aiScore', 'flagStatus', 'engagementScore']); }
 
     // --- COLLECTIONS ---
 
-    // 1. USERS: Identity & Access Control
-    // Single unified collection.
     match /users/{uid} {
-      allow read: if isSignedIn(); // Basic profile read allowed for authenticated users (needed for UI)
-      // Strict rewrite: Everyone can only read their own sensitive data, but public profile parts might need to be open?
-      // For now, allow read if signed in, but maybe filter in client. Ideally, use a separate 'public_profiles' if privacy is key.
-      // Given the requirement: "Identity & access control (single source of truth)"
-      
-      allow create: if isOwner(uid); // Self-registration
-      allow update: if isOwner(uid) || isAdmin(); // Profile edits
-      allow delete: if isAdmin(); // Only admins can ban/delete
+      allow read: if isOwner(uid) || isAdmin(); 
+      allow create: if isOwner(uid);
+      allow update: if (isOwner(uid) && notChangingRole()) || isAdmin();
+      allow delete: if isAdmin(); 
     }
 
-    // 2. INSTRUCTORS: Read-Optimized Public Profiles
-    // "Instructor profile loads in 1 query"
     match /instructors/{instructorId} {
-      allow read: if true; // Publicly accessible
-      allow write: if isAdmin(); // Managed by Admin or Cloud Functions (Event-driven updates)
-      // Instructors cannot edit this directly to ensure data integrity/verification.
+      allow read: if true; 
+      allow create: if isAdmin() || (isSignedIn() && instructorId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && instructorId == request.auth.uid && notSpoofingStats());
     }
 
-    // 3. FEEDBACKS: Core Rating Content
     match /feedbacks/{feedbackId} {
-      allow read: if true; // Reviews are public
-      
-      allow create: if isSignedIn() && isStudent() &&
-                    // Integrity checks
-                    request.resource.data.studentId == request.auth.uid &&
-                    request.resource.data.rating is number &&
-                    request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
-                    request.resource.data.text.size() < 2000;
-
-      allow update: if isAdmin(); // Only for moderation (censoring, etc.)
-      allow delete: if isAdmin();
+      allow read: if true;
+      // FIX: Allow ANY signed-in user to rate (Students OR Instructors)
+      // As long as they claim their own ID as 'studentId'
+      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isAdmin(); 
+      allow delete: if isAdmin(); 
     }
 
-    // 4. REACTIONS: Like/Dislike System
     match /reactions/{reactionId} {
       allow read: if true;
-      allow create: if isSignedIn() && 
-                    request.resource.data.userId == request.auth.uid &&
-                    (request.resource.data.type == 'like' || request.resource.data.type == 'dislike');
-      allow delete: if isOwner(resource.data.userId); // Allow un-liking
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isOwner(resource.data.userId); 
+      allow update: if isOwner(resource.data.userId);
     }
 
-    // 5. REPLIES: Instructor Responses
     match /replies/{replyId} {
       allow read: if true;
-      allow create: if isSignedIn() && isInstructor() &&
-                    request.resource.data.authorId == request.auth.uid;
-                    // Logic to ensure they are replying to a review involved with them would need a get() which costs extra.
-                    // For now, trust the client + backend verify later or adds 'instructorId' to reply for check.
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isSignedIn() && isInstructor() && request.resource.data.authorId == request.auth.uid;
+      allow update: if isOwner(resource.data.authorId); 
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
     }
 
-    // 6. METADATA: Courses, Departments, Campuses
-    match /courses/{courseId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /departments/{deptId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /campuses/{campusId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
+    // --- LOCKED COLLECTIONS (Backend Only) ---
+    match /audit_logs/{logId} { allow read: if isAdmin(); allow write: if false; } 
+    match /ai_insights/{insightId} { allow read: if isManagement(); allow write: if false; }
+    
+    match /courses/{courseId} { allow read: if true; allow write: if isAdmin(); }
+    match /departments/{deptId} { allow read: if true; allow write: if isAdmin(); }
+    match /campuses/{campusId} { allow read: if true; allow write: if isAdmin(); }
 
-    // 7. SYSTEM & MODERATION
-    match /flags/{flagId} {
-      allow create: if isSignedIn(); // Anyone can report
-      allow read, update, delete: if isManagement();
+    match /flags/{flagId} { allow create: if isSignedIn(); allow read, update, delete: if isManagement(); }
+    match /pending_registrations/{uid} { allow read: if isOwner(uid); allow write: if isOwner(uid); }
+    
+    match /students/{studentId} { 
+       allow read: if isSignedIn(); 
+       allow create: if isOwner(studentId); 
+       allow update: if isOwner(studentId) && notSpoofingStats(); 
     }
     
-    match /audit_logs/{logId} {
-      allow read: if isAdmin();
-      allow write: if false; // Only written by Cloud Functions/Admin SDK
-    }
-
-    match /ai_insights/{insightId} {
-       allow read: if isManagement();
-       allow write: if false; // Cloud Functions only
-    }
-    
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }

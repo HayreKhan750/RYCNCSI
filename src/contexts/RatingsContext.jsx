@@ -5,7 +5,7 @@ import {
   collection,
   deleteDoc,
   doc,
-  onSnapshot,
+  getDocs,
   orderBy,
   query,
   serverTimestamp,
@@ -26,23 +26,29 @@ export function RatingsProvider({ children }) {
     if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
     if (!user) { setItems([]); return; }
 
-    const q = query(
-      collection(db, 'feedbacks'),
-      where('studentId', '==', user.uid)
-    );
-    unsubRef.current = onSnapshot(q, (snap) => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Client-side sort to avoid needing composite index
-      docs.sort((a, b) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-          return tB - tA;
-      });
-      setItems(docs);
-    }, (err) => {
-      console.error('Ratings subscription failed', err);
-      setItems([]);
-    });
+    const fetchRatings = async () => {
+        try {
+            const q = query(
+              collection(db, 'feedbacks'),
+              where('studentId', '==', user.uid)
+            );
+            const snap = await getDocs(q);
+            const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            // Client-side sort
+            docs.sort((a, b) => {
+                const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                return tB - tA;
+            });
+            setItems(docs);
+        } catch (err) {
+            console.error('Ratings fetch failed', err);
+            setItems([]);
+        }
+    };
+    
+    fetchRatings();
 
     return () => { if (unsubRef.current) unsubRef.current(); };
   }, [user?.uid]);

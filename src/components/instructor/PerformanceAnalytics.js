@@ -37,8 +37,18 @@ const TrendChart = ({ data }) => {
     
     // Normalize data (5.0 max)
     const points = data.map((d, i) => {
-        const x = (i / (data.length - 1)) * width;
-        const y = height - ((d.value / 5) * height);
+        // Prevent division by zero if only 1 point
+        const x = data.length > 1 
+            ? (i / (data.length - 1)) * width
+            : width / 2;
+            
+        // Sanitize Y value
+        const val = isNaN(Number(d.value)) ? 0 : Number(d.value);
+        const y = height - ((val / 5) * height);
+        
+        // Final sanity check
+        if (isNaN(x) || isNaN(y)) return `0,${height}`;
+        
         return `${x},${y}`;
     }).join(' ');
 
@@ -52,7 +62,7 @@ const TrendChart = ({ data }) => {
                      </linearGradient>
                  </defs>
                  
-                 {data.length > 1 && (
+                 {data.length > 1 && !points.includes('NaN') && (
                      <path 
                         d={`M0,${height} ${points} L${width},${height} Z`} 
                         fill="url(#gradient)" 
@@ -69,8 +79,15 @@ const TrendChart = ({ data }) => {
                  />
                  
                  {data.map((d, i) => {
-                     const x = (i / (data.length - 1)) * width;
-                     const y = height - ((d.value / 5) * height);
+                     const x = data.length > 1 
+                         ? (i / (data.length - 1)) * width
+                         : width / 2;
+                     
+                     const val = isNaN(Number(d.value)) ? 0 : Number(d.value);
+                     const y = height - ((val / 5) * height);
+                     
+                     if (isNaN(x) || isNaN(y)) return null;
+
                      return (
                          <circle key={i} cx={x} cy={y} r="3" fill="white" stroke="#4f46e5" strokeWidth="1.5" />
                      );

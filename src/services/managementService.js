@@ -1,8 +1,37 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, orderBy, limit, doc, getDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, doc, getDoc, getCountFromServer, updateDoc, serverTimestamp, deleteDoc, addDoc, runTransaction } from 'firebase/firestore';
 import { instructorService } from './instructorService';
+import { serializeFirestoreData } from '../utils/serialization';
 
 export const managementService = {
+
+  // 3. Feedback Feed
+  fetchRecentFeedback: async (limitCount = 20) => {
+    try {
+        const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'), limit(limitCount));
+        const snapshot = await getDocs(q);
+        const feedbacks = [];
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            // Serialize to ensure Redux compatibility
+            const serializedData = serializeFirestoreData(data);
+            
+            feedbacks.push({
+                id: doc.id,
+                ...serializedData, // Safe clean data
+                studentName: data.anonymous ? 'Anonymous' : (data.studentName || 'Student'),
+                instructorName: data.instructorName || data.instructorId, 
+                rating: data.overall || data.rating || 0,
+                time: timeAgo(data.createdAt || data.timestamp) // Calculate time string from original if needed, or now serialized ISO string
+            });
+        });
+        return feedbacks;
+    } catch (error) {
+        console.error("Feed error:", error);
+        throw error;
+    }
+  },
   // 1. Dashboard Stats (Enterprise Scale)
   fetchDashboardStats: async () => {
     try {
@@ -98,30 +127,7 @@ export const managementService = {
     }
   },
 
-  // 3. Feedback Feed
-  fetchRecentFeedback: async (limitCount = 20) => {
-    try {
-        const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'), limit(limitCount));
-        const snapshot = await getDocs(q);
-        const feedbacks = [];
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            feedbacks.push({
-                id: doc.id,
-                ...data,
-                studentName: data.anonymous ? 'Anonymous' : (data.studentName || 'Student'),
-                instructorName: data.instructorName || data.instructorId, // Ideally fetch name if ID is used
-                rating: data.overall || data.rating || 0,
-                time: timeAgo(data.createdAt || data.timestamp)
-            });
-        });
-        return feedbacks;
-    } catch (error) {
-        console.error("Feed error:", error);
-        throw error;
-    }
-  },
+
   
   // 4. Instructor Leaderboard
   fetchTopInstructors: async () => {

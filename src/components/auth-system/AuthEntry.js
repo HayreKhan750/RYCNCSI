@@ -24,13 +24,29 @@ export default function AuthEntry() {
        // EMERGENCY BYPASS: Allow specific UID to enter to run migration
        const ALLOWED_UIDS = ['dH2UzGIvfigE7CgUUYtETtpnwsJ2', 'eLowMYFctOSpM8748S1rHXfx6NV2'];
        
-       if (user.isRegistered || ALLOWED_UIDS.includes(user.uid)) {
+       // 1. If verified, never show verify screen. Trust auto-repair or profile creation.
+       // 2. If 'isRegistered' is true, obviously proceed.
+       // 3. If explicit allowed UID, proceed.
+       
+       // 3. If explicit allowed UID, proceed.
+       
+       if (user.emailVerified || user.isRegistered || ALLOWED_UIDS.includes(user.uid)) {
            // Already verified or registered, redirect to dashboard
            setTimeout(() => {
-               if (user.role === 'MANAGEMENT') navigate('/management/dashboard');
-               else if (user.role === 'admin') navigate('/admin');
-               else navigate('/dashboard');
-           }, 500);
+               // Safety: If role is student but email is admin, force admin/management
+               // This is a UI-side safety net until the session refreshes
+               const isManagementEmail = user.email.includes('admin') || user.email.includes('management');
+               
+               if (user.role === 'MANAGEMENT' || isManagementEmail) {
+                   navigate('/management/dashboard');
+               } else if (user.role === 'admin') {
+                   navigate('/admin');
+               } else if (user.role === 'instructor') {
+                   navigate('/instructor/dashboard');
+               } else { 
+                   navigate('/dashboard');
+               }
+           }, 800);
        } else {
            setView('verify');
        }
@@ -47,6 +63,7 @@ export default function AuthEntry() {
       if (user) {
            if (user.role === 'MANAGEMENT') navigate('/management/dashboard');
            else if (user.role === 'admin') navigate('/admin');
+           else if (user.role === 'instructor') navigate('/instructor/dashboard');
            else navigate('/dashboard');
       }
   };

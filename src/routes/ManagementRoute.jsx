@@ -3,9 +3,10 @@ import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 const ManagementRoute = ({ children }) => {
-  const { user, loading, globalLoading, initialized } = useSelector((state) => state.auth);
+  const { user, authStatus } = useSelector((state) => state.auth);
 
-  if (!initialized || loading || globalLoading) {
+  // Loading State
+  if (authStatus === 'checking' || authStatus === 'authenticated') {
       return (
         <div style={{ 
           display: 'flex', 
@@ -23,8 +24,9 @@ const ManagementRoute = ({ children }) => {
       return <Navigate to="/login" replace />;
   }
 
-  // Strict Role Check
-  if (user.role !== 'MANAGEMENT') {
+  // Flexible Role Check (Case-insensitive)
+  const userRole = user.role ? user.role.toLowerCase() : '';
+  if (!['management', 'admin'].includes(userRole)) {
       return <Navigate to="/" replace />;
   }
 

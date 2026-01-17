@@ -20,7 +20,8 @@ const InstructorDashboard = () => {
         profile, 
         stats, 
         feedbacks,
-        loading 
+        loading,
+        error // Get error from hook
     } = useInstructorProfile();
     const navigate = useNavigate();
 
@@ -36,14 +37,55 @@ const InstructorDashboard = () => {
         generateInstructorReport(profile, stats, feedbacks);
     };
 
-    if (loading) return <div className="dashboard-loading"><div className="spinner"></div></div>;
+    if (loading) {
+        return (
+            <div className="dashboard-loading">
+                <div className="spinner"></div>
+                <p style={{ marginTop: 10, color: '#666' }}>Loading Dashboard...</p>
+            </div>
+        );
+    }
 
-    if (!profile && !loading) {
+    if (!profile) {
         return (
             <div className="dashboard-error">
-                <p>Profile Not Found</p>
-                <div className="flex gap-4 mt-4">
-                     <button onClick={() => window.location.reload()} className="btn-header-action">Retry</button>
+                <h2>Unable to Load Profile</h2>
+                <p>We couldn't fetch your instructor data.</p>
+                {/* DISPLAY ACTUAL ERROR */}
+                {error && (
+                    <div className="auth-alert" style={{maxWidth:400, margin:'10px auto'}}>
+                        ⚠ Debug: {error}
+                    </div>
+                )}
+                {!error && <p>This might be a connection issue or a permission error.</p>}
+                
+                 <div className="flex gap-4 mt-4" style={{flexDirection:'column', alignItems:'center'}}>
+                     {/* RECOVERY BUTTON */}
+                     {error && error.includes('found') && (
+                         <button 
+                            onClick={() => {
+                                const { createInstructorProfile } = require('../../store/slices/instructorSlice');
+                                const { useDispatch } = require('react-redux');
+                                // Note: We can't easily hook in here without Refactoring. 
+                                // Simpler: Redirect to a "Setup" page or reload.
+                                // Actually, let's just make the button call a window function or use a simple inline dispatch if possible, 
+                                // but hooks rule prevents that.
+                                // BETTER: Just tell them to re-register or use valid dispatch if I can get it.
+                                // BETTER: Just tell them to re-register or use valid dispatch if I can get it.
+                                // WAIT - I am inside the component, I have 'dispatch' available via hook? No, I need to get it.
+                                navigate('/instructor/setup?mode=recovery');
+                            }} 
+                            className="btn-header-action"
+                            style={{background: '#10b981', borderColor: '#10b981'}}
+                         >
+                            Initialize Missing Profile
+                         </button>
+                     )}
+                     
+                     <div className="flex gap-4">
+                        <button onClick={() => window.location.reload()} className="btn-header-action">Retry Connection</button>
+                        <button onClick={() => navigate('/dashboard')} className="btn-header-action secondary">Go to Home</button>
+                     </div>
                 </div>
             </div>
         );

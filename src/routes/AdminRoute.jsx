@@ -2,14 +2,13 @@ import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 const AdminRoute = ({ children }) => {
-  const { user, loading, globalLoading, initialized } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth);
   
-  if (!initialized || loading || globalLoading) {
-       return <div style={{ padding: 16, textAlign: 'center' }}>Verifying Admin Privileges...</div>;
-  }
+  // Hydration handled in App.js
   
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'admin') return <Navigate to="/" replace />;
+  
   return children;
 };
 

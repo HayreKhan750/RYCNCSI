@@ -15,7 +15,9 @@ export default function VerifyEmail({ onVerified }) {
           // This moves data from 'pending_registrations' to 'users'
           await authService.finalizeRegistration(currentUser);
       } catch (e) {
-          console.error("Finalization failed (might already be done):", e);
+          console.error("Finalization failed:", e);
+          alert(`Verification Failed: ${e.message}`);
+          return; // Stop execution
       }
       // Then sync state (Read) which will trigger AuthEntry redirect
       dispatch(checkAuthState()); 
@@ -67,13 +69,22 @@ export default function VerifyEmail({ onVerified }) {
       </button>
 
       {/* Force Refresh Button */}
-      <button 
-        className="auth-btn auth-btn-primary" 
-        style={{marginTop: 10}}
-        onClick={() => window.location.reload()}
-      >
-        I have verified, let me in!
-      </button>
+      {/* Developer Bypass Button */}
+      {process.env.NODE_ENV === 'development' && (
+          <button 
+            className="auth-btn auth-btn-primary" 
+            style={{marginTop: 10, background: '#10b981'}} // Green for success
+            onClick={async () => {
+                // Manually trigger finalization (as if email was clicked)
+                await handleVerification(user); 
+                window.location.href = '/dashboard';
+            }}
+          >
+            Developer: Verify & Continue
+          </button>
+      )}
+
+
       
       <div style={{marginTop:20, fontSize:'0.8rem', color:'var(--auth-text-secondary)'}}>
           Wrong email? <span className="auth-link" onClick={() => {
