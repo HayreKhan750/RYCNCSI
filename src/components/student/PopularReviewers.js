@@ -25,7 +25,11 @@ export default function PopularReviewers({ reviewers }) {
                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
                     />
                   ) : (
-                    (reviewer.name || 'S').charAt(0)
+                    <img 
+                        src={`https://ui-avatars.com/api/?name=${reviewer.name || 'Student'}&background=random&color=fff`} 
+                        alt={reviewer.name} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                    />
                   )}
                </div>
                <div className="reviewer-info">

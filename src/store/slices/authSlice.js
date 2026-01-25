@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../services/authService';
+import { cloudinaryService } from '../../services/cloudinaryService';
 import { updateUserProfile, uploadProfilePicture } from './userSlice';
 
 // Helper for timeout
@@ -58,10 +59,19 @@ export const registerUser = createAsyncThunk(
   'auth/register',
   async ({ email, password, name, role, department, file }, { rejectWithValue }) => {
     try {
-      let photoURL = '';
-      // Handle file upload if needed (omitted for brevity, assume separate service call or handled)
+      let photoURL = null;
       
-      const user = await authService.register(email, password, name, role, department);
+      // Upload file if provided
+      if (file) {
+          try {
+              photoURL = await cloudinaryService.uploadImage(file);
+          } catch (uploadErr) {
+              console.error("Profile image upload failed:", uploadErr);
+              // We continue without image rather than blocking registration
+          }
+      }
+      
+      const user = await authService.register(email, password, name, role, department, photoURL);
       return {
         uid: user.uid,
         email: user.email,
@@ -228,12 +238,12 @@ const authSlice = createSlice({
               }
           } else {
               state.user = null;
-              state.authStatus = 'idle';
+              state.authStatus = 'unauthenticated';
               state.mfaStatus = 'none';
           }
       })
       .addCase(checkAuthState.rejected, (state) => {
-          state.authStatus = 'idle';
+          state.authStatus = 'unauthenticated';
           state.user = null;
       })
       
@@ -256,7 +266,7 @@ const authSlice = createSlice({
       // Logout
       .addCase(logoutUser.fulfilled, (state) => {
           state.user = null;
-          state.authStatus = 'idle';
+          state.authStatus = 'unauthenticated';
           state.mfaStatus = 'none';
           sessionStorage.clear(); // Clear all auth sessions
       })

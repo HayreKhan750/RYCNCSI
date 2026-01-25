@@ -39,7 +39,21 @@ export function useStudentProfile(user) {
           ]);
 
           setProfile(profileData.profile);
-          setMyRatings(profileData.myRatings);
+          setProfile(profileData.profile);
+          
+          // Enhanced: Fetch replies for myRatings
+          const ratingsWithReplies = await Promise.all(
+              (profileData.myRatings || []).map(async (r) => {
+                  try {
+                      const replies = await feedbackService.fetchReplies(r.id);
+                      return { ...r, replies: replies || [] };
+                  } catch (e) {
+                      console.error("Failed to fetch replies for profile rating:", r.id);
+                      return r;
+                  }
+              })
+          );
+          setMyRatings(ratingsWithReplies);
           setStats(profileData.stats);
           setRatedInstructors(profileData.ratedInstructors);
           setUserReactions(profileData.userReactions);

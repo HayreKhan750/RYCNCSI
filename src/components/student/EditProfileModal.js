@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import UploadProfileImage from '../common/UploadProfileImage';
 import useContentModeration from '../../hooks/useContentModeration';
 
@@ -74,7 +75,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
     }
   };
 
-  return (
+  const modalContent = (
     <div 
       className={`modal-overlay ${isClosing ? 'fade-out' : 'fade-in'}`}
       style={{
@@ -82,7 +83,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
         inset: 0,
         background: 'rgba(0, 0, 0, 0.4)',
         backdropFilter: 'blur(8px)',
-        zIndex: 1000,
+        zIndex: 99999, // Super high z-index
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -389,4 +390,6 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
       `}</style>
     </div>
   );
+
+  return ReactDOM.createPortal(modalContent, document.body);
 }

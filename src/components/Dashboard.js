@@ -1,18 +1,17 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { setUser } from '../store/slices/authSlice'; // setUser for role switch dev tool
-import { toggleTheme } from '../store/slices/themeSlice';
+import { setUser } from '../store/slices/authSlice';
 import DashboardHome from './student-dashboard/DashboardHome';
 import RateCourses from './student-dashboard/RateCourses';
-import MyRatings from './student-dashboard/MyRatings';
+import MyRatings from './student-dashboard/MyRatings'; // Kept as fallback/alias source
 import StudentProfile from './StudentProfile';
 import InstructorDashboard from './instructor/InstructorDashboard';
 import InstructorProfile from './instructor-profile/InstructorProfile';
-import MyFeedback from './student-dashboard/MyFeedback';
+import ReviewsAndActivity from './student-dashboard/ReviewsAndActivity';
+import PrivateMessages from './student-dashboard/PrivateMessages';
 import ReviewersDirectory from './student-dashboard/ReviewersDirectory';
 import './student-dashboard/StudentDashboard.css';
-
 import Header from './common/Header';
 
 export default function Dashboard() {
@@ -26,7 +25,7 @@ export default function Dashboard() {
   // Initialize activeView from URL param or default to 'home'
   const activeView = searchParams.get('view') || 'home';
 
-  // Helper to switch views while preserving other params if needed (though usually view switch resets context)
+  // Helper to switch views while preserving other params
   const setActiveView = (view) => {
       setSearchParams({ view });
   };
@@ -44,38 +43,17 @@ export default function Dashboard() {
   const isInstructor = user.role === 'instructor';
   
   if (user.role === 'MANAGEMENT') {
-      // Redirect to Management Portal
-      // We use useEffect to avoid render-phase side effects if strict mode is on, 
-      // but returning null + useEffect is cleaner. 
-      // However, we can just return null and expect the effect above to handle it? 
-      // No, the effect above handles !user.
-      // So we do:
       setTimeout(() => navigate('/management/dashboard'), 0);
       return null;
   }
 
-  // Helper for dev tool role switch
-  const handleRoleSwitch = (newRole) => {
-      // Create a shallow copy with new role
-      const updatedUser = { ...user, role: newRole };
-      dispatch(setUser(updatedUser));
-  };
-
   // Instructor View
   if (isInstructor) {
-      // Simple router for instructor inside dashboard
       if (activeView === 'profile') {
           return <InstructorProfile user={user} />;
       }
-
       return (
         <div className={`dashboard-wrapper ${mode}`}>
-           {/* InstructorDashboard handles its own layout/hero, but we wrap it for consistent theme/margins if needed */}
-           {/* Actually, the new premium dashboard has its own full-page layout standards. */}
-           {/* We might want to remove the wrapper div or Header if InstructorDashboard provides it. */}
-           {/* Let's keep existing wrapper for safety but maybe hide header? */}
-           {/* The new DashboardHero serves as header. */}
-           {/* I will remove the Header here for instructor and let InstructorDashboard handle it. */}
            <InstructorDashboard />
         </div>
       );
@@ -86,12 +64,14 @@ export default function Dashboard() {
     switch(activeView) {
       case 'rate':
         return <RateCourses user={user} />;
-      case 'my-ratings':
-        return <MyRatings user={user} />;
+      case 'activity': // Unified View
+      case 'my-ratings': // Alias
+      case 'feedback': // Alias
+        return <ReviewsAndActivity user={user} />;
+      case 'messages':
+        return <PrivateMessages user={user} />;
       case 'profile':
         return <StudentProfile showHeader={false} />;
-      case 'feedback':
-        return <MyFeedback user={user} />;
       case 'reviewers':
         return <ReviewersDirectory />;
       case 'home':
@@ -107,9 +87,12 @@ export default function Dashboard() {
   const getHeaderTitle = () => {
       switch(activeView) {
           case 'rate': return 'Rate Instructors';
-          case 'my-ratings': return 'My Ratings';
+          case 'activity': 
+          case 'my-ratings':
+          case 'feedback': 
+                return 'Reviews & Activity';
+          case 'messages': return 'Private Messages';
           case 'profile': return 'My Profile';
-          case 'feedback': return 'My Feedback';
           case 'reviewers': return 'Top Reviewers';
           case 'home':
           default: return 'Student Dashboard';
@@ -130,4 +113,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

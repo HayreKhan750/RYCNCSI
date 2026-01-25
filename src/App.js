@@ -45,6 +45,7 @@ const FeedbackConsole = lazy(() => import('./components/Management/Moderation/Fe
 const MfaPrompt = lazy(() => import('./components/auth/MfaPrompt'));
 const MfaEnroll = lazy(() => import('./components/auth/MfaEnroll'));
 const EmailOtpPrompt = lazy(() => import('./components/auth/EmailOtpPrompt'));
+const AdminSeeder = lazy(() => import('./components/dev/AdminSeeder'));
 
 export default function App() {
   const dispatch = useDispatch();
@@ -55,9 +56,9 @@ export default function App() {
     dispatch(checkAuthState());
   }, [dispatch]);
 
-  // Global "Halt" until Hydration is done (or failed back to idle)
-  // This prevents the "flash of login" or "flash of protected route"
-  if (authStatus === 'checking' || authStatus === 'authenticated') {
+  // Global "Halt" until Hydration is done (or explicitly unauthenticated)
+  // This prevents the "flash of login" or race condition where ProtectedRoute runs before checkAuthState
+  if (authStatus === 'idle' || authStatus === 'checking' || authStatus === 'authenticated') {
        return <GlobalLoader />;
   }
 
@@ -150,7 +151,7 @@ export default function App() {
               } />
 
               {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/login" element={<Navigate to="/login" replace />} />
               <Route path="/admin" element={
                 <AdminRoute>
                   <AdminPanelEntry />
@@ -207,6 +208,9 @@ export default function App() {
               <Route path="/mfa-enroll" element={<MfaEnroll />} />
               <Route path="/mfa-verify" element={<MfaPrompt />} />
               <Route path="/email-otp" element={<EmailOtpPrompt />} />
+              
+              {/* Temp Seeder */}
+              <Route path="/seed-admin" element={<AdminSeeder />} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -25,11 +25,12 @@ const ReviewList = ({ reviews }) => {
 
     return (
       <div key={review.id} className="glass-card review-card" style={{ 
-          padding: '20px', 
-          height: '100%', 
+          padding: '24px', 
+          marginBottom: '24px',
           boxSizing: 'border-box',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          minHeight: '200px' // Ensure minimum size but allow growth
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -46,7 +47,16 @@ const ReviewList = ({ reviews }) => {
 
         <TagSelector selectedTags={review.tags || []} readOnly />
 
-        <p style={{ margin: '15px 0', lineHeight: '1.6', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+        <p style={{ 
+            margin: '15px 0', 
+            lineHeight: '1.6', 
+            // Removed flex: 1 to prevent collapsing. It will take space it needs up to line clamp.
+            overflow: 'hidden', 
+            textOverflow: 'ellipsis', 
+            display: '-webkit-box', 
+            WebkitLineClamp: 10, // Increased clamp to show more text since we have dynamic height
+            WebkitBoxOrient: 'vertical' 
+        }}>
           {review.feedback}
         </p>
 
@@ -96,14 +106,8 @@ const ReviewList = ({ reviews }) => {
   };
 
   return (
-    <div className="review-list-container" style={{ height: '600px' }}>
-      <VirtualList 
-        items={reviews}
-        renderItem={renderReviewItem}
-        itemHeight={280} // Fixed height for cards including padding/margin
-        containerHeight={600}
-        className="custom-scrollbar"
-      />
+    <div className="review-list-container" style={{ height: '600px', overflowY: 'auto', paddingRight: '10px' }}>
+      {reviews.map((review, index) => renderReviewItem(review, index))}
     </div>
   );
 };

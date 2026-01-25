@@ -84,17 +84,31 @@ export const feedbackService = {
   submitFeedback: async (feedbackData) => {
       const { instructorId, studentId, studentName, studentPhoto, courseId, rating, feedback, tags, anonymous } = feedbackData;
       
-      // 1. Add Feedback Doc (Strict Schema)
-      // Note: We use addDoc which creates the ID.
-      // Cloud Function will pick this up to update Instructor Stats.
+      // 0. Check for Duplicate Rating
+      const q = query(collection(db, 'feedbacks'), 
+          where('studentId', '==', studentId), 
+          where('instructorId', '==', instructorId)
+      );
+      const existingSnap = await getDocs(q);
+      
+      if (!existingSnap.empty) {
+          throw new Error("You have already rated this instructor. Please update your existing rating.");
+      }
+
+      // 1. Add Feedback Doc (Strict Schema + Compatibility)
       const docRef = await addDoc(collection(db, 'feedbacks'), {
           instructorId,
           studentId,
           courseId,
+          
           rating,
+          ratingValue: rating, // Compatibility
+          
           text: feedback,
-          reviewText: feedback, // Verify Check Compliance
-          cleanedText: feedback, // Placeholder
+          reviewText: feedback, 
+          cleanedText: feedback, 
+          feedback: feedback, // Compatibility
+          
           tags: tags || [],
           
           anonymous: anonymous || false,
@@ -127,11 +141,23 @@ export const feedbackService = {
   // Update Feedback
   updateFeedback: async (feedbackId, updates) => {
       const allowedUpdates = {};
-      if (updates.rating !== undefined) allowedUpdates.rating = updates.rating;
+      
+      // Handle Rating Updates
+      if (updates.rating !== undefined) {
+          allowedUpdates.rating = updates.rating;
+          allowedUpdates.ratingValue = updates.rating;
+      } else if (updates.ratingValue !== undefined) {
+          allowedUpdates.rating = updates.ratingValue;
+          allowedUpdates.ratingValue = updates.ratingValue;
+      }
+      
+      // Handle Text Updates
       if (updates.feedback !== undefined) {
           allowedUpdates.text = updates.feedback;
           allowedUpdates.reviewText = updates.feedback;
+          allowedUpdates.feedback = updates.feedback;
       }
+      
       if (updates.tags !== undefined) allowedUpdates.tags = updates.tags;
       
       if (Object.keys(allowedUpdates).length === 0) return;
@@ -143,42 +169,40 @@ export const feedbackService = {
       // Return serializable structure
       return { id: feedbackId, ...updates, updatedAt: Date.now() };
   },
+  
+  // Delete Feedback
+  deleteFeedback: async (feedbackId) => {
+      await deleteDoc(doc(db, 'feedbacks', feedbackId));
+      return feedbackId;
+  },
 
   // Fetch Replies
   fetchReplies: async (feedbackId) => {
       const q = query(
-          collection(db, 'replies'), // Top level collection?? No, architecture usually nests or links.
-          // Reviewing other code: "collection(db, 'feedbacks', feedbackId, 'replies')" was used before?
-          // BUT previous code used top-level 'replies' in addReply (Line 193) BUT logic in fetch was nested?
-          // Wait, Line 193 in previous file: `collection(db, 'replies')` -> TOP LEVEL.
-          // Line 216: `deleteDoc(doc(db, 'feedbacks', feedbackId, 'replies', replyId))` -> NESTED.
-          // INCONSISTENCY FOUND.
-          // Let's stick to Nested for sub-resources if possible, OR link.
-          // However, Rules (Line 97) say: `match /replies/{replyId}` -> TOP LEVEL.
-          // So I will use Top Level 'replies' with 'feedbackId' field.
-          where('feedbackId', '==', feedbackId),
-          orderBy('createdAt', 'asc')
+          collection(db, 'replies'),
+          where('feedbackId', '==', feedbackId)
+          // orderBy('createdAt', 'asc') // REMOVED to avoid Index Requirement
       );
       
       const snap = await getDocs(q);
-      return snap.docs.map(d => serializeFirestoreData({ 
+      const entries = snap.docs.map(d => serializeFirestoreData({ 
           id: d.id, 
           ...d.data()
       }));
+
+      // Client-side Sort
+      return entries.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   },
 
   // Add Reply
   addReply: async (feedbackId, replyData) => {
-      const { authorId, text, role } = replyData;
+      const { authorId, authorName, text, role } = replyData;
       
-      if (role === 'student') {
-          throw new Error("Unauthorized: Students cannot reply.");
-      }
-
       // Add to 'replies' collection
       const docRef = await addDoc(collection(db, 'replies'), {
           feedbackId,
           authorId,
+          authorName: authorName || 'Anonymous', // Persist the name!
           text,
           createdAt: serverTimestamp(),
           role
@@ -303,7 +327,7 @@ export const feedbackService = {
                      if (uSnap.exists()) {
                          const uData = uSnap.data();
                          s.name = uData.displayName || 'Student';
-                         s.photoURL = uData.photoURL || '';
+                         s.photoURL = uData.photoURL || uData.profilePictureUrl || uData.photoUrl || '';
                          s.department = uData.department || 'General';
                      } else {
                          s.name = 'Anonymous';

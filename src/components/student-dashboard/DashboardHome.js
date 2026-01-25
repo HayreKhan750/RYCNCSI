@@ -66,15 +66,15 @@ export default function DashboardHome({ user, navigateTo }) {
           <h3>Rate Instructors</h3>
           <p>Share your experience and help others.</p>
         </div>
-        <div className="nav-card glass-card" onClick={() => navigateTo('my-ratings')}>
-          <div className="icon">📊</div>
-          <h3>My Ratings</h3>
-          <p>Manage and edit your past feedback.</p>
+        <div className="nav-card glass-card" onClick={() => navigateTo('activity')}>
+          <div className="icon">📝</div>
+          <h3>Reviews & Activity</h3>
+          <p>Manage your reviews, feedback, and replies in one place.</p>
         </div>
-        <div className="nav-card glass-card" onClick={() => navigateTo('feedback')}>
-          <div className="icon">💬</div>
-          <h3>My Feedback</h3>
-          <p>View replies and reactions.</p>
+        <div className="nav-card glass-card" onClick={() => navigateTo('messages')}>
+          <div className="icon">✉️</div>
+          <h3>Private Messages</h3>
+          <p>Check messages from your instructors.</p>
         </div>
       </div>
 

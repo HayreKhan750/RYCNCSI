@@ -102,22 +102,23 @@ export default function useDashboardData(user) {
                   .map(r => r.studentId);
 
               // Fetch User Details
+              // Fetch User Details - Improved to fetch BOTH for maximum data availability
               const userPromises = topReviewerIds.map(async (uid) => {
                   try {
-                      // Check if we already have name? 
-                      // Ideally we should cache users in Redux too (usersSlice), but for now fetch if missing
-                      // Prioritize 'students' collection for rich profile data (photos)
-                      const studentDoc = await getDoc(doc(db, 'students', uid));
-                      if (studentDoc.exists()) {
-                          return { uid, data: studentDoc.data() };
-                      }
+                      // Fetch both docs in parallel to ensure we get photo (users) and department (students)
+                      const [studentSnap, userSnap] = await Promise.all([
+                          getDoc(doc(db, 'students', uid)),
+                          getDoc(doc(db, 'users', uid))
+                      ]);
 
-                      // Fallback to 'users'
-                      const userDoc = await getDoc(doc(db, 'users', uid));
-                      if (userDoc.exists()) {
-                          return { uid, data: userDoc.data() };
-                      }
-                      return { uid, data: null };
+                      const studentData = studentSnap.exists() ? studentSnap.data() : {};
+                      const userData = userSnap.exists() ? userSnap.data() : {};
+
+                      // Merge: User data takes precedence for identity (name, photo), Student for acads
+                      return { 
+                          uid, 
+                          data: { ...studentData, ...userData, department: studentData.departmentId || userData.department || 'CNCS' } 
+                      };
                   } catch (err) {
                       console.warn("Offline: Could not fetch reviewer details", err);
                       return { uid, data: null };
@@ -129,19 +130,26 @@ export default function useDashboardData(user) {
               userResults.forEach(({ uid, data }) => {
                   if (data && reviewerStats[uid]) {
                       const candidates = [
-                          data.name, 
+                          data.fullName,
                           data.displayName, 
+                          data.name,
                           reviewerStats[uid].name,
-                          // Fallback to parsed if looks like email
                           data.email ? data.email.split('@')[0] : null
                       ].filter(Boolean);
 
-                      // Pick best name: proper name without 'ugr-' or numbers if possible
+                      // Pick best name
                       const goodName = candidates.find(n => !n.includes('ugr-') && !n.includes('@') && !n.match(/\d{4}/)) || candidates[0];
 
                       reviewerStats[uid].name = goodName;
-                      reviewerStats[uid].department = data.department || data.Dept || 'CNCS';
-                      reviewerStats[uid].photoURL = data.profilePictureUrl || data.photoURL || data.image; 
+                      reviewerStats[uid].department = data.department;
+                      
+                      // Robust Photo Check
+                      reviewerStats[uid].photoURL = data.profilePictureUrl || data.photoURL || data.photoUrl || data.image;
+
+                      // Local Override for current user (just in case DB is lagging behind Auth)
+                      if (uid === user?.uid) {
+                          reviewerStats[uid].photoURL = user.profilePictureUrl || user.photoURL || reviewerStats[uid].photoURL;
+                      }
                   }
               });
 

@@ -82,7 +82,7 @@ export default function RateCourses({ user }) {
   if (loading) return <div style={{padding:40, textAlign:'center', color:'white'}}>Loading instructors...</div>;
 
   return (
-    <div className="rate-courses-page premium-container" style={{padding: '40px 20px', maxWidth: '1200px', margin: '0 auto'}}>
+    <div className="rate-courses-page premium-container" style={{padding: '100px 20px 40px', maxWidth: '1200px', margin: '0 auto'}}>
       <div style={{textAlign: 'center', marginBottom: '40px'}}>
           <h2 style={{fontSize: '3rem', fontWeight: '800', marginBottom: '10px', background: 'linear-gradient(to right, var(--text-primary), #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Rate Instructors</h2>
           <p style={{color: 'var(--text-secondary)', fontSize: '1.1rem'}}>Find and rate your instructors to help the community.</p>
@@ -159,7 +159,7 @@ export default function RateCourses({ user }) {
         </div>
       </div>
 
-      <div className="discovery-grid-premium" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px'}}>
+      <div className="discovery-grid-premium courses-grid-override">
         {filteredAndSortedInstructors.map((inst, index) => (
           <div key={inst.id || `json-${index}`} className="premium-card" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px', textAlign: 'center', position:'relative', overflow:'hidden'}}>
              

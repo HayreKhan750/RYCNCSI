@@ -24,14 +24,17 @@ export const authService = {
   },
 
   // Register
-  register: async (email, password, name, role = 'student', department = '') => {
+  register: async (email, password, name, role = 'student', department = '', photoURL = null) => {
     // 1. Create Auth User (Fastest)
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
     // 2. Create Pending Profile (Blocking to ensure data existence)
     try {
-        await updateProfile(user, { displayName: name });
+        const profileUpdates = { displayName: name };
+        if (photoURL) profileUpdates.photoURL = photoURL;
+        
+        await updateProfile(user, profileUpdates);
         await sendEmailVerification(user);
 
         const tempPayload = {
@@ -45,7 +48,7 @@ export const authService = {
           campusId: 'main', 
           year: '1', // Default for students
           staffCode: null,
-          profilePictureUrl: user.photoURL || '',
+          profilePictureUrl: photoURL || user.photoURL || '',
           bio: '',
           isRegistered: false,
           isVerified: false,

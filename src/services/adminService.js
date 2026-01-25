@@ -72,7 +72,7 @@ export const adminService = {
 
       // 3. Data Queries (Content - Paginatable Limits)
       const dataPromises = [
-          getDocs(query(usersRef, where('role', '==', 'student'), orderBy('createdAt', 'desc'), limit(20))),
+          getDocs(query(usersRef, where('role', '==', 'student'), limit(20))), // Removed orderBy to bypass Index Lock
           getDocs(query(instRef, orderBy('createdAt', 'desc'), limit(20))), // Assuming instructors have createdAt
           getDocs(query(feedRef, orderBy('createdAt', 'desc'), limit(20))),
           getDocs(query(logsRef, orderBy('timestamp', 'desc'), limit(20)))

@@ -43,7 +43,36 @@ export const studentService = {
         };
 
         // 2. Fetch User's Ratings (My Ratings)
-        const myRatings = await feedbackService.fetchFeedbacks({ studentId: uid, limit: 50, sort: 'date_desc' });
+        let myRatings = await feedbackService.fetchFeedbacks({ studentId: uid, limit: 50, sort: 'date_desc' });
+        
+        // 2b. Hydrate Instructor Names (Fix for missing denormalized data)
+        const instructorIds = [...new Set(myRatings.map(r => r.instructorId).filter(Boolean))];
+        if (instructorIds.length > 0) {
+            // Optimize: Batch fetch might be better but IDs are few per student usually
+            // We use Promise.all for simplicity
+            const instructorDocs = await Promise.all(
+                instructorIds.map(id => getDoc(doc(db, 'users', id)))
+            );
+            
+            const instructorMap = {};
+            instructorDocs.forEach(d => {
+                if (d.exists()) {
+                    instructorMap[d.id] = {
+                        name: d.data().displayName || d.data().name || 'Instructor',
+                        photo: d.data().photoURL || d.data().profilePictureUrl || ''
+                    };
+                }
+            });
+
+            // Patch ratings
+            myRatings = myRatings.map(r => {
+                const info = instructorMap[r.instructorId];
+                if (info) {
+                    return { ...r, instructorName: info.name, instructorPhoto: info.photo };
+                }
+                return r;
+            });
+        }
         
         // 3. Rate Stats
         const totalRatings = myRatings.length;
@@ -71,18 +100,32 @@ export const studentService = {
         });
         const ratedInstructors = Array.from(instMap.values());
 
-        // 5. User Reactions & Flags
-        const userReactions = await feedbackService.fetchUserReactions(uid);
-        const userFlags = await feedbackService.fetchUserFlags(uid);
+        // 5. User Reactions & Flags (Best Effort / Private)
+        let userReactions = {};
+        let userFlags = [];
+        try {
+            const [rx, fl] = await Promise.all([
+                feedbackService.fetchUserReactions(uid),
+                feedbackService.fetchUserFlags(uid)
+            ]);
+            userReactions = rx;
+            userFlags = fl;
+        } catch (e) {
+            // Likely permission denied when viewing another user's profile.
+            // This is expected behavior for public views.
+            // console.warn("Could not fetch private user data (reactions/flags)", e);
+        }
 
         return {
             profile,
             myRatings,
             // Combined Stats: "Avg Given" is calculated on client from ratings. "Reviews Count" from DB.
+            // Combined Stats: "Avg Given" is calculated on client from ratings. 
+            // "Reviews Count" is now calculated locally to ensure accuracy if DB stats lag.
             stats: { 
                 totalRatings: myRatings.length, 
                 avgGiven,
-                reviewsCount: profile.stats.reviewsCount,
+                reviewsCount: myRatings.filter(r => (r.feedback && r.feedback.trim().length > 0) || (r.text && r.text.trim().length > 0) || (r.comment && r.comment.trim().length > 0)).length,
                 helpfulVotes: profile.stats.helpfulVotes
             },
             ratedInstructors,

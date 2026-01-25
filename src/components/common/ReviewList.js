@@ -1,20 +1,174 @@
-import React, { useState, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { addReply, deleteFeedback, deleteReply } from '../../store/slices/feedbackSlice';
+import { feedbackService } from '../../services/feedbackService';
+import PremiumModal from './PremiumModal';
 
 const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) => {
-    const [sortBy, setSortBy] = useState('newest'); // newest, lowest, highest
+    const dispatch = useDispatch();
+    const { user } = useSelector(state => state.auth); 
+    const [sortBy, setSortBy] = useState('newest'); 
     const [filterRating, setFilterRating] = useState('all');
+    
+    // Reply State
+    const [expandedId, setExpandedId] = useState(null);
+    const [replyText, setReplyText] = useState({});
+    const [repliesMap, setRepliesMap] = useState({}); // { [feedbackId]: [replies] }
 
-    // 1. Filter & Sort
+    // Premium Search & Filter State
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Modal State
+    const [deleteModal, setDeleteModal] = useState({ 
+        isOpen: false, 
+        type: null, // 'review' | 'reply'
+        id: null,
+        parentId: null // for replies
+    });
+
+    // Fetch Replies on Load
+    useEffect(() => {
+        let isMounted = true;
+        
+        const loadReplies = async () => {
+             // Fetch in parallel
+             const results = await Promise.all(
+                 reviews.map(async (r) => {
+                     try {
+                         const fetched = await feedbackService.fetchReplies(r.id);
+                         return { id: r.id, data: fetched };
+                     } catch (e) {
+                         console.error("Error fetching replies for", r.id, e);
+                         return { id: r.id, data: [] };
+                     }
+                 })
+             );
+             
+             if (isMounted) {
+                 setRepliesMap(prev => {
+                     const next = { ...prev };
+                     let hasChanges = false;
+                     results.forEach(({id, data}) => {
+                         if (data && data.length > 0) {
+                             next[id] = data;
+                             hasChanges = true;
+                         }
+                     });
+                     return hasChanges ? next : prev;
+                 });
+             }
+        };
+        
+        if (reviews.length > 0) {
+            loadReplies();
+        }
+        
+        return () => { isMounted = false; };
+    }, [reviews]);
+
+    const toggleReplies = (id) => {
+        setExpandedId(expandedId === id ? null : id);
+    };
+
+    const submitReply = async (feedbackId) => {
+        const text = replyText[feedbackId];
+        if (!text || !text.trim()) return;
+        if (!user || !user.uid) {
+            alert("You must be logged in to reply.");
+            return;
+        }
+
+        try {
+          // 1. Submit to Backend (via Redux)
+          const resultAction = await dispatch(addReply({ 
+              feedbackId, 
+              replyData: {
+                  authorId: user.uid,
+                  authorName: user.fullName || user.displayName || user.name || (user.email && user.email.split('@')[0]) || 'Student',
+                  role: isInstructorView ? 'instructor' : 'student', 
+                  text
+              }
+          }));
+          
+          const result = resultAction.unwrap ? await resultAction.unwrap() : resultAction.payload;
+
+          // 2. Update Local State (Optimistic or Confirmed)
+          const newReply = result.reply || result; // Handle structure variation
+          
+          setRepliesMap(prev => ({
+              ...prev,
+              [feedbackId]: [...(prev[feedbackId] || []), newReply]
+          }));
+          
+          setReplyText(prev => ({ ...prev, [feedbackId]: '' }));
+        } catch (e) {
+            console.error("Failed to submit reply", e);
+            const msg = e.message || (typeof e === 'string' ? e : 'Unknown error');
+            alert("Failed to submit reply: " + msg);
+        }
+    };
+
+    // Delete Handlers
+    const promptDeleteReview = (reviewId) => {
+        setDeleteModal({
+            isOpen: true,
+            type: 'review',
+            id: reviewId,
+            parentId: null
+        });
+    };
+
+    const promptDeleteReply = (feedbackId, replyId) => {
+        setDeleteModal({
+            isOpen: true,
+            type: 'reply',
+            id: replyId,
+            parentId: feedbackId
+        });
+    };
+
+    const confirmDelete = async () => {
+        const { type, id, parentId } = deleteModal;
+        console.log(`Attempting to delete ${type}:`, id, "Parent:", parentId);
+        
+        try {
+            if (type === 'review') {
+                if (!id) throw new Error("ID is missing");
+                await dispatch(deleteFeedback(id)).unwrap();
+            } else if (type === 'reply') {
+                if (!id) throw new Error("Reply ID is missing");
+                await dispatch(deleteReply({ feedbackId: parentId, replyId: id })).unwrap();
+                setRepliesMap(prev => ({
+                    ...prev,
+                    [parentId]: prev[parentId].filter(r => r.id !== id)
+                }));
+            }
+        } catch (e) {
+            console.error("Delete failed error object:", e);
+            const errMsg = e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e));
+            alert("Failed to delete: " + errMsg);
+        }
+        
+        setDeleteModal({ isOpen: false, type: null, id: null, parentId: null });
+    };
+
+    // Style Constants
+    const btnBaseStyle = {
+        width: '36px', height: '36px', borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.03)',
+        color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s',
+        fontSize: '0.9rem', outline: 'none'
+    };
+
+    // 1. Filter & Sort Logic 
     const processedReviews = useMemo(() => {
         let result = [...reviews];
-
-        // Filter
         if (filterRating !== 'all') {
             result = result.filter(r => Math.round(r.rating) === Number(filterRating));
         }
 
-        // Sort
         result.sort((a, b) => {
             const dateA = new Date(a.createdAt || a.timestamp || 0);
             const dateB = new Date(b.createdAt || b.timestamp || 0);
@@ -32,6 +186,47 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
         return result;
     }, [reviews, sortBy, filterRating]);
 
+    // 2. Search Filter
+    const filteredReviews = useMemo(() => {
+        let result = [...processedReviews];
+        if (searchTerm) {
+            const lower = searchTerm.toLowerCase();
+            result = result.filter(r => 
+                (r.text && r.text.toLowerCase().includes(lower)) ||
+                (r.feedback && r.feedback.toLowerCase().includes(lower)) ||
+                (r.comment && r.comment.toLowerCase().includes(lower)) ||
+                (r.studentName && r.studentName.toLowerCase().includes(lower))
+            );
+        }
+        return result;
+    }, [processedReviews, searchTerm]);
+
+    const timeAgo = (date) => {
+        if (!date) return 'Just now';
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " years ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " months ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " days ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " hours ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " minutes ago";
+        return Math.floor(seconds) + " seconds ago";
+    };
+
+    const getSortedReplies = (rId) => {
+        const list = repliesMap[rId] || [];
+        return [...list].sort((a, b) => {
+            const tA = new Date(a.createdAt || 0).getTime();
+            const tB = new Date(b.createdAt || 0).getTime();
+            return tA - tB;
+        });
+    };
+
     if (!reviews || reviews.length === 0) {
         return (
             <div className="text-center py-8 text-slate-400 italic">
@@ -42,115 +237,352 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
 
     return (
         <div className="space-y-6">
-            {/* Controls */}
-            <div className="flex flex-wrap gap-4 justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-400">Sort by:</span>
-                    <select 
-                        value={sortBy} 
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="bg-slate-800 text-slate-200 text-sm rounded-lg border border-slate-700 px-3 py-1 focus:ring-2 focus:ring-indigo-500 outline-none"
-                    >
-                        <option value="newest">Newest First</option>
-                        <option value="highest">Highest Rated</option>
-                        <option value="lowest">Lowest Rated</option>
-                    </select>
+            {/* Controls Panel */}
+            <div className="glass-card" style={{
+                padding: '12px 24px', 
+                marginBottom: '24px', 
+                display: 'flex', flexWrap: 'wrap', gap: '20px', 
+                alignItems: 'center', justifyContent: 'space-between',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '50px',
+                backdropFilter: 'none', WebkitBackdropFilter: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+            }}>
+                <div className="search-wrapper" style={{flex: '1', minWidth: '200px', maxWidth: '400px', position: 'relative'}}>
+                    <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-primary)'}}>🔍</span>
+                    <input 
+                        type="text" 
+                        placeholder="Search your reviews..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="premium-input"
+                        style={{
+                            width: '100%', padding: '10px 16px 10px 40px', borderRadius: '50px', 
+                            background: 'var(--bg-root)', border: '1px solid var(--border-subtle)', 
+                            color: 'var(--text-primary)', fontSize: '0.95rem', outline: 'none'
+                        }}
+                    />
                 </div>
                 
-                <div className="flex items-center gap-2">
-                     <span className="text-sm text-slate-400">Filter:</span>
-                     <div className="flex gap-1">
-                         {[5,4,3,2,1].map(star => (
-                             <button
-                                key={star}
-                                onClick={() => setFilterRating(filterRating === star ? 'all' : star)}
-                                className={`px-2 py-1 text-xs rounded-md border transition-all
-                                    ${filterRating === star 
-                                        ? 'bg-amber-500/20 border-amber-500 text-amber-400' 
-                                        : 'bg-transparent border-slate-700 text-slate-500 hover:border-slate-500'}
-                                `}
-                             >
-                                 {star}★
-                             </button>
-                         ))}
-                     </div>
+                <div style={{display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap'}}>
+                    <div className="sort-wrapper" style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                        <label style={{color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500}}>Sort:</label>
+                        <select 
+                            value={sortBy} 
+                            onChange={(e) => setSortBy(e.target.value)} 
+                            className="premium-select"
+                            style={{
+                                padding: '8px 16px', borderRadius: '12px', background: 'transparent',
+                                border: '1px solid var(--border-subtle)', color: 'var(--text-primary)',
+                                fontWeight: '500', cursor: 'pointer', outline: 'none', fontSize: '0.9rem'
+                            }}
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="highest">Highest Rated</option>
+                            <option value="lowest">Lowest Rated</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                         <span style={{color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500}}>Filter:</span>
+                         <div className="flex gap-2">
+                             {[5,4,3,2,1].map(star => (
+                                 <button
+                                    key={star}
+                                    onClick={() => setFilterRating(filterRating === star ? 'all' : star)}
+                                    style={{
+                                        transition: 'all 0.2s',
+                                        background: filterRating === star ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.05)',
+                                        border: filterRating === star ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid transparent',
+                                        color: filterRating === star ? '#fbbf24' : '#94a3b8',
+                                        padding: '6px 10px', borderRadius: '8px', fontSize: '0.8rem',
+                                        fontWeight: filterRating === star ? '600' : '500', cursor: 'pointer'
+                                    }}
+                                 >
+                                     {star}★
+                                 </button>
+                             ))}
+                         </div>
+                    </div>
                 </div>
             </div>
 
             {/* List */}
-            <div className="space-y-4">
-                {processedReviews.map((review) => (
-                    <div key={review.id} className="premium-card !p-5 !mb-0 hover:border-indigo-500/30 transition-colors">
-                        <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center gap-3">
-                                {/* Rating Badge */}
-                                <div className={`flex items-center justify-center w-10 h-10 rounded-xl font-bold text-lg
-                                    ${review.rating >= 4 ? 'bg-emerald-500/10 text-emerald-400' : 
-                                      review.rating >= 3 ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}
-                                `}>
-                                    {review.rating}
-                                </div>
-                                <div>
-                                    <div className="font-semibold text-slate-200">
-                                        {review.studentName || 'Anonymous Student'}
-                                    </div>
-                                    <div className="text-xs text-slate-500">
-                                        {review.courseTitle || review.courseId || 'Course'} • {new Date(review.createdAt || review.timestamp).toLocaleDateString()}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                             {/* AI Badge (Instructor Only) */}
-                             {isInstructorView && review.sentiment && (
-                                <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700`}>
-                                    {review.sentiment}
-                                </span>
-                             )}
+            <div className="activity-feed-premium" style={{display:'flex', flexDirection:'column', gap: 24}}>
+                {filteredReviews.map((review) => {
+                    const replies = getSortedReplies(review.id);
+                    const showReplies = expandedId === review.id;
+                    const replyCount = replies.length || review.replies?.length || 0;
+                    const isMyKey = user?.uid === review.studentId;
+
+                    return (
+                    <div key={review.id} className="premium-card activity-card-premium" style={{
+                        flexDirection:'column', padding: 0, overflow:'hidden',
+                        background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+                        borderRadius: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.3)',
+                        backdropFilter: 'none', WebkitBackdropFilter: 'none',
+                        transform: 'none', filter: 'none'
+                    }}>
+                        {/* Header */}
+                        <div className="activity-header-premium" style={{
+                            padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)', 
+                            display:'flex', justifyContent:'space-between', alignItems:'center',
+                            background: 'linear-gradient(to right, rgba(255,255,255,0.02), transparent)'
+                        }}>
+                           <div className="activity-meta" style={{display:'flex', alignItems:'center'}}>
+                              <div style={{
+                                  width: 40, height: 40, borderRadius: '50%', 
+                                  background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: '1.2rem', marginRight: 12, color: 'white'
+                              }}>
+                                  {(review.studentName || 'A').charAt(0)}
+                              </div>
+                              <div>
+                                  <h4 style={{margin:0, fontSize:'1.1rem', color:'var(--text-primary)'}}>
+                                      {review.studentName || 'Anonymous Student'}
+                                  </h4>
+                                  <span className="activity-date" style={{opacity: 0.5, fontSize:'0.85rem', color:'var(--text-secondary)'}}>
+                                      {timeAgo(review.createdAt || review.timestamp)}
+                                  </span>
+                              </div>
+                           </div>
+                           
+                           <div style={{display:'flex', alignItems:'center', gap: 12}}>
+                                <div className="activity-rating" style={{
+                                   fontWeight:'800', color:'#fbbf24', fontSize:'1.4rem', 
+                                   background: 'rgba(251, 191, 36, 0.1)', padding: '4px 12px',
+                                   borderRadius: '12px', border: '1px solid rgba(251, 191, 36, 0.2)'
+                               }}>
+                                  {review.rating} <span style={{fontSize:'1rem'}}>★</span>
+                               </div>
+                               
+                               {/* DELETE REVIEW BUTTON */}
+                               {isMyKey && (
+                                   <button 
+                                       onClick={() => promptDeleteReview(review.id)}
+                                       title="Delete Review"
+                                       style={{
+                                           background: 'none', border:'none', cursor:'pointer',
+                                           color: '#ef4444', opacity: 0.7, fontSize: '1rem'
+                                       }}
+                                   >
+                                       🗑️
+                                   </button>
+                               )}
+                           </div>
                         </div>
 
                         {/* Content */}
-                        <div className="ml-13 pl-13">
-                            <p className="text-slate-300 text-sm leading-relaxed mb-3">
-                                {review.text || review.feedback || review.comment}
-                            </p>
-                            
-                            {/* Tags */}
-                            {review.tags && review.tags.length > 0 && (
-                                <div className="flex gap-2 flex-wrap mb-3">
-                                    {review.tags.map(tag => (
-                                        <span key={tag} className="text-xs px-2 py-1 bg-slate-800/50 rounded-lg text-slate-400">
-                                            #{tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Actions Area (Reply / Flag) */}
-                            <div className="border-t border-white/5 pt-3 flex justify-between items-center">
-                                {/* Likes (Read Only for Instructor, Interactive for Students) */}
-                                <div className="flex items-center gap-4 text-xs text-slate-500">
-                                   <span className="flex items-center gap-1 group cursor-pointer hover:text-slate-300">
-                                        👍 {Array.isArray(review.likes) ? review.likes.length : (review.likesCount || 0)}
-                                   </span>
-                                   <span className="flex items-center gap-1 group cursor-pointer hover:text-slate-300">
-                                        👎 {Array.isArray(review.dislikes) ? review.dislikes.length : (review.dislikesCount || 0)}
-                                   </span>
-                                </div>
-
-                                {isInstructorView ? (
-                                    <button className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
-                                        Reply to Student
-                                    </button>
-                                ) : (
-                                    <button className="text-xs text-slate-600 hover:text-slate-400">
-                                        Report
-                                    </button>
-                                )}
-                            </div>
+                        <div className="activity-content" style={{padding: '24px'}}>
+                           <p className="dept-name" style={{
+                               opacity:0.7, fontSize:'0.85rem', marginBottom:12, 
+                               textTransform:'uppercase', letterSpacing:'1px', fontWeight: 600, color: 'var(--primary)'
+                           }}>
+                              {review.courseTitle || review.courseId || 'General Course'}
+                           </p>
+                           
+                           <div className="activity-comment" style={{
+                               background:'var(--bg-root)', padding:'20px', borderRadius:'16px', 
+                               fontStyle:'italic', borderLeft:'4px solid var(--primary)',
+                               color: 'var(--text-primary)', lineHeight: 1.6, fontSize: '1.05rem'
+                           }}>
+                               "{review.text || review.feedback || review.comment}"
+                           </div>
+                           
+                           {review.tags && review.tags.length > 0 && (
+                               <div style={{display:'flex', gap:8, marginTop:20, flexWrap:'wrap'}}>
+                                  {review.tags.map(tag => (
+                                      <span key={tag} style={{
+                                          fontSize:'0.8rem', padding:'6px 14px', borderRadius:20, 
+                                          background:'var(--bg-root)', border:'1px solid var(--border-subtle)',
+                                          color: 'var(--text-secondary)'
+                                      }}>
+                                          #{tag}
+                                      </span>
+                                  ))}
+                               </div>
+                           )}
                         </div>
+
+                        {/* Actions */}
+                        <div className="activity-actions" style={{
+                            padding: '16px 24px', background:'rgba(0,0,0,0.02)', 
+                            display:'flex', gap: 16, alignItems: 'center',
+                            borderTop:'1px solid var(--border-subtle)'
+                        }}>
+                           <div style={{display:'flex', gap: 12}}>
+                               {/* Like Button */}
+                               <button 
+                                  style={{
+                                      ...btnBaseStyle, 
+                                      color: (review.likesCount > 0) ? '#818cf8': '#94a3b8',
+                                      borderColor: (review.likesCount > 0) ? '#818cf8': 'rgba(255,255,255,0.1)'
+                                  }}
+                                  title="Helpful"
+                                  onClick={(e) => { 
+                                      const btn = e.currentTarget;
+                                      btn.style.transform = 'scale(0.9)'; 
+                                      setTimeout(() => btn.style.transform = 'scale(1)', 100); 
+                                  }}
+                               >
+                                  👍
+                               </button>
+                               <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
+                                   {Array.isArray(review.likes) ? review.likes.length : (review.likesCount || 0)}
+                               </span>
+
+                               {/* Dislike Button */}
+                               <button 
+                                   style={{...btnBaseStyle}}
+                                   title="Not Helpful"
+                                   onClick={(e) => { 
+                                      const btn = e.currentTarget;
+                                      btn.style.transform = 'scale(0.9)'; 
+                                      setTimeout(() => btn.style.transform = 'scale(1)', 100); 
+                                  }}
+                               >
+                                  👎
+                               </button>
+                               <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
+                                   {Array.isArray(review.dislikes) ? review.dislikes.length : (review.dislikesCount || 0)}
+                               </span>
+
+                                {/* Reply Button */}
+                                <button 
+                                   style={{
+                                       ...btnBaseStyle,
+                                       background: showReplies ? 'var(--primary-gradient)' : 'rgba(255,255,255,0.03)',
+                                       color: showReplies ? 'white' : '#94a3b8',
+                                       border: showReplies ? 'none' : '1px solid rgba(255,255,255,0.1)'
+                                   }}
+                                     onClick={(e) => { 
+                                        const btn = e.currentTarget;
+                                        toggleReplies(review.id);
+                                        btn.style.transform = 'scale(0.9)'; 
+                                        setTimeout(() => btn.style.transform = 'scale(1)', 100); 
+                                    }} 
+                                   title="Reply"
+                                >
+                                   💬
+                                </button>
+                                {replyCount > 0 && (
+                                    <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
+                                        {replyCount}
+                                    </span>
+                                )}
+                           </div>
+
+                           {!isInstructorView && (
+                               <button 
+                                  style={{...btnBaseStyle, marginLeft: 'auto'}}
+                                  title="Report"
+                               >
+                                  🚩
+                               </button>
+                           )}
+                           
+                           {isInstructorView && (
+                                <button style={{...btnBaseStyle, marginLeft: 'auto'}} title="Options">⚙️</button>
+                           )}
+                        </div>
+
+                        {/* Threaded Replies View */}
+                        {showReplies && (
+                          <div className="replies-section" style={{padding: '0 24px 24px', background:'rgba(0,0,0,0.02)'}}>
+                              {replies.length > 0 ? (
+                                  <div style={{display: 'flex', flexDirection: 'column', gap: 16, marginTop: 20}}>
+                                      {replies.map((reply, idx) => (
+                                          <div key={reply.id || idx} style={{display: 'flex', gap: 12, marginBottom: 16}}>
+                                              <div style={{
+                                                  minWidth: 32, height: 32, borderRadius: '50%', 
+                                                  background: 'var(--bg-root)', border: '1px solid var(--border-subtle)',
+                                                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem'
+                                              }}>
+                                                  {(reply.authorName || 'S').charAt(0)}
+                                              </div>
+                                              <div style={{flex: 1}}>
+                                                  <div style={{background: 'var(--bg-root)', padding: '12px 16px', borderRadius: '0 16px 16px 16px', border: '1px solid var(--border-subtle)'}}>
+                                                      <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
+                                                          <span style={{fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)'}}>
+                                                              {reply.authorName || 'Student'}
+                                                          </span>
+                                                          <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                                                              <span style={{fontSize: '0.75rem', opacity: 0.5}}>{timeAgo(reply.createdAt)}</span>
+                                                              
+                                                              {/* DELETE REPLY BUTTON */}
+                                                              {user?.uid === reply.authorId && (
+                                                                  <button 
+                                                                      onClick={() => promptDeleteReply(review.id, reply.id)}
+                                                                      style={{background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', opacity:0.5}}
+                                                                      title="Delete"
+                                                                  >
+                                                                      ❌
+                                                                  </button>
+                                                              )}
+                                                          </div>
+                                                      </div>
+                                                      <p style={{margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.5}}>{reply.text}</p>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              ) : (
+                                  <div style={{opacity: 0.6, fontStyle: 'italic', padding:'24px 0', textAlign: 'center', color: 'var(--text-secondary)'}}>No replies yet.</div>
+                              )}
+
+                              {/* Reply Input Area */}
+                              <div style={{marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-subtle)'}}>
+                                  <div style={{display: 'flex', gap: 12}}>
+                                      <input 
+                                          type="text" 
+                                          placeholder="Write a reply..." 
+                                          value={replyText[review.id] || ''}
+                                          onChange={(e) => setReplyText(prev => ({...prev, [review.id]: e.target.value}))}
+                                          style={{
+                                              flex: 1, padding: '12px 16px', borderRadius: '24px', 
+                                              border: '1px solid var(--border-subtle)', background: 'var(--bg-root)',
+                                              color: 'var(--text-primary)', outline: 'none'
+                                          }}
+                                          onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                  e.preventDefault();
+                                                  submitReply(review.id);
+                                              }
+                                          }}
+                                      />
+                                      <button 
+                                          onClick={() => submitReply(review.id)}
+                                          disabled={!replyText[review.id]}
+                                          style={{
+                                              background: replyText[review.id] ? 'var(--primary-gradient)' : 'var(--bg-root)',
+                                              color: replyText[review.id] ? 'white' : 'var(--text-muted)',
+                                              border: replyText[review.id] ? 'none' : '1px solid var(--border-subtle)',
+                                              padding: '0 20px', borderRadius: '24px', cursor: replyText[review.id] ? 'pointer' : 'default',
+                                              fontWeight: 600, transition: 'all 0.2s'
+                                          }}
+                                      >
+                                          Send
+                                      </button>
+                                  </div>
+                              </div>
+                          </div>
+                      )}
                     </div>
-                ))}
+                    );
+                })}
             </div>
+
+            {/* Premium Delete Modal */}
+            <PremiumModal 
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+                title={deleteModal.type === 'review' ? "Delete Review?" : "Delete Reply?"}
+                message={deleteModal.type === 'review' 
+                    ? "This will permanently remove your review. This action cannot be undone."
+                    : "Are you sure you want to delete this reply?"}
+                type="danger"
+                confirmText="Delete"
+                onConfirm={confirmDelete}
+            />
         </div>
     );
 };

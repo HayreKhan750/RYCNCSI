@@ -55,7 +55,7 @@ export default function ReviewersDirectory() {
   }
 
   return (
-    <div className="reviewers-directory premium-container" style={{padding: '40px 20px', maxWidth: '1200px', margin: '0 auto'}}>
+    <div className="reviewers-directory premium-container" style={{padding: '100px 20px 40px', maxWidth: '1200px', margin: '0 auto'}}>
       
       {/* Hero Section */}
       <div style={{textAlign: 'center', marginBottom: '50px'}}>
@@ -79,20 +79,23 @@ export default function ReviewersDirectory() {
 
       {/* Controls */}
       <div className="glass-card" style={{
-          padding: '20px', 
+          padding: '12px 24px', 
           marginBottom: '40px', 
           display: 'flex', 
           flexWrap: 'wrap', 
           gap: '20px', 
           alignItems: 'center', 
-          justifyContent: 'space-between',
+          justifyContent: 'space-between', // Push to edges
           background: 'var(--bg-elevated)',
           backdropFilter: 'blur(10px)',
           border: '1px solid var(--border-subtle)',
-          borderRadius: '24px'
+          borderRadius: '50px', 
+          width: '100%', 
+          maxWidth: '800px', // Medium size container
+          margin: '0 auto 40px' 
       }}>
-          <div className="search-wrapper" style={{flex: '1 1 300px', maxWidth: '500px', position: 'relative'}}>
-              <span style={{position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-primary)'}}>🔍</span>
+          <div className="search-wrapper" style={{flex: '1', minWidth: '200px', maxWidth: '400px', position: 'relative'}}>
+              <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-primary)'}}>🔍</span>
               <input 
                   type="text" 
                   placeholder="Search reviewers..." 
@@ -101,29 +104,32 @@ export default function ReviewersDirectory() {
                   className="premium-input"
                   style={{
                       width: '100%', 
-                      padding: '14px 20px 14px 50px', 
+                      padding: '10px 16px 10px 40px', 
                       borderRadius: '50px', 
                       background: 'var(--bg-root)', 
-                      border: '1px solid var(--border-subtle)',
+                      border: '1px solid var(--border-subtle)', 
                       color: 'var(--text-primary)',
-                      fontSize: '1rem'
+                      fontSize: '0.95rem'
                   }}
               />
           </div>
-          <div className="sort-wrapper" style={{display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0}}>
-              <label style={{color: 'var(--text-secondary)', fontSize: '0.9rem'}}>Sort by:</label>
+          
+          <div className="sort-wrapper" style={{display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0}}>
+              <label style={{color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500, whiteSpace: 'nowrap'}}>Sort by:</label>
               <select 
                   value={sortBy} 
                   onChange={(e) => setSortBy(e.target.value)} 
                   className="premium-select"
                   style={{
-                      padding: '10px 20px',
+                      padding: '8px 16px',
                       borderRadius: '12px',
-                      background: 'var(--bg-root)',
+                      background: 'transparent',
                       border: '1px solid var(--border-subtle)',
                       color: 'var(--text-primary)',
+                      fontWeight: '500',
                       cursor: 'pointer',
-                      outline: 'none'
+                      outline: 'none',
+                      fontSize: '0.9rem'
                   }}
               >
                   <option value="reviews">Most Reviews</option>
@@ -133,114 +139,56 @@ export default function ReviewersDirectory() {
       </div>
 
       {/* Grid */}
-      <div className="discovery-grid-premium" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px'}}>
+      <div className="discovery-grid-premium courses-grid-override">
         {filteredReviewers.map((reviewer, index) => (
-            <div key={reviewer.studentId} className="premium-card reviewer-card" style={{
-                padding: '30px', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '24px',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
-            }}>
-                {/* Rank Badge for Top 3 */}
-                {index < 3 && (
-                    <div style={{
-                        position: 'absolute',
-                        top: '15px',
-                        right: '15px',
-                        background: index === 0 ? 'linear-gradient(135deg, #FFD700, #FFA500)' : index === 1 ? 'linear-gradient(135deg, #C0C0C0, #A9A9A9)' : 'linear-gradient(135deg, #CD7F32, #8B4513)',
-                        width: '30px',
-                        height: '30px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                        fontSize: '0.9rem'
-                    }}>
-                        #{index + 1}
-                    </div>
-                )}
+            <div key={reviewer.studentId} className="premium-card reviewer-card" style={{height: '100%'}}>
+               <div className="card-content-row">
+                   <div className="premium-avatar-small" style={{
+                       overflow: 'hidden',
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       padding: 0
+                   }}>
+                      {reviewer.photoURL ? (
+                        <img 
+                            src={reviewer.photoURL} 
+                            alt={reviewer.name} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                        />
+                      ) : (
+                        <img 
+                            src={`https://ui-avatars.com/api/?name=${reviewer.name || 'Student'}&background=random&color=fff`} 
+                            alt={reviewer.name} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                        />
+                      )}
+                   </div>
+                   <div className="reviewer-info">
+                       <h4 className="reviewer-name">{reviewer.name || 'Student'}</h4>
+                       <p className="reviewer-dept">{reviewer.department || 'Student'}</p>
+                   </div>
+               </div>
+               
+               <div className="stats-grid-premium">
+                   <div className="stat-item-premium">
+                       <span className="stat-icon">📝</span>
+                       <span className="stat-val">{reviewer.reviewCount}</span>
+                       <span className="stat-lbl">Reviews</span>
+                   </div>
+                   <div className="stat-item-premium">
+                       <span className="stat-icon">👍</span>
+                       <span className="stat-val">{reviewer.helpfulCount || 0}</span>
+                       <span className="stat-lbl">Helpful</span>
+                   </div>
+               </div>
 
-                <div className="avatar-container" style={{marginBottom: '20px', position: 'relative'}}>
-                    <div className="premium-avatar" style={{
-                        width: '90px', 
-                        height: '90px', 
-                        borderRadius: '50%', 
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '2.5rem',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)',
-                        border: '3px solid rgba(255,255,255,0.1)'
-                    }}>
-                        {reviewer.photoURL ? (
-                            <img src={reviewer.photoURL} alt={reviewer.name} style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}} />
-                        ) : (
-                            (reviewer.name || 'S').charAt(0)
-                        )}
-                    </div>
-                </div>
-
-                <h4 style={{fontSize: '1.4rem', fontWeight: '700', marginBottom: '5px', color: 'var(--text-primary)'}}>{reviewer.name}</h4>
-                <p style={{fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '20px'}}>{reviewer.department}</p>
-                
-                <div className="stats-grid" style={{
-                    display: 'grid', 
-                    gridTemplateColumns: '1fr 1fr', 
-                    gap: '10px', 
-                    width: '100%', 
-                    marginBottom: '25px',
-                    background: 'var(--bg-root)',
-                    padding: '15px',
-                    borderRadius: '16px'
-                }}>
-                    <div className="stat-item" style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                        <span style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#818cf8'}}>{reviewer.reviewCount}</span>
-                        <span style={{fontSize: '0.8rem', opacity: 0.7, color: 'var(--text-secondary)'}}>Reviews</span>
-                    </div>
-                    <div className="stat-item" style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                        <span style={{fontSize: '1.2rem', fontWeight: 'bold', color: '#34d399'}}>{reviewer.helpfulCount}</span>
-                        <span style={{fontSize: '0.8rem', opacity: 0.7, color: 'var(--text-secondary)'}}>Helpful</span>
-                    </div>
-                </div>
-
-                <button 
-                    className="action-btn-premium" 
-                    onClick={() => navigate(`/student/${reviewer.studentId}`)} 
-                    style={{
-                        width: '100%',
-                        padding: '12px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
-                        border: '1px solid var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.target.style.background = 'var(--primary-gradient)';
-                        e.target.style.color = 'white';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.target.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))';
-                        e.target.style.color = 'var(--text-primary)';
-                    }}
-                >
-                    View Profile
-                </button>
+               <button 
+                  className="view-profile-btn-premium small-btn" 
+                  onClick={() => navigate(`/student/${reviewer.studentId}`)} 
+               >
+                  View Profile
+               </button>
             </div>
         ))}
         

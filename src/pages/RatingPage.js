@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchInstructors } from '../store/slices/instructorSlice';
-import { fetchFeedbacks, submitFeedback, updateFeedback } from '../store/slices/feedbackSlice';
+import { fetchFeedbacks, submitFeedback, updateFeedback, deleteFeedback } from '../store/slices/feedbackSlice';
 import { selectInstructorById } from '../store/selectors/instructorSelectors';
 import { selectFeedbacksByStudentId } from '../store/selectors/feedbackSelectors';
 import StarRating from '../components/rating/StarRating';
@@ -100,10 +100,32 @@ const RatingPage = () => {
       }
     } catch (error) {
       console.error("Error submitting rating:", error);
-      showModal("Error", "Failed to submit rating. Please try again.", "danger");
+      showModal("Error", error.message || "Failed to submit rating. Please try again.", "danger");
     }
   };
 
+  const handleDelete = () => {
+      if (!existingRating) return;
+      showModal(
+          "Delete Rating?", 
+          "Are you sure you want to delete your rating? This cannot be undone.", 
+          "danger",
+          async () => {
+              try {
+                  await dispatch(deleteFeedback(existingRating.id)).unwrap();
+                  setExistingRating(null);
+                  setRatingValue(0);
+                  setFeedback('');
+                  setSelectedTags([]);
+                  showModal("Deleted", "Your rating has been removed.", "alert");
+              } catch (error) {
+                  console.error("Delete Error:", error);
+                  showModal("Error", error.message || "Failed to delete rating.", "danger");
+              }
+          }
+      );
+  };
+  
   // Get reviews for this instructor from store
   const reviews = useSelector((state) => 
       state.feedbacks.allIds
@@ -243,14 +265,29 @@ const RatingPage = () => {
             </div>
           </div>
 
-          <button 
-            className="action-btn-premium" 
-            onClick={handleSubmit} 
-            disabled={submitting || isChecking}
-            style={{ marginTop: '16px', fontSize: '1.1rem', padding: '16px' }}
-          >
-            {submitting ? "Submitting..." : (existingRating ? "Update Rating" : "Submit Rating")}
-          </button>
+          <div style={{display:'flex', gap:'10px', marginTop:'16px'}}>
+              {existingRating && (
+                  <button 
+                    onClick={handleDelete}
+                    disabled={submitting}
+                    style={{
+                        padding: '16px', borderRadius: '12px', border: '1px solid var(--error)',
+                        background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', cursor: 'pointer',
+                        fontWeight: '600', flex: '1'
+                    }}
+                  >
+                      Delete
+                  </button>
+              )}
+              <button 
+                className="action-btn-premium" 
+                onClick={handleSubmit} 
+                disabled={submitting || isChecking}
+                style={{ padding: '16px', flex: '2' }}
+              >
+                {submitting ? "Submitting..." : (existingRating ? "Update Rating" : "Submit Rating")}
+              </button>
+          </div>
         </div>
 
         {/* Reviews List */}

@@ -115,19 +115,19 @@ const InstructorPublicProfile = () => {
                                     <h3 className="profile-section-title">Teaching Impact</h3>
                                     <div className="impact-stats-grid">
                                         <div className="impact-stat-card">
-                                            <div className="impact-val indigo">{stats?.courseCount || 12}</div>
+                                            <div className="impact-val indigo">{stats?.courseCount || 0}</div>
                                             <div className="impact-label">Courses</div>
                                         </div>
                                         <div className="impact-stat-card">
-                                            <div className="impact-val emerald">{stats?.totalStudents || 450}+</div>
+                                            <div className="impact-val emerald">{stats?.totalStudents || 0}</div>
                                             <div className="impact-label">Students</div>
                                         </div>
                                         <div className="impact-stat-card">
-                                            <div className="impact-val amber">{stats?.avgRating || "0.0"}</div>
+                                            <div className="impact-val amber">{stats?.avgRating ? Number(stats.avgRating).toFixed(1) : "N/A"}</div>
                                             <div className="impact-label">Avg Rating</div>
                                         </div>
                                          <div className="impact-stat-card">
-                                            <div className="impact-val rose">98%</div>
+                                            <div className="impact-val rose">{stats?.responseRate || '100%'}</div>
                                             <div className="impact-label">Response Rate</div>
                                         </div>
                                     </div>
@@ -163,11 +163,15 @@ const InstructorPublicProfile = () => {
                                         </div>
                                         <div className="info-row">
                                             <span className="info-label">Joined</span>
-                                            <span className="info-val">September 2024</span>
+                                            <span className="info-val">
+                                                {profile.joinedAt 
+                                                    ? new Date(profile.joinedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) 
+                                                    : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) : 'Recently')}
+                                            </span>
                                         </div>
                                         <div className="info-row">
                                             <span className="info-label">Language</span>
-                                            <span className="info-val">English, Amharic</span>
+                                            <span className="info-val">{profile.languages?.join(', ') || "English"}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -176,7 +180,7 @@ const InstructorPublicProfile = () => {
                     )}
 
                     {activeTab === 'reviews' && (
-                         <div className="premium-card reviews-container">
+                         <div className="premium-card reviews-container" style={{backdropFilter: 'none', WebkitBackdropFilter: 'none'}}>
                              <h3 className="profile-section-title">Student Reviews</h3>
                              <ReviewList 
                                 reviews={feedbacks} 
@@ -200,6 +204,7 @@ const InstructorPublicProfile = () => {
                     isOpen={isMessageOpen}
                     onClose={() => setIsMessageOpen(false)}
                     instructorName={profile?.fullName?.split(' ')[0]}
+                    instructorId={targetId}
                 />
              </div>
 

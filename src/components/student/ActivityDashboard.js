@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { toggleLike, addReply, flagFeedback } from '../../store/slices/feedbackSlice';
+import { toggleLike, addReply, flagFeedback, deleteFeedback, deleteReply } from '../../store/slices/feedbackSlice';
 import { useNavigate } from 'react-router-dom';
 import PremiumModal from '../common/PremiumModal';
 import useContentModeration from '../../hooks/useContentModeration';
 
-export default function ActivityDashboard({ ratings = [], isOwnProfile = false, user = {} }) {
+export default function ActivityDashboard({ ratings = [], isOwnProfile = false, user = {}, userReactions: propUserReactions = {} }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(null);
@@ -15,28 +15,57 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
   
   // Optimistic UI state
   const [optimisticRatings, setOptimisticRatings] = useState(ratings);
-  const [userReactions, setUserReactions] = useState({}); // Local state for demo/optimistic, ideally from Redux
+  const [userReactions, setUserReactions] = useState(propUserReactions); 
 
   // Sync props to state when props change
   React.useEffect(() => {
     setOptimisticRatings(ratings);
   }, [ratings]);
 
+  React.useEffect(() => {
+    setUserReactions(propUserReactions);
+  }, [propUserReactions]);
+  
+  // Helper for Time
+  const timeAgo = (date) => {
+      if (!date) return 'Just now';
+      // Handle Firestore Timestamp or Date object or string
+      const d = (date && typeof date === 'object' && date.seconds) ? new Date(date.seconds * 1000) : new Date(date);
+      const seconds = Math.floor((new Date() - d) / 1000);
+      
+      let interval = seconds / 31536000;
+      if (interval > 1) return Math.floor(interval) + " years ago";
+      interval = seconds / 2592000;
+      if (interval > 1) return Math.floor(interval) + " months ago";
+      interval = seconds / 86400;
+      if (interval > 1) return Math.floor(interval) + " days ago";
+      interval = seconds / 3600;
+      if (interval > 1) return Math.floor(interval) + " hours ago";
+      interval = seconds / 60;
+      if (interval > 1) return Math.floor(interval) + " minutes ago";
+      return Math.floor(seconds) + " seconds ago";
+  };
+
+  // Helper for Sorting Replies
+  const getSortedReplies = (replies) => {
+      if (!replies) return [];
+      return [...replies].sort((a, b) => {
+          const tA = (a.createdAt && a.createdAt.seconds) ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
+          const tB = (b.createdAt && b.createdAt.seconds) ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
+          return tA - tB;
+      });
+  };
+
   const handleReaction = async (feedbackId, type) => {
       if(!user?.uid) return;
       
-      // Find the rating
       const ratingIndex = optimisticRatings.findIndex(r => r.id === feedbackId);
       if (ratingIndex === -1) return;
       const rating = optimisticRatings[ratingIndex];
 
-      // Prevent self-voting (silently)
-      if (rating.studentId === user.uid) {
-          return;
-      }
+      if (rating.studentId === user.uid) return;
 
-      // Optimistic update
-      const currentReaction = userReactions[feedbackId]; // 'like' | 'dislike' | null
+      const currentReaction = userReactions[feedbackId];
       const isRemoving = currentReaction === type;
       const isSwitching = currentReaction && currentReaction !== type;
 
@@ -61,15 +90,26 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
       setUserReactions(prev => ({ ...prev, [feedbackId]: isRemoving ? null : type }));
       
       try {
-        await dispatch(toggleLike({ 
-            feedbackId, 
-            userId: user.uid, 
-            isLike: type === 'like' 
-        })).unwrap();
+        await dispatch(toggleLike({ feedbackId, userId: user.uid, isLike: type === 'like' })).unwrap();
       } catch (e) {
         console.error("Failed to toggle reaction", e);
-        // Revert optimistic? (Omitted for brevity, but recommended)
       }
+  };
+
+  const handleDeleteRating = async (id) => {
+      if (window.confirm("Are you sure you want to delete this rating?")) {
+          try {
+              await dispatch(deleteFeedback(id)).unwrap();
+          } catch(e) { console.error(e); }
+      }
+  };
+
+  const handleDeleteReply = async (feedbackId, replyId) => {
+       if (window.confirm("Delete this reply?")) {
+           try {
+               await dispatch(deleteReply({ feedbackId, replyId })).unwrap();
+           } catch(e) { console.error(e); }
+       }
   };
 
   const openFlagModal = (feedbackId) => {
@@ -104,27 +144,25 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
       const text = replyText[feedbackId];
       if (!text || !text.trim()) return;
 
-      // Content Moderation
       if (!validateContent(text)) return;
 
-      // Optimistic Update for Reply
       const ratingIndex = optimisticRatings.findIndex(r => r.id === feedbackId);
       if (ratingIndex !== -1) {
           const newRatings = [...optimisticRatings];
           const target = { ...newRatings[ratingIndex] };
           
           const newReply = {
-              id: Date.now().toString(), // Temp ID
+              id: Date.now().toString(),
               text: text,
               authorName: user.displayName || user.name || 'User',
               authorId: user.uid,
-              createdAt: new Date().toISOString() // ISO string for immediate display
+              createdAt: new Date().toISOString()
           };
 
           target.replies = [...(target.replies || []), newReply];
           newRatings[ratingIndex] = target;
           setOptimisticRatings(newRatings);
-          setReplyText(prev => ({ ...prev, [feedbackId]: '' })); // Clear input
+          setReplyText(prev => ({ ...prev, [feedbackId]: '' }));
       }
 
       try {
@@ -139,10 +177,35 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
         })).unwrap();
       } catch (e) {
           console.error("Failed to submit reply", e);
-          // Revert optimistic update if needed (omitted for brevity)
       }
   };
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+
+  const filteredRatings = React.useMemo(() => {
+    let result = [...optimisticRatings];
+
+    if (searchTerm) {
+        const lower = searchTerm.toLowerCase();
+        result = result.filter(r => 
+            (r.instructorName && r.instructorName.toLowerCase().includes(lower)) ||
+            (r.comment && r.comment.toLowerCase().includes(lower)) ||
+            (r.feedback && r.feedback.toLowerCase().includes(lower)) ||
+            (r.deptName && r.deptName.toLowerCase().includes(lower))
+        );
+    }
+
+    result.sort((a, b) => {
+        if (sortBy === 'newest') return (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
+        if (sortBy === 'oldest') return (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0) - (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0);
+        if (sortBy === 'highest') return (b.rating || 0) - (a.rating || 0);
+        if (sortBy === 'lowest') return (a.rating || 0) - (b.rating || 0);
+        return 0;
+    });
+
+    return result;
+  }, [optimisticRatings, searchTerm, sortBy]);
 
   if (!optimisticRatings?.length) {
     return (
@@ -158,36 +221,69 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
 
   return (
     <div className="activity-feed">
+      <div className="glass-card" style={{
+          padding: '12px 24px', 
+          marginBottom: '24px', 
+          display: 'flex', flexWrap: 'wrap', gap: '20px', 
+          alignItems: 'center', justifyContent: 'space-between',
+          background: 'var(--bg-elevated)', backdropFilter: 'blur(10px)',
+          border: '1px solid var(--border-subtle)', borderRadius: '50px',
+      }}>
+          <div className="search-wrapper" style={{flex: '1', minWidth: '200px', maxWidth: '400px', position: 'relative'}}>
+              <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-primary)'}}>🔍</span>
+              <input 
+                  type="text" placeholder="Search your reviews..." 
+                  value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                  className="premium-input"
+                  style={{
+                      width: '100%', padding: '10px 16px 10px 40px', 
+                      borderRadius: '50px', background: 'var(--bg-root)', 
+                      border: '1px solid var(--border-subtle)', color: 'var(--text-primary)',
+                      fontSize: '0.95rem', outline: 'none'
+                  }}
+              />
+          </div>
+          
+          <div className="sort-wrapper" style={{display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0}}>
+              <label style={{color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500, whiteSpace: 'nowrap'}}>Sort:</label>
+              <select 
+                  value={sortBy} onChange={(e) => setSortBy(e.target.value)} 
+                  className="premium-select"
+                  style={{
+                      padding: '8px 16px', borderRadius: '12px', background: 'transparent',
+                      border: '1px solid var(--border-subtle)', color: 'var(--text-primary)',
+                      fontWeight: '500', cursor: 'pointer', outline: 'none', fontSize: '0.9rem'
+                  }}
+              >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="highest">Highest Rated</option>
+                  <option value="lowest">Lowest Rated</option>
+              </select>
+          </div>
+      </div>
+
     <div className="activity-feed-premium" style={{display:'flex', flexDirection:'column', gap: 24}}>
-      {optimisticRatings.map((rating) => {
+      {filteredRatings.map((rating) => {
           const hasReplies = rating.replies && rating.replies.length > 0;
-          // Logic: If own profile, can only reply if there are existing replies.
           const canReply = !isOwnProfile || hasReplies;
+          const replies = getSortedReplies(rating.replies || []);
 
           return (
         <div key={rating.id} className="premium-card activity-card-premium" style={{
-            flexDirection:'column', 
-            padding: 0, 
-            overflow:'hidden', // Changed to hidden to contain children
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '24px',
-            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.3)'
+            flexDirection:'column', padding: 0, overflow:'hidden',
+            background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+            borderRadius: '24px', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.3)'
         }}>
-          {/* Header */}
           <div className="activity-header-premium" style={{
-              padding: '20px 24px', 
-              borderBottom: '1px solid var(--border-subtle)', 
-              display:'flex', 
-              justifyContent:'space-between', 
-              alignItems:'center',
+              padding: '20px 24px', borderBottom: '1px solid var(--border-subtle)', 
+              display:'flex', justifyContent:'space-between', alignItems:'center',
               background: 'linear-gradient(to right, rgba(255,255,255,0.02), transparent)'
           }}>
              <div className="activity-meta" style={{display:'flex', alignItems:'center'}}>
                 <div style={{
                     width: 40, height: 40, borderRadius: '50%', 
-                    background: 'var(--primary-gradient)', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '1.2rem', marginRight: 12, color: 'white'
                 }}>
                     {(rating.instructorName || 'T').charAt(0)}
@@ -197,24 +293,19 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
                         {rating.instructorName || 'Instructor'}
                     </h4>
                     <span className="activity-date" style={{opacity: 0.5, fontSize:'0.85rem', color:'var(--text-secondary)'}}>
-                        {rating.createdAt?.toDate ? rating.createdAt.toDate().toLocaleDateString() : 'Just now'}
+                        {timeAgo(rating.createdAt || rating.timestamp)}
                     </span>
                 </div>
              </div>
              <div className="activity-rating" style={{
-                 fontWeight:'800', 
-                 color:'#fbbf24', 
-                 fontSize:'1.4rem', 
-                 background: 'rgba(251, 191, 36, 0.1)',
-                 padding: '4px 12px',
-                 borderRadius: '12px',
-                 border: '1px solid rgba(251, 191, 36, 0.2)'
+                 fontWeight:'800', color:'#fbbf24', fontSize:'1.4rem', 
+                 background: 'rgba(251, 191, 36, 0.1)', padding: '4px 12px',
+                 borderRadius: '12px', border: '1px solid rgba(251, 191, 36, 0.2)'
              }}>
                 {rating.rating || rating.overall} <span style={{fontSize:'1rem'}}>★</span>
              </div>
           </div>
           
-          {/* Content */}
           <div className="activity-content" style={{padding: '24px'}}>
              <p className="dept-name" style={{
                  opacity:0.7, fontSize:'0.85rem', marginBottom:12, 
@@ -225,14 +316,9 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
              
              {(rating.comment || rating.feedback) && (
                  <div className="activity-comment" style={{
-                     background:'var(--bg-root)', 
-                     padding:'20px', 
-                     borderRadius:'16px', 
-                     fontStyle:'italic', 
-                     borderLeft:'4px solid var(--primary)',
-                     color: 'var(--text-primary)',
-                     lineHeight: 1.6,
-                     fontSize: '1.05rem'
+                     background:'var(--bg-root)', padding:'20px', borderRadius:'16px', 
+                     fontStyle:'italic', borderLeft:'4px solid var(--primary)',
+                     color: 'var(--text-primary)', lineHeight: 1.6, fontSize: '1.05rem'
                  }}>
                      "{rating.comment || rating.feedback}"
                  </div>
@@ -253,34 +339,85 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
              )}
           </div>
 
-          {/* Actions */}
           <div className="activity-actions" style={{
-              padding: '16px 24px', 
-              background:'rgba(0,0,0,0.02)', 
-              display:'flex', gap: 16, 
+              padding: '16px 24px', background:'rgba(0,0,0,0.02)', 
+              display:'flex', gap: 16, alignItems: 'center',
               borderTop:'1px solid var(--border-subtle)'
           }}>
-             <button className="action-btn-premium" onClick={() => handleReaction(rating.id, 'like')} style={{background:'transparent', border:'none', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, transition: 'color 0.2s', fontSize: '0.95rem'}}>
-                <span style={{color: userReactions[rating.id] === 'like' ? 'var(--primary)' : 'inherit'}}>👍</span> {rating.likesCount || 0}
-             </button>
-             <button className="action-btn-premium" onClick={() => handleReaction(rating.id, 'dislike')} style={{background:'transparent', border:'none', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, transition: 'color 0.2s', fontSize: '0.95rem'}}>
-                <span style={{color: userReactions[rating.id] === 'dislike' ? 'var(--danger)' : 'inherit'}}>👎</span> {rating.dislikesCount || 0}
-             </button>
-             <button className="action-btn-premium" onClick={() => toggleReplies(rating.id)} style={{background:'transparent', border:'none', color: expandedId === rating.id ? 'var(--primary)' : 'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, transition: 'color 0.2s', fontSize: '0.95rem'}}>
-                💬 {rating.replies?.length || 0} Replies
-             </button>
-             <button className="action-btn-premium secondary" style={{marginLeft:'auto', color:'var(--text-muted)', background:'transparent', border:'none', cursor:'pointer', fontSize: '0.9rem'}} onClick={() => openFlagModal(rating.id)}>
-                🚩 Flag
-             </button>
+             <div style={{display:'flex', gap: 12}}>
+                 <button 
+                    className={`glass-pill-btn like ${userReactions[rating.id] === 'like' ? 'active' : ''}`}
+                    onClick={() => handleReaction(rating.id, 'like')} 
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: '20px',
+                        background: userReactions[rating.id] === 'like' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.05)',
+                        border: '1px solid ' + (userReactions[rating.id] === 'like' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'),
+                        color: userReactions[rating.id] === 'like' ? 'var(--primary)' : 'var(--text-secondary)',
+                        cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                 >
+                    <span style={{fontSize:'1.1rem'}}>👍</span>
+                    <span style={{fontSize:'0.85rem', fontWeight: 600}}>Like {rating.likesCount > 0 && `(${rating.likesCount})`}</span>
+                 </button>
+
+                 <button 
+                     className={`glass-pill-btn dislike ${userReactions[rating.id] === 'dislike' ? 'active' : ''}`}
+                    onClick={() => handleReaction(rating.id, 'dislike')}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: '20px',
+                        background: userReactions[rating.id] === 'dislike' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.05)',
+                        border: '1px solid ' + (userReactions[rating.id] === 'dislike' ? '#ef4444' : 'rgba(255,255,255,0.1)'),
+                        color: userReactions[rating.id] === 'dislike' ? '#ef4444' : 'var(--text-secondary)',
+                        cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                 >
+                    <span style={{fontSize:'1.1rem'}}>👎</span>
+                 </button>
+                 
+                 <button 
+                    className={`glass-pill-btn reply ${expandedId === rating.id ? 'active' : ''}`}
+                    onClick={() => toggleReplies(rating.id)}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: '20px',
+                        background: expandedId === rating.id ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                 >
+                    <span style={{fontSize:'1.1rem'}}>💬</span>
+                    <span style={{fontSize:'0.85rem', fontWeight: 600}}>Reply {rating.replies?.length > 0 && `(${rating.replies.length})`}</span>
+                 </button>
+             </div>
+                
+             {isOwnProfile && (
+                 <div style={{marginLeft:'auto', display:'flex', gap: 10}}>
+                     <button 
+                        className="circular-action-btn edit" 
+                        style={{color: 'var(--primary)', borderColor: 'var(--primary)'}} 
+                        onClick={() => navigate(`/rate/${rating.instructorId}`)}
+                        title="Edit Rating"
+                     >✏️</button>
+                     <button
+                        className="circular-action-btn delete"
+                        style={{color: '#ef4444', borderColor: '#ef4444'}}
+                        onClick={() => handleDeleteRating(rating.id)}
+                        title="Delete Rating"
+                     >🗑️</button>
+                 </div>
+             )}
+
+             <button 
+                className="circular-action-btn flag secondary" 
+                style={{marginLeft: isOwnProfile ? '10px' : 'auto'}} 
+                onClick={() => openFlagModal(rating.id)} title="Report"
+             >🚩</button>
           </div>
 
-          {/* Threaded Replies View */}
           {expandedId === rating.id && (
               <div className="replies-section" style={{padding: '0 24px 24px', background:'rgba(0,0,0,0.02)'}}>
-                  {/* Existing Replies */}
-                  {rating.replies && rating.replies.length > 0 ? (
+                  {replies.length > 0 ? (
                       <div style={{display: 'flex', flexDirection: 'column', gap: 16, marginTop: 20}}>
-                          {rating.replies.map((reply, idx) => (
+                          {replies.map((reply, idx) => (
                               <div key={idx} style={{display: 'flex', gap: 12}}>
                                   <div style={{
                                       minWidth: 32, height: 32, borderRadius: '50%', 
@@ -293,7 +430,16 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
                                       <div style={{background: 'var(--bg-root)', padding: '12px 16px', borderRadius: '0 16px 16px 16px', border: '1px solid var(--border-subtle)'}}>
                                           <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 4}}>
                                               <span style={{fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)'}}>{reply.authorName || 'User'}</span>
-                                              <span style={{fontSize: '0.75rem', opacity: 0.5}}>{new Date(reply.createdAt || Date.now()).toLocaleDateString()}</span>
+                                                  <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                                                      <span style={{fontSize: '0.75rem', opacity: 0.5}}>{timeAgo(reply.createdAt)}</span>
+                                                      {(user?.uid === reply.authorId) && (
+                                                          <button 
+                                                              onClick={() => handleDeleteReply(rating.id, reply.id)}
+                                                              style={{background:'none', border:'none', cursor:'pointer', fontSize:'0.7rem', opacity:0.5}}
+                                                              title="Delete Reply"
+                                                          >❌</button>
+                                                      )}
+                                                  </div>
                                           </div>
                                           <p style={{margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.5}}>{reply.text}</p>
                                       </div>
@@ -305,13 +451,11 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
                       <div style={{opacity: 0.6, fontStyle: 'italic', padding:'24px 0', textAlign: 'center', color: 'var(--text-secondary)'}}>No replies yet.</div>
                   )}
 
-                  {/* Reply Input Area */}
                   <div style={{marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-subtle)'}}>
                       {canReply ? (
                           <div style={{display: 'flex', gap: 12}}>
                               <input 
-                                  type="text" 
-                                  placeholder="Write a reply..." 
+                                  type="text" placeholder="Write a reply..." 
                                   value={replyText[rating.id] || ''}
                                   onChange={(e) => setReplyText(prev => ({...prev, [rating.id]: e.target.value}))}
                                   style={{
@@ -331,18 +475,14 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
                                       padding: '0 20px', borderRadius: '24px', cursor: replyText[rating.id] ? 'pointer' : 'default',
                                       fontWeight: 600, transition: 'all 0.2s'
                                   }}
-                              >
-                                  Send
-                              </button>
+                              >Send</button>
                           </div>
                       ) : (
                           <div style={{
                               padding: '12px', background: 'rgba(99, 102, 241, 0.1)', 
                               borderRadius: '12px', color: 'var(--primary)', fontSize: '0.9rem',
                               textAlign: 'center', border: '1px solid rgba(99, 102, 241, 0.2)'
-                          }}>
-                              🔒 Waiting for others to join the conversation before you can reply.
-                          </div>
+                          }}>🔒 Waiting for others to join the conversation before you can reply.</div>
                       )}
                   </div>
               </div>
