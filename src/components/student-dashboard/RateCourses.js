@@ -207,13 +207,17 @@ export default function RateCourses({ user }) {
 
              <div className="instructor-info-premium" style={{width: '100%'}}>
                 <h4 className="instructor-name-gradient" style={{fontSize: '1.3rem', marginBottom: '4px'}}>
-                    {inst.instructorName || inst.name || 'Unknown Instructor'}
+                    {inst.instructorName || inst.displayName || inst.name || inst.fullName || 'Unknown Instructor'}
                 </h4>
                 <p className="dept-name-premium" style={{marginBottom: '16px', opacity:0.7}}>{inst.department || 'General'}</p>
                 
                 <div className="rating-pill" style={{margin: '0 auto 20px'}}>
                    <span className="star-icon">⭐</span>
-                   <span className="rating-score">{typeof inst.avgRating === 'number' ? inst.avgRating.toFixed(1) : inst.avgRating || '0.0'}</span>
+                   <span className="rating-score">
+                       {(typeof (inst.avgRating || inst.rating || inst.ratingStats?.average) === 'number') 
+                           ? (inst.avgRating || inst.rating || inst.ratingStats?.average).toFixed(1) 
+                           : '0.0'}
+                   </span>
                    <span className="rating-count">({inst.ratingCount || 0})</span>
                 </div>
                 

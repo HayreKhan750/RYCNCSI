@@ -143,15 +143,23 @@ const RatingPage = () => {
       <div className="instructor-header glass-card">
         <div className="header-content">
           <div className="instructor-avatar-large">
-            <img src={instructor.photoURL || `https://ui-avatars.com/api/?name=${instructor.name}&size=128`} alt={instructor.name} />
+            <img 
+                src={instructor.profilePictureUrl || instructor.photoURL || `https://ui-avatars.com/api/?name=${instructor.fullName || instructor.name}&size=128`} 
+                alt={instructor.name} 
+                style={{objectFit: 'cover'}}
+            />
           </div>
           <div className="instructor-info">
-            <h1>{instructor.name || instructor.instructorName || 'Instructor'}</h1>
+            <h1>{instructor.fullName || instructor.displayName || instructor.instructorName || instructor.name || 'Instructor'}</h1>
             <p className="dept">{instructor.department || 'Department'}</p>
             <div className="rating-badge">
               <span className="star-icon">⭐</span>
-              <span className="rating-score">{instructor.rating?.toFixed(1) || 'New'}</span>
-              <span className="rating-count">({instructor.reviews || 0} ratings)</span>
+              <span className="rating-score">
+                  {(instructor.avgRating || instructor.rating || instructor.ratingStats?.average || 0).toFixed(1)}
+              </span>
+              <span className="rating-count">
+                  ({instructor.totalRatings || instructor.reviews || instructor.ratingStats?.totalRatings || 0} ratings)
+              </span>
             </div>
           </div>
         </div>

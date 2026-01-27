@@ -7,13 +7,31 @@ export default function AdminSettings() {
   const [adminName, setAdminName] = useState('Admin User');
   const [modal, setModal] = useState({ open: false, title: '', message: '', type: 'success' });
   
-  const handleSave = () => {
+  const handleSave = async () => {
+    try {
+      await import('../../services/adminService').then(m => m.adminService.updateSystemSettings({
+          maintenanceMode,
+          allowRegistrations,
+          adminProfile: {
+             displayName: adminName
+             // notification settings...
+          }
+      }));
+
       setModal({
           open: true,
           title: 'Settings Saved',
-          message: 'System configuration has been updated successfully.',
+          message: 'System configuration has been updated successfully and logged.',
           type: 'success'
       });
+    } catch (e) {
+      setModal({
+          open: true,
+          title: 'Save Failed',
+          message: e.message,
+          type: 'danger'
+      });
+    }
   };
 
   return (

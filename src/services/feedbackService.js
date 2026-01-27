@@ -228,31 +228,56 @@ export const feedbackService = {
   toggleLikeReview: async (feedbackId, userId, isLike) => {
       const type = isLike ? 'like' : 'dislike';
       
-      // Transaction for Reaction State only
+      // Transaction for Reaction State + Feedback Counters
       return runTransaction(db, async (tx) => {
         const reactionId = `${feedbackId}_${userId}`;
         const reactionRef = doc(db, 'reactions', reactionId);
+        const feedbackRef = doc(db, 'feedbacks', feedbackId);
         
         const reactionSnap = await tx.get(reactionRef);
+        const feedbackSnap = await tx.get(feedbackRef);
+
+        if (!feedbackSnap.exists()) {
+            throw new Error("Feedback not found");
+        }
+
         const previousType = reactionSnap.exists() ? reactionSnap.data()?.type : null;
+        const currentData = feedbackSnap.data();
+        
+        // Initialize counters if missing
+        let newLikes = currentData.likesCount || 0;
+        let newDislikes = currentData.dislikesCount || 0;
 
         if (previousType === type) {
-          // Toggle Off
+          // Toggle Off (Remove)
           tx.delete(reactionRef);
+          if (type === 'like') newLikes = Math.max(0, newLikes - 1);
+          else newDislikes = Math.max(0, newDislikes - 1);
         } else {
-          // Toggle On or Switch
+          // Add or Switch
           tx.set(reactionRef, {
             feedbackId,
             userId,
             type,
             createdAt: serverTimestamp(),
           });
+          
+          if (type === 'like') {
+              newLikes++;
+              if (previousType === 'dislike') newDislikes = Math.max(0, newDislikes - 1);
+          } else {
+              newDislikes++;
+              if (previousType === 'like') newLikes = Math.max(0, newLikes - 1);
+          }
         }
         
-        // NO UPDATES TO FEEDBACK/STUDENT DOCS HERE.
-        // Cloud Function 'onReactionWrite' must handle:
-        // 1. feedback.reactionCount
-        // 2. student.helpfulVotes
+        // Update Feedback Doc directly (Client-Side Persistence)
+        tx.update(feedbackRef, {
+            likesCount: newLikes,
+            dislikesCount: newDislikes,
+            [`reactionCount.like`]: newLikes,
+            [`reactionCount.dislike`]: newDislikes
+        });
         
         return { 
             feedbackId, 

@@ -1,8 +1,9 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const InstructorInsights = ({ instructors = [] }) => {
     const navigate = useNavigate();
+    const { deptName } = useParams();
     // Only show top 5
     const topList = instructors.slice(0, 5);
 
@@ -46,7 +47,11 @@ const InstructorInsights = ({ instructors = [] }) => {
                 ))}
             </div>
             
-            <button className="link-btn" style={{ width: '100%', marginTop: '24px', textAlign: 'center' }}>
+            <button 
+                className="link-btn" 
+                style={{ width: '100%', marginTop: '24px', textAlign: 'center' }}
+                onClick={() => navigate(`/management/department/${deptName}/roster`)}
+            >
                 View All Rankings →
             </button>
         </div>
@@ -54,3 +59,4 @@ const InstructorInsights = ({ instructors = [] }) => {
 };
 
 export default InstructorInsights;
+// Force refresh for roster link update

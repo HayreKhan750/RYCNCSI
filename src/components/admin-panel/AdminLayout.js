@@ -1,7 +1,6 @@
 import { useDispatch } from 'react-redux';
 import { logoutUser } from '../../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
-import RoleSwitcher from '../RoleSwitcher';
 
 export default function AdminLayout({ children, activePage, onNavigate, themeMode, toggleTheme, user }) {
   const navigate = useNavigate();
@@ -42,7 +41,7 @@ export default function AdminLayout({ children, activePage, onNavigate, themeMod
         
         <div 
           className="adm-nav-item logout-btn" 
-          style={{marginTop:'auto', borderTop:'1px solid var(--adm-border-dark)', borderRadius:0, padding:'20px 16px'}} 
+          style={{marginTop:'auto', marginBottom: 20, borderTop:'1px solid var(--adm-border-dark)', borderRadius:0, padding:'20px 16px'}} 
           onClick={handleLogout}
         >
            <span style={{color:'var(--adm-danger)'}}>🚪</span>
@@ -61,7 +60,6 @@ export default function AdminLayout({ children, activePage, onNavigate, themeMod
            </div>
            
            <div style={{display:'flex', gap:16, alignItems:'center'}}>
-              <RoleSwitcher />
               <button className="adm-btn" onClick={toggleTheme}>
                   {themeMode === 'light' ? '🌙 Dark Mode' : '☀ Light Mode'}
               </button>

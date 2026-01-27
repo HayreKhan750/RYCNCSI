@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PremiumModal from '../common/PremiumModal';
 import AdminEditUserModal from './AdminEditUserModal';
 
-export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdateStatus }) {
+export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdateStatus, onUpdateProfile }) {
   const [filter, setFilter] = useState('student'); // 'student' | 'instructor'
   const [actionOpen, setActionOpen] = useState(null);
   
@@ -21,8 +21,15 @@ export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdate
       setActionOpen(null);
   };
 
-  const handleSaveEdit = (uid, updatedData) => {
-      onUpdateStatus(uid, 'updated', updatedData); // Assuming onUpdateStatus can handle generic updates or we need a new prop
+  const handleSaveEdit = async (uid, updatedData) => {
+      if (onUpdateProfile) {
+          await onUpdateProfile(uid, updatedData);
+          // Wait a beat for DB propagation then refresh if available
+          // Note: In a real app we'd await the dispatch result.
+          // Assuming users prop updates via Redux automatically, but a fetch helps for hybrid references.
+      } else {
+          console.error("Update Profile function missing");
+      }
   };
 
   const confirmAction = (title, message, type, action) => {
@@ -81,12 +88,12 @@ export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdate
                                          <img src={user.profilePictureUrl} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}} />
                                      ) : (
                                          <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.8rem', color:'white'}}>
-                                             {(user.name || user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                                             {(user.name || user.displayName || user.instructorName || user.fullName || user.email || 'U').charAt(0).toUpperCase()}
                                          </div>
                                      )}
                                  </div>
                                  <div style={{display:'flex', flexDirection:'column'}}>
-                                     <span style={{fontWeight:500}}>{user.name || user.displayName || 'Unknown User'}</span>
+                                     <span style={{fontWeight:500}}>{user.name || user.displayName || user.instructorName || user.fullName || 'Unknown User'}</span>
                                      <span style={{fontSize:'0.75rem', opacity:0.5}}>{user.department || 'General'}</span>
                                  </div>
                              </div>

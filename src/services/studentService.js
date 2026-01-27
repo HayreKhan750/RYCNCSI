@@ -45,30 +45,54 @@ export const studentService = {
         // 2. Fetch User's Ratings (My Ratings)
         let myRatings = await feedbackService.fetchFeedbacks({ studentId: uid, limit: 50, sort: 'date_desc' });
         
-        // 2b. Hydrate Instructor Names (Fix for missing denormalized data)
+        // 2b. Hydrate Instructor Names (Robust Fix)
         const instructorIds = [...new Set(myRatings.map(r => r.instructorId).filter(Boolean))];
         if (instructorIds.length > 0) {
-            // Optimize: Batch fetch might be better but IDs are few per student usually
-            // We use Promise.all for simplicity
-            const instructorDocs = await Promise.all(
+            const instructorMap = {};
+            
+            // 1. Try Users Collection
+            const userSnapshots = await Promise.all(
                 instructorIds.map(id => getDoc(doc(db, 'users', id)))
             );
             
-            const instructorMap = {};
-            instructorDocs.forEach(d => {
+            userSnapshots.forEach(d => {
                 if (d.exists()) {
                     instructorMap[d.id] = {
                         name: d.data().displayName || d.data().name || 'Instructor',
-                        photo: d.data().photoURL || d.data().profilePictureUrl || ''
+                        photo: d.data().photoURL || d.data().profilePictureUrl,
+                        dept: d.data().department || null
                     };
                 }
             });
+
+            // 2. Try Instructors Collection (for IDs not found in Users)
+            const missingIds = instructorIds.filter(id => !instructorMap[id]);
+            if (missingIds.length > 0) {
+                const instSnapshots = await Promise.all(
+                    missingIds.map(id => getDoc(doc(db, 'instructors', id)))
+                );
+                
+                instSnapshots.forEach(d => {
+                    if (d.exists()) {
+                        instructorMap[d.id] = {
+                            name: d.data().instructorName || d.data().name || 'Instructor',
+                            photo: d.data().photo || d.data().photoURL,
+                            dept: d.data().department
+                        };
+                    }
+                });
+            }
 
             // Patch ratings
             myRatings = myRatings.map(r => {
                 const info = instructorMap[r.instructorId];
                 if (info) {
-                    return { ...r, instructorName: info.name, instructorPhoto: info.photo };
+                    return { 
+                        ...r, 
+                        instructorName: info.name, 
+                        instructorPhoto: info.photo || r.instructorPhoto,
+                        deptName: info.dept || r.deptName 
+                    };
                 }
                 return r;
             });

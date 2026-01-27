@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import useInstructorProfile from '../../hooks/useInstructorProfile';
+import ReviewList from '../common/ReviewList'; // Imported for full reviews tab
+import EditProfileModal from '../instructor-profile/EditProfileModal'; // Import Modal
 import { instructorService } from '../../services/instructorService';
 import Header from '../common/Header';
 import MetricsGrid from './MetricsCards'; // Renamed import for clarity
@@ -9,9 +11,12 @@ import PerformanceAnalytics from './PerformanceAnalytics';
 import AIInsightCard from './AIInsightCard';
 import RecentFeedbackPanel from './RecentFeedbackPanel';
 import DashboardHero from './DashboardHero'; // Premium Hero
+import PrivateMessages from '../student-dashboard/PrivateMessages';
+import { TrendingUp } from 'lucide-react'; 
 import './InstructorDashboard.css';
 
 import { generateInstructorReport } from '../../utils/AppReportGenerator';
+
 
 const InstructorDashboard = () => {
     const { user } = useSelector(state => state.auth);
@@ -21,9 +26,12 @@ const InstructorDashboard = () => {
         stats, 
         feedbacks,
         loading,
-        error // Get error from hook
+        error, // Get error from hook
+        updateProfile // Needed for Edit Modal
     } = useInstructorProfile();
     const navigate = useNavigate();
+    const [activeTab, setActiveTab] = React.useState('overview');
+    const [isEditOpen, setIsEditOpen] = React.useState(false); // Modal State
 
     // Mock Badges (In real app, derive from stats)
     const badges = [
@@ -36,6 +44,22 @@ const InstructorDashboard = () => {
         if (!profile) return;
         generateInstructorReport(profile, stats, feedbacks);
     };
+
+    // Calculate Trend Data (Ported from Executive Profile)
+    const trendPath = useMemo(() => {
+         const validFeedbacks = feedbacks || [];
+         if (validFeedbacks.length < 2) return null;
+         
+         const sorted = [...validFeedbacks].sort((a,b) => (a.createdAt || 0) - (b.createdAt || 0)); // Sort by date
+         
+         const points = sorted.map((f, i) => {
+             const rating = f.rating || f.ratingValue || 0;
+             const x = (i / (sorted.length - 1)) * 500;
+             const y = 200 - ((rating / 5) * 200);
+             return `${x},${y}`;
+         }).join(' L ');
+         return `M ${points}`;
+    }, [feedbacks]);
 
     if (loading) {
         return (
@@ -98,119 +122,180 @@ const InstructorDashboard = () => {
             <div className="dashboard-content-premium">
                 
                 {/* 0. WELCOME HEADER (Floating) */}
-                <div className="dashboard-welcome-section">
-                    <h1 className="welcome-title-premium">
-                        Welcome back, <span className="text-gradient-premium">{profile?.fullName?.split(' ')[0] || 'Instructor'}</span>
-                    </h1>
-                    <p className="welcome-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <div className="dashboard-welcome-section" style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end'}}>
+                    <div>
+                        <h1 className="welcome-title-premium">
+                            Welcome back, <span className="text-gradient-premium">{profile?.fullName?.split(' ')[0] || 'Instructor'}</span>
+                        </h1>
+                        <p className="welcome-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+
+                    {/* Report Button Moved Here */}
+                    <button 
+                        onClick={handleDownloadingReport}
+                        className="btn-premium"
+                        style={{
+                            display:'flex', alignItems:'center', gap: 8, 
+                            padding: '10px 20px', borderRadius: '50px', fontSize: '0.9rem',
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)'
+                        }}
+                    >
+                        <span style={{fontSize:'1.1rem'}}>📥</span> Export Report
+                    </button>
                 </div>
 
-                {/* PREMIUM BENTO GRID (v3) */}
-                <div className="ultra-bento-grid">
-                    
-                    {/* AREA: HERO (Profile Summary) */}
-                    <div className="grid-area-hero">
-                        <DashboardHero 
-                            profile={profile} 
-                            stats={stats} 
-                            badges={badges} 
-                        />
-                    </div>
+                {/* 0.5 HERO PROFILE (Persistent) */}
+                <div style={{marginBottom: '2rem'}}>
+                    <DashboardHero 
+                        profile={profile} 
+                        stats={stats} 
+                        badges={badges} 
+                        onEdit={() => setIsEditOpen(true)}
+                    />
+                </div>
 
-                    {/* AREA: STATS (Metrics) */}
-                    <div className="grid-area-stats">
-                        <MetricsGrid 
-                            stats={stats || {}} 
-                            onMetricClick={(type) => console.log('Metric clicked:', type)} 
-                        />
-                    </div>
+                {/* TAB NAVIGATION */}
+                <div style={{
+                    display:'flex', gap: 30, marginBottom: 25, borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 0
+                }}>
+                    {['Overview', 'Reviews', 'Messages'].map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => {
+                                const key = tab.toLowerCase();
+                                setActiveTab(key);
+                            }}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: activeTab === tab.toLowerCase() ? '#60a5fa' : 'rgba(255,255,255,0.6)',
+                                padding: '10px 0',
+                                fontSize: '1rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                borderBottom: activeTab === tab.toLowerCase() ? '2px solid #60a5fa' : '2px solid transparent',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {tab === 'Reviews' ? 'Reviews (' + (feedbacks?.length || 0) + ')' : tab}
+                        </button>
+                    ))}
+                </div>
 
-                    {/* AREA: MAIN (Charts) */}
-                    <div className="grid-area-charts bento-panel glass-effect">
-                        <div className="panel-header-premium">
-                            <h3 className="panel-title-premium">
-                                <span className="icon-glow">📈</span> Engagement Trends
-                            </h3>
-                            <select className="premium-select-pill">
-                                <option>This Semester</option>
-                                <option>Last 6 Months</option>
-                            </select>
-                        </div>
-                        <div className="chart-container-premium">
-                            <PerformanceAnalytics />
-                        </div>
-                    </div>
-
-                    {/* AREA: SIDEBAR (Quick Actions & Tools) */}
-                    <div className="grid-area-sidebar">
+                {/* TAB CONTENT RENDERER */}
+                
+                {/* 1. OVERVIEW TAB */}
+                {activeTab === 'overview' && (
+                    <div className="ultra-bento-grid">
                         
-                        {/* Compact AI Card */}
-                        <div className="sidebar-item">
-                            <AIInsightCard />
+                        {/* AREA: BIO (Moved to Top) */}
+                        <div className="bento-panel glass-effect p-6" style={{gridColumn: '1 / -1', marginBottom: '1.5rem'}}>
+                            <h3 className="panel-title-premium mb-4">About Me</h3>
+                            <p style={{color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '1rem'}}>
+                                {profile?.bio || profile?.about || "Welcome to my instructor profile! I'm passionate about teaching and helping students succeed. Check back here for updates on my courses and teaching philosophy."}
+                            </p>
                         </div>
 
-                        {/* Quick Actions Restyled */}
-                        <div className="sidebar-item bento-panel glass-effect p-6">
-                            <h3 className="panel-title-premium mb-4">Control Centre</h3>
-                            <div className="quick-actions-premium-list">
-                                <button className="qa-item" onClick={() => navigate('/instructor/reviews')}>
-                                    <div className="qa-icon-box blue">💬</div>
-                                    <div className="qa-info">
-                                        <span className="qa-label">Reviews</span>
-                                        <span className="qa-sub">Respond</span>
-                                    </div>
-                                </button>
-                                <button className="qa-item" onClick={() => navigate('/instructor/courses')}>
-                                    <div className="qa-icon-box green">📚</div>
-                                    <div className="qa-info">
-                                        <span className="qa-label">Courses</span>
-                                        <span className="qa-sub">Manage</span>
-                                    </div>
-                                </button>
-                                <button className="qa-item" onClick={() => navigate(`/instructor/${user?.uid}`)}>
-                                    <div className="qa-icon-box purple">👤</div>
-                                    <div className="qa-info">
-                                        <span className="qa-label">Profile</span>
-                                        <span className="qa-sub">Edit</span>
-                                    </div>
-                                </button>
-                                <button className="qa-item" onClick={handleDownloadingReport}>
-                                    <div className="qa-icon-box pink">📥</div>
-                                    <div className="qa-info">
-                                        <span className="qa-label">Report</span>
-                                        <span className="qa-sub">Export</span>
-                                    </div>
-                                </button>
+                        {/* NEW SPLIT ROW: AI + GRAPH */}
+                        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                            
+                            {/* 1. AI Insights */}
+                            <div className="grid-area-stats" style={{ flex: 1, minWidth: '350px' }}>
+                               {/* Calculate Top Traits from Feedbacks */}
+                               {(() => {
+                                   // Simple Tag Frequency Analysis
+                                   const tagCounts = {};
+                                   feedbacks?.forEach(f => {
+                                       if (f.tags && Array.isArray(f.tags)) {
+                                           f.tags.forEach(t => {
+                                               tagCounts[t] = (tagCounts[t] || 0) + 1;
+                                           });
+                                       }
+                                   });
+                                   const sortedTags = Object.entries(tagCounts)
+                                       .sort((a,b) => b[1] - a[1])
+                                       .slice(0, 3)
+                                       .map(([tag]) => tag);
+                                    
+                                   return (
+                                       <AIInsightCard topTraits={sortedTags} />
+                                   );
+                               })()}
                             </div>
-                        </div>
 
-                        {/* Term Report Callout */}
-                         <div className="sidebar-item highlight-card-premium" onClick={handleDownloadingReport}>
-                            <div className="glow-orb"></div>
-                            <div className="hc-content">
-                                <span className="hc-icon">📑</span>
-                                <div className="hc-text">
-                                    <span className="hc-title">Term Report Ready</span>
-                                    <span className="hc-desc">Download your summary</span>
-                                </div>
+                            {/* 2. Performance Graph */}
+                            <div className="bento-panel glass-effect p-6" style={{ flex: 1, minWidth: '350px', display: 'flex', flexDirection: 'column' }}>
+                                 <div className="panel-title-premium mb-4" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                                     <span>Performance Trajectory</span>
+                                     <TrendingUp size={18} color="#4ade80" />
+                                 </div>
+                                 <div className="iep-chart-container" style={{position: 'relative', height: '250px', width: '100%', flex: 1}}>
+                                    {/* Simple SVG Chart (Reused Style) */}
+                                    <svg width="100%" height="100%" viewBox="0 0 500 200" preserveAspectRatio="none">
+                                        <defs>
+                                            <linearGradient id="gradDash" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" stopColor="#818cf8" stopOpacity={0.4} />
+                                                <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        {/* Grid Lines */}
+                                        <line x1="0" y1="150" x2="500" y2="150" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                                        <line x1="0" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                                        <line x1="0" y1="50" x2="500" y2="50" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+
+                                        {trendPath ? (
+                                            <>
+                                                <path d={`${trendPath} L 500 200 L 0 200 Z`} fill="url(#gradDash)" />
+                                                <path d={trendPath} fill="none" stroke="#818cf8" strokeWidth="3" strokeLinecap="round" />
+                                            </>
+                                        ) : (
+                                            <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fill="#64748b">
+                                                Not enough data yet for trajectory
+                                            </text>
+                                        )}
+                                    </svg>
+                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* AREA: FEEDBACK (Bottom Wide) */}
-                    <div className="grid-area-feedback bento-panel glass-effect">
-                        <div className="panel-header-premium">
-                            <h3 className="panel-title-premium">
-                                <span className="icon-glow">💬</span> Student Feedback
-                            </h3>
-                            <button className="link-btn-premium" onClick={() => navigate('/instructor/reviews')}>
-                                View All →
-                            </button>
                         </div>
-                        <RecentFeedbackPanel />
-                    </div>
+                        
 
-                </div>
+
+
+                        
+                        {/* Removed Control Centre entirely as requested */}
+                    </div>
+                )}
+
+                {/* 2. REVIEWS TAB */}
+                {activeTab === 'reviews' && (
+                    <div className="bento-panel glass-effect" style={{padding: '20px'}}>
+                         <ReviewList 
+                            reviews={feedbacks || []} 
+                            instructorId={user?.uid} 
+                            isInstructorView={true} 
+                        />
+                    </div>
+                )}
+
+                {/* 3. MESSAGES TAB (Private Connection) */}
+                {activeTab === 'messages' && (
+                     <div className="bento-panel glass-effect" style={{padding: '0', overflow:'hidden', borderRadius: '24px'}}>
+                         <div style={{padding: '20px'}}>
+                            <PrivateMessages user={user} />
+                         </div>
+                     </div>
+                )}
+                {/* MODAL RENDERER */}
+                {isEditOpen && (
+                    <EditProfileModal 
+                        profile={profile} 
+                        email={user?.email || profile?.email} 
+                        currentPhotoURL={profile?.profilePictureUrl || profile?.photoURL || (profile?.uid === user?.uid ? user?.photoURL : null)}
+                        onSave={updateProfile} 
+                        onClose={() => setIsEditOpen(false)} 
+                    />
+                )}
             </div>
         </div>
     );

@@ -63,12 +63,12 @@ body {
 }
 
 .dashboard-content {
-  max-width: 1400px;
+  max-width: 1150px; /* Constrain width for premium centered look */
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 4rem; /* More horizontal breathing room */
   display: flex;
   flex-direction: column;
-  gap: 2.5rem; /* Increased spacing for breathing room */
+  gap: 2.5rem; 
 }
 
 /* --- PREMIUM HERO --- */
@@ -2187,3 +2187,37 @@ body {
     animation: spin 1s linear infinite;
 }
 
+/* ULTRA BENTO GRID LAYOUT (Added for Dashboard Fix) */
+.ultra-bento-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.grid-area-hero {
+    grid-column: 1 / -1;
+}
+
+.grid-area-stats {
+    grid-column: 1 / -1;
+}
+
+
+.grid-area-sidebar {
+    /* Move the AI Card and Control Centre down as requested */
+    margin-top: 3rem; 
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* On mobile, stack everything */
+@media (max-width: 1024px) {
+    .ultra-bento-grid {
+        grid-template-columns: 1fr;
+    }
+    .grid-area-sidebar {
+        margin-top: 1.5rem;
+    }
+}

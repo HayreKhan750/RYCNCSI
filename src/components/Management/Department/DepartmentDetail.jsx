@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Header from '../../common/Header';
 import FeedbackStream from '../FeedbackStream'; // Reuse
-import InstructorInsights from '../InstructorInsights'; // Reuse
+import FacultyRosterList from '../FacultyRosterList'; // Renamed from InstructorInsights to break cache
+import { generateDepartmentReport } from '../../../utils/AppReportGenerator';
 import '../Management.css';
 
 const DepartmentDetail = () => {
@@ -16,8 +17,17 @@ const DepartmentDetail = () => {
     const { departments, topInstructors, recentFeedback } = useSelector(state => state.management);
     
     const deptStats = departments.find(d => d.name === decodedName);
-    const deptInstructors = topInstructors.filter(i => (i.department || 'General') === decodedName); // approximate
-    const deptFeedback = recentFeedback.filter(f => (f.department || 'General') === decodedName);
+    const deptInstructors = topInstructors.filter(i => {
+        const iDept = (i.department || i.deptName || 'General').toLowerCase().trim();
+        const target = decodedName.toLowerCase().trim();
+        return iDept === target || iDept.includes(target) || target.includes(iDept); 
+    });
+    
+    const deptFeedback = recentFeedback.filter(f => {
+        const fDept = (f.department || f.deptName || 'General').toLowerCase().trim();
+        const target = decodedName.toLowerCase().trim();
+        return fDept === target;
+    });
 
     if (!deptStats) {
         return <div className="management-container"><div className="management-main">Department not found or loading...</div></div>;
@@ -39,6 +49,15 @@ const DepartmentDetail = () => {
                         <h1 className="page-title">{decodedName}</h1>
                         <p className="page-subtitle">Department Performance Report</p>
                     </div>
+                    <button 
+                        onClick={() => {
+                            console.log("Downloading report for", decodedName);
+                            generateDepartmentReport(decodedName, deptInstructors, deptStats);
+                        }}
+                        className="btn-download-report"
+                    >
+                        <span style={{fontSize:'1.1rem'}}>📥</span> Download Report
+                    </button>
                 </div>
 
                 {/* KPI Row */}
@@ -65,7 +84,7 @@ const DepartmentDetail = () => {
                         {/* Instructor List */}
                         <div className="glass-panel">
                              <h2 className="panel-title" style={{marginBottom: '20px'}}>Faculty Roster</h2>
-                             <InstructorInsights instructors={deptInstructors.length > 0 ? deptInstructors : []} />
+                             <FacultyRosterList instructors={deptInstructors.length > 0 ? deptInstructors : []} />
                              {deptInstructors.length === 0 && <p style={{color: 'var(--text-secondary)'}}>No instructor data for this department this month.</p>}
                         </div>
                     </div>

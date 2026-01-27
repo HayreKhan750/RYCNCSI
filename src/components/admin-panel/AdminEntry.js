@@ -28,7 +28,8 @@ export default function AdminEntry() {
     flagRating,
     registerUser,
     updateUserStatus,
-    banUser
+    banUser,
+    updateUserProfile // Fix: Destructure this
   } = useAdminData();
 
   const [activePage, setActivePage] = useState('dashboard');
@@ -49,13 +50,14 @@ export default function AdminEntry() {
   const renderPage = () => {
       switch(activePage) {
           case 'users':
-              return <AdminUsers 
-                        users={users} 
-                        onDelete={deleteUser} 
-                        onApprove={approveInstructor} 
-                        onBan={banUser}
-                        onUpdateStatus={updateUserStatus}
-                     />;
+          return <AdminUsers 
+                    users={users} 
+                    onDelete={deleteUser} 
+                    onApprove={approveInstructor} 
+                    onBan={banUser}
+                    onUpdateStatus={updateUserStatus}
+                    onUpdateProfile={updateUserProfile} 
+                 />;
           case 'register':
               return <div className="fade-in"><AdminRegisterUser onRegister={registerUser} /></div>;
           case 'content':
@@ -66,14 +68,13 @@ export default function AdminEntry() {
                         onDeleteRating={deleteRating} 
                         updateRatingStatus={updateRatingStatus}
                         flagRating={flagRating}
-                        flagRating={flagRating}
                         view={activePage === 'logs' ? 'logs' : 'ratings'}
                      />;
           case 'settings':
               return <div className="fade-in"><AdminSettings /></div>;
           case 'dashboard':
           default:
-              return <AdminDashboard stats={stats} />;
+              return <AdminDashboard stats={stats} ratings={ratings} users={users} />;
       }
   };
 

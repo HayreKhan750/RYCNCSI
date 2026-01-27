@@ -16,7 +16,7 @@ const ConfidenceMeter = ({ score }) => (
     </div>
 );
 
-const AIInsightCard = () => {
+const AIInsightCard = (props) => {
     const dispatch = useDispatch();
     const { profile } = useInstructorProfile();
     const { activeProfile } = useSelector(state => state.instructors);
@@ -31,12 +31,20 @@ const AIInsightCard = () => {
         }
     };
 
+    // Use passed topTraits if available, otherwise fallback to AI data or default
+    const strengths = props.topTraits && props.topTraits.length > 0 ? props.topTraits : (aiInsights?.strengths || ["Waiting for data..."]);
+
     const displayData = aiInsights || {
         summary: "I'm analyzing your initial teaching patterns. Collect 5+ reviews to unlock deep insights.",
-        strengths: ["Waiting for data..."],
+        strengths: strengths,
         improvements: ["Encourage students to review"],
         confidence: 45
     };
+
+    // Override strengths if topTraits provided even if AI insights exist
+    if (props.topTraits && props.topTraits.length > 0) {
+        displayData.strengths = props.topTraits;
+    }
 
     return (
         <motion.div 

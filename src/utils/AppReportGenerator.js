@@ -85,26 +85,33 @@ export const generateInstructorReport = (profile, stats, feedback) => {
     doc.text(`Department: ${profile?.department || 'General'}`, 14, 62);
     doc.text(`Report ID: #${Math.floor(Math.random() * 10000)}`, 14, 68);
 
-    // 3. Key Metrics Grid (Y: 80)
-    doc.setDrawColor(200);
-    doc.line(14, 75, 196, 75);
-
+    // 3. Key Metrics Grid
     const statsY = 90;
+    
+    // Derived Stats (Fallbacks)
+    const displayRating = stats?.avgRating || stats?.averageRating || "0.0";
+    const displayReviews = stats?.reviewCount || feedback?.length || "0";
+    const displayCourses = stats?.courseCount || (profile?.courses?.length) || "0";
+    
+    // Estimate students from unique feedback IDs if not provided
+    const uniqueStudents = new Set(feedback?.map(f => f.studentId || f.userId)).size;
+    const displayStudents = stats?.totalStudents && stats.totalStudents > 0 ? stats.totalStudents : (uniqueStudents || "0");
+
     // Box 1: Avg Rating
     doc.setFontSize(12); doc.setTextColor(100); doc.text("Avg Rating", 14, statsY);
-    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(stats?.avgRating || "0.0"), 14, statsY + 10);
+    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(displayRating), 14, statsY + 10);
     
     // Box 2: Total Reviews
     doc.setFontSize(12); doc.setTextColor(100); doc.text("Total Reviews", 60, statsY);
-    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(stats?.reviewCount || "0"), 60, statsY + 10);
+    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(displayReviews), 60, statsY + 10);
 
     // Box 3: Students
-    doc.setFontSize(12); doc.setTextColor(100); doc.text("Students", 110, statsY);
-    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(stats?.totalStudents || "0"), 110, statsY + 10);
+    doc.setFontSize(12); doc.setTextColor(100); doc.text("Students (Est)", 110, statsY);
+    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(displayStudents), 110, statsY + 10);
 
     // Box 4: Courses
     doc.setFontSize(12); doc.setTextColor(100); doc.text("Courses", 160, statsY);
-    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(stats?.courseCount || "0"), 160, statsY + 10);
+    doc.setFontSize(20); doc.setTextColor(0); doc.text(String(displayCourses), 160, statsY + 10);
 
     // 4. Recent Feedback Table
     let y = 120;
@@ -113,12 +120,19 @@ export const generateInstructorReport = (profile, stats, feedback) => {
     doc.text("Recent Student Feedback", 14, y);
     
     y += 10;
-    const tableData = feedback?.slice(0, 10).map(f => [
-        f.courseCode || 'N/A',
-        new Date(f.timestamp || Date.now()).toLocaleDateString(),
-        f.rating ? `${f.rating} ★` : '-',
-        f.comment?.substring(0, 40) + '...' || 'No comment'
-    ]) || [];
+    const tableData = feedback?.slice(0, 15).map(f => {
+        const ratingVal = f.rating || f.ratingValue || 0;
+        const commentVal = f.feedback || f.review || f.comment || f.message || "No Description";
+        const courseVal = f.courseTitle || f.courseCode || f.courseId || "General";
+        const dateVal = new Date(f.timestamp || f.createdAt || Date.now()).toLocaleDateString();
+
+        return [
+            courseVal.substring(0, 20),
+            dateVal,
+            `${ratingVal} / 5`, // Pure ASCII to avoid encoding issues
+            commentVal.substring(0, 60) + (commentVal.length > 60 ? '...' : '')
+        ];
+    }) || [];
 
     autoTable(doc, {
         startY: y,
@@ -126,7 +140,13 @@ export const generateInstructorReport = (profile, stats, feedback) => {
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [79, 70, 229] },
-        styles: { fontSize: 9 }
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 20 },
+            3: { cellWidth: 'auto' }
+        }
     });
 
     // Footer
@@ -139,4 +159,130 @@ export const generateInstructorReport = (profile, stats, feedback) => {
     }
 
     doc.save(`Instructor_Report_${profile?.fullName?.replace(/\s+/g, '_')}_${date.replace(/\//g, '-')}.pdf`);
+};
+
+export const generateDepartmentReport = (deptNameRaw, instructors = [], stats = {}, aiSummary = "", departments = []) => {
+    try {
+        const doc = new jsPDF();
+        const date = new Date().toLocaleDateString();
+        const deptName = deptNameRaw || "Department";
+
+        // 1. Header
+        doc.setFillColor(79, 70, 229);
+        doc.rect(0, 0, 210, 40, 'F');
+        
+        doc.setFontSize(22);
+        doc.setTextColor(255, 255, 255);
+        doc.text("Department Performance Report", 14, 20);
+        doc.setFontSize(14);
+        doc.text(deptName, 14, 30);
+        
+        doc.setFontSize(10);
+        doc.text(`Generated: ${date}`, 170, 32);
+
+        // 2. Executive Metrics (Y: 55)
+        doc.setTextColor(0);
+        doc.setFontSize(14);
+        doc.text("Executive Summary", 14, 55);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        const metricsY = 65;
+        
+        // Grid Setup
+        const activeCount = instructors?.length || 0;
+        const avgRating = stats?.rating || "0.0";
+        const studentEng = stats?.students || "0";
+        const deptCount = departments?.length || 0;
+
+        doc.text(`Active Faculty: ${activeCount}`, 14, metricsY);
+        doc.text(`Avg Rating: ${avgRating}`, 64, metricsY);
+        doc.text(`Student Engagement: ${studentEng}`, 114, metricsY);
+        doc.text(`Departments: ${deptCount}`, 164, metricsY);
+
+        doc.setDrawColor(220);
+        doc.line(14, metricsY + 8, 196, metricsY + 8);
+
+        // 3. Department Breakdown (New Table)
+        let currentY = 85;
+
+        if (departments && departments.length > 0) {
+            doc.setTextColor(0);
+            doc.setFontSize(14);
+            doc.text("Departmental Breakdown", 14, currentY);
+            
+            const deptTableData = departments.map(d => [
+                d.name,
+                String(d.avg || "0.0"),
+                String(d.count || "0"),
+                String(d.engagement || "0")
+            ]);
+
+            autoTable(doc, {
+                startY: currentY + 5,
+                head: [['Department', 'Avg Rating', 'Ratings Count', 'Engagement Score']],
+                body: deptTableData,
+                theme: 'grid',
+                headStyles: { fillColor: [79, 70, 229] },
+                styles: { fontSize: 10 }
+            });
+            
+            // Update Y position after the table
+            currentY = doc.lastAutoTable.finalY + 15;
+        }
+
+        // 4. AI Insight Summary
+        if (aiSummary) {
+            doc.setFontSize(12);
+            doc.setTextColor(79, 70, 229); // Indigo
+            doc.text("AI Performance Insight", 14, currentY);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(80);
+            const splitText = doc.splitTextToSize(aiSummary, 180);
+            doc.text(splitText, 14, currentY + 7);
+            
+            currentY += 15 + (splitText.length * 4); 
+        }
+
+        // 5. Faculty Roster Table
+        doc.setTextColor(0);
+        doc.setFontSize(14);
+        doc.text("Faculty Performance Roster", 14, currentY);
+
+        const instructorTableData = (instructors || []).map(i => [
+            i.displayName || i.name || "Unknown",
+            i.department || "General",
+            String(i.rating || "0.0"),
+            String(i.count || "0"),
+            String(i.engagementScore || "A")
+        ]);
+
+        autoTable(doc, {
+            startY: currentY + 5,
+            head: [['Instructor', 'Department', 'Rating', 'Reviews', 'Engagement']],
+            body: instructorTableData,
+            theme: 'grid',
+            headStyles: { fillColor: [67, 56, 202] },
+            styles: { fontSize: 9 }
+        });
+
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Confidential - Annual Report - Page ${i}`, 105, 290, null, null, "center");
+        }
+
+        const safeName = deptName.replace(/[^a-zA-Z0-9]/g, '_');
+        const safeDate = date.replace(/[^a-zA-Z0-9]/g, '-');
+        doc.save(`${safeName}_Report_${safeDate}.pdf`);
+        return true;
+    } catch (e) {
+        console.error("PDF Generation Failed:", e);
+        alert("Failed to generate PDF: " + e.message);
+        return false;
+    }
 };

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import InstructorDashboardCSS from './InstructorDashboard.css'; // Ensure CSS is loaded
 
@@ -9,8 +10,9 @@ const getStatusColor = (badges = []) => {
     return 'text-slate-400';
 };
 
-const DashboardHero = ({ profile, stats, badges }) => {
+const DashboardHero = ({ profile, stats, badges, onEdit }) => {
     const { user } = useSelector(state => state.auth);
+    const navigate = useNavigate();
 
     if (!profile) return null;
 
@@ -22,6 +24,14 @@ const DashboardHero = ({ profile, stats, badges }) => {
 
     // Calculate engagement score or use prop
     const engagementScore = stats?.engagementScore || (stats?.reviewCount * 1.5).toFixed(0) || 124;
+
+    const handleEditClick = () => {
+        if (onEdit) {
+            onEdit();
+        } else {
+            navigate(`/instructor/${profile.uid || user?.uid}`);
+        }
+    };
 
     return (
         <motion.div 
@@ -37,6 +47,32 @@ const DashboardHero = ({ profile, stats, badges }) => {
                     <div className="hero-avatar-wrapper-lg">
                         <img src={profilePic} alt={displayName} className="hero-avatar-lg" />
                         <div className="hero-status-dot online" title="Active Now"></div>
+                        
+                        {/* Edit Button Overlay */}
+                        <button 
+                            onClick={handleEditClick}
+                            title="Edit Profile"
+                            style={{
+                                position: 'absolute',
+                                bottom: -5,
+                                right: -5,
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                background: '#6366f1', // Indigo 500
+                                border: '2px solid white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                                color: 'white',
+                                fontSize: '14px',
+                                zIndex: 10
+                            }}
+                        >
+                            ✏️
+                        </button>
                     </div>
                     
                     <div className="hero-identity">

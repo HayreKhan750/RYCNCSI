@@ -18,9 +18,9 @@ export default function FeedbackSection({ feedbacks, onReply, onLike, onReplyDel
       
       const replyData = {
           text: replyText[feedbackId],
-          authorName: user?.displayName || user?.name || 'Student',
+          authorName: user?.displayName || user?.name || 'Instructor',
           authorId: user?.uid,
-          role: user?.role || 'student' // Pass role for styling
+          role: 'instructor' // Force instructor role for dashboard replies
       };
 
       const success = await onReply(feedbackId, replyData);
@@ -52,7 +52,7 @@ export default function FeedbackSection({ feedbacks, onReply, onLike, onReplyDel
                           </div>
                           <div>
                               <span className="student-name" style={{display:'block', lineHeight:1}}>{review.studentName || 'Student'}</span>
-                              <span className="review-date" style={{fontSize:'0.75rem', opacity:0.6}}>{new Date(review.createdAt?.seconds * 1000 || Date.now()).toLocaleDateString()}</span>
+                              <span className="review-date" style={{fontSize:'0.75rem', opacity:0.6}}>{timeAgo(review.createdAt)}</span>
                           </div>
                       </div>
                       <div className="star-display">

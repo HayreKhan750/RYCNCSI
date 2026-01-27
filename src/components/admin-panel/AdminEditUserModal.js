@@ -39,9 +39,12 @@ export default function AdminEditUserModal({ isOpen, onClose, user, onSave }) {
     }, 300);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(user.id, formData);
+    await onSave(user.id, formData);
+    // Force UI refresh after save to ensure sync
+    // We can rely on the parent (AdminUsers) or global refresh, 
+    // but typically onSave is async now in the parent wrapper I'll create/verify.
     handleClose();
   };
 

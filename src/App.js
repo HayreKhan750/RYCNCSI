@@ -37,6 +37,7 @@ const GrantInstructor = lazy(() => import('./components/GrantInstructor'));
 const ManagementDashboard = lazy(() => import('./components/Management/ManagementDashboard'));
 const DepartmentList = lazy(() => import('./components/Management/Department/DepartmentList'));
 const DepartmentDetail = lazy(() => import('./components/Management/Department/DepartmentDetail'));
+const FacultyRosterPage = lazy(() => import('./components/Management/Department/FacultyRosterPage')); // New Page
 const InstructorExecutiveProfile = lazy(() => import('./components/Management/Instructor/InstructorExecutiveProfile'));
 const FeedbackConsole = lazy(() => import('./components/Management/Moderation/FeedbackConsole'));
 
@@ -173,6 +174,11 @@ export default function App() {
               <Route path="/management/department/:deptName" element={
                 <ManagementRoute>
                   <DepartmentDetail />
+                </ManagementRoute>
+              } />
+              <Route path="/management/department/:deptName/roster" element={
+                <ManagementRoute>
+                  <FacultyRosterPage />
                 </ManagementRoute>
               } />
               <Route path="/management/instructor/:id" element={

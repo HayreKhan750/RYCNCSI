@@ -32,6 +32,7 @@ export default function AuthEntry() {
        
        if (user.emailVerified || user.isRegistered || ALLOWED_UIDS.includes(user.uid)) {
            // Already verified or registered, redirect to dashboard
+           // Already verified or registered, redirect to dashboard
            setTimeout(() => {
                // Safety: If role is student but email is admin, force admin/management
                // This is a UI-side safety net until the session refreshes
@@ -46,7 +47,7 @@ export default function AuthEntry() {
                } else { 
                    navigate('/dashboard');
                }
-           }, 800);
+           }, 50); // Reduced from 800ms for instant feel
        } else {
            setView('verify');
        }

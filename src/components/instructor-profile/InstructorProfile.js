@@ -97,13 +97,13 @@ export default function InstructorProfile({ user: propUser }) {
           <div className="profile-header-overlay">
               <div className="profile-avatar-wrapper">
                   <img 
-                      src={profile.photoURL || profile.profilePictureUrl || `https://ui-avatars.com/api/?name=${profile.instructorName}&background=random`} 
+                      src={profile.photoURL || profile.profilePictureUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.instructorName || profile.fullName || profile.displayName || 'Instructor')}&background=random`} 
                       alt={profile.instructorName} 
                       className="profile-avatar" 
                   />
               </div>
               <div className="profile-header-info">
-                  <h1 className="profile-name">{profile.instructorName}</h1>
+                  <h1 className="profile-name">{profile.instructorName || profile.fullName || profile.displayName || profile.name || "Instructor"}</h1>
                   <span className="profile-role-badge">{profile.department || "General Sciences"}</span>
               </div>
               

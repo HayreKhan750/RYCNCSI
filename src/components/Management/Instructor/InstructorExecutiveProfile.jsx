@@ -5,6 +5,7 @@ import { fetchInstructorProfile } from '../../../store/slices/instructorSlice';
 import { selectInstructorById } from '../../../store/selectors/instructorSelectors';
 import FeedbackStream from '../FeedbackStream';
 import { ArrowLeft, Edit3, Mail, BookOpen, UserCheck, ShieldCheck, Award, TrendingUp, Users } from 'lucide-react';
+import Header from '../../common/Header';
 import './InstructorExecutiveProfile.css';
 
 const InstructorExecutiveProfile = () => {
@@ -38,7 +39,8 @@ const InstructorExecutiveProfile = () => {
         role: rawData.role || 'Instructor'
     };
 
-    const feedback = recentFeedback.filter(f => f.instructorId === id);
+    // Use profile-specific ratings if available, otherwise fallback to global filter
+    const feedback = activeProfileData?.ratings || recentFeedback.filter(f => f.instructorId === id);
 
     // Calculate Trend Data
     const trendPath = useMemo(() => {
@@ -54,15 +56,12 @@ const InstructorExecutiveProfile = () => {
 
     return (
         <div className="iep-container">
+            <Header title={instructor.department ? instructor.department.toUpperCase() : ''} showBack={true} />
+            
             {/* Banner Section */}
             <div className="iep-banner-wrapper">
                 <div className="iep-banner"></div>
-                <button onClick={() => navigate(-1)} className="iep-back-btn">
-                    <ArrowLeft size={18} /> Back
-                </button>
-                <button className="iep-edit-btn">
-                     <Edit3 size={16} /> Edit Profile
-                </button>
+                {/* Back button removed (moved to Header) */}
             </div>
 
             {/* Header Content */}
@@ -92,50 +91,23 @@ const InstructorExecutiveProfile = () => {
             <div className="iep-grid">
                 {/* Left Column: Info & Bio */}
                 <div className="iep-col-left">
-                    {/* Bio Card */}
-                    <div className="iep-card">
+                     {/* Bio Card */}
+                    <div className="iep-card" style={{background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.05)'}}>
                         <h3 className="iep-card-title">About</h3>
-                        <p style={{lineHeight: 1.6, color: '#cbd5e1', fontSize: '0.95rem'}}>
+                        <p style={{lineHeight: 1.6, color: '#ecf0f1', fontSize: '1rem'}}>
                             {instructor.bio}
                         </p>
                     </div>
 
                     {/* Contact Card */}
-                    <div className="iep-card">
+                    <div className="iep-card" style={{background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.05)'}}>
                         <h3 className="iep-card-title">Contact Info</h3>
                         <div className="iep-info-row">
-                            <Mail className="iep-info-icon" />
+                            <Mail className="iep-info-icon" style={{color: '#818cf8'}} />
                             <div className="iep-info-content">
-                                <h4>Email Address</h4>
-                                <p>{instructor.email}</p>
+                                <h4 style={{color: '#94a3b8'}}>Email Address</h4>
+                                <p style={{color: 'white'}}>{instructor.email}</p>
                             </div>
-                        </div>
-                         <div className="iep-info-row">
-                            <UserCheck className="iep-info-icon" />
-                            <div className="iep-info-content">
-                                <h4>Status</h4>
-                                <p>{instructor.isVerified ? 'Active & Registered' : 'Catalog Entry Only'}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Courses Card */}
-                     <div className="iep-card">
-                        <h3 className="iep-card-title">Teaching Schedule</h3>
-                        <div className="iep-course-list">
-                            {instructor.courses.length > 0 ? (
-                                instructor.courses.map((c, i) => (
-                                    <div key={i} className="iep-course-item">
-                                        <div>
-                                            <div className="iep-course-code">{c.code || c.courseNo}</div>
-                                            <div className="iep-course-name">{c.title || c.courseTitle}</div>
-                                        </div>
-                                        {c.year && <span className="iep-badge" style={{fontSize: '0.7rem'}}>Year {c.year}</span>}
-                                    </div>
-                                ))
-                            ) : (
-                                <p style={{color: '#64748b', fontStyle: 'italic'}}>No specific courses assigned yet.</p>
-                            )}
                         </div>
                     </div>
                 </div>

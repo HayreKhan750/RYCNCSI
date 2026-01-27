@@ -41,7 +41,11 @@ export default class Instructor extends User {
             bio: this.bio,
             courses: this.courses,
             tags: this.tags,
-            averageRating: this.averageRating
+            averageRating: this.averageRating,
+            // Ensure UI-compatible fields are present
+            fullName: this.displayName,
+            instructorName: this.displayName,
+            name: this.displayName
         };
     }
 

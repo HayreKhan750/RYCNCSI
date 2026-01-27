@@ -6,19 +6,26 @@ import AuthInput from './AuthInput';
 export default function Login({ onNavigate, onLoginSuccess }) {
   const dispatch = useDispatch();
   const { status, error } = useSelector((state) => state.auth);
-  const loading = status === 'loading';
+  const [redirecting, setRedirecting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Instant local feedback
+  // specific flag to keep spinner spinning during navigation delay
+  const loading = status === 'loading' || redirecting || isSubmitting; 
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true); // Show spinner immediately
     dispatch(clearError());
+    // Don't set redirecting here, redux handles 'loading' status
     const resultAction = await dispatch(loginUser(formData));
+    setIsSubmitting(false); // clear local flag, redux 'loading' or 'redirecting' takes over
     if (loginUser.fulfilled.match(resultAction)) {
+        setRedirecting(true); // Keep loading while we navigate
         onLoginSuccess();
     } else {
         // Safe Error logging (only message)
         console.error('Login Failed:', resultAction.payload);
-        alert(`Login Failed: ${resultAction.payload}`);
+        // alert(`Login Failed: ${resultAction.payload}`); // Removed alert for cleaner UI, error is shown in UI
     }
   };
 
@@ -26,6 +33,7 @@ export default function Login({ onNavigate, onLoginSuccess }) {
     dispatch(clearError());
     const resultAction = await dispatch(googleLogin());
     if (googleLogin.fulfilled.match(resultAction)) {
+        setRedirecting(true);
         onLoginSuccess();
     }
   };

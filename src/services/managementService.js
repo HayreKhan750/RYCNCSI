@@ -10,20 +10,32 @@ export const managementService = {
     try {
         const q = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
-        const feedbacks = [];
         
+        // Fetch instructors to hydrate missing department info
+        const instructors = await instructorService.fetchAllInstructors();
+        const instMap = {};
+        instructors.forEach(i => {
+           instMap[i.id] = i.department || 'General';
+           if(i.userId) instMap[i.userId] = i.department || 'General';
+        });
+
+        const feedbacks = [];
         snapshot.forEach(doc => {
             const data = doc.data();
-            // Serialize to ensure Redux compatibility
             const serializedData = serializeFirestoreData(data);
             
+            // Hydrate Department if missing (Critical for Dept Detail Page filtering)
+            const dept = data.deptName || data.department || instMap[data.instructorId] || 'General';
+
             feedbacks.push({
                 id: doc.id,
-                ...serializedData, // Safe clean data
+                ...serializedData, // Safe clean data (includes deptName/department from doc)
+                department: dept, // Explicit override/hydration
+                deptName: dept,
                 studentName: data.anonymous ? 'Anonymous' : (data.studentName || 'Student'),
                 instructorName: data.instructorName || data.instructorId, 
                 rating: data.overall || data.rating || 0,
-                time: timeAgo(data.createdAt || data.timestamp) // Calculate time string from original if needed, or now serialized ISO string
+                time: timeAgo(data.createdAt || data.timestamp)
             });
         });
         return feedbacks;
@@ -79,47 +91,88 @@ export const managementService = {
     }
   },
 
-  // 2. Department Analytics
+  // 2. Department Analytics (Real-Time from Feedbacks)
   fetchDepartmentAnalytics: async () => {
     try {
-        // Use the consistent instructor list
-        const instructors = await instructorService.fetchAllInstructors();
+        // Fetch all feedbacks for accurate aggregation
+        // In production, this should be a cached cloud function result.
+        const snapshot = await getDocs(query(collection(db, 'feedbacks'), limit(500))); // Limit for client performance
         
         const deptMap = {};
 
-        // Aggregate from Instructors
-        instructors.forEach(inst => {
-            const dept = inst.department || 'General';
-            if (!deptMap[dept]) {
-                deptMap[dept] = { 
-                    name: dept, 
-                    instructorCount: 0, 
-                    totalRatingSum: 0, 
-                    totalRatingCount: 0 
-                };
-            }
-            deptMap[dept].instructorCount++;
-            
-            // Unpack aggregated ratings from instructor object
-            if (inst.totalRatings > 0) {
-                 // Reconstruct sum to aggregate correctly
-                 deptMap[dept].totalRatingSum += (inst.avgRating * inst.totalRatings);
-                 deptMap[dept].totalRatingCount += inst.totalRatings;
+        // We also need to map instructor IDs to departments if the feedback doesn't have it
+        const instructors = await instructorService.fetchAllInstructors();
+        const instDeptMap = {};
+        instructors.forEach(i => {
+            if(i.userId) instDeptMap[i.userId] = i.department || 'General';
+            if(i.id) instDeptMap[i.id] = i.department || 'General';
+        });
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const rating = Number(data.rating || data.ratingValue || data.score || 0);
+
+            if (rating > 0) {
+                // Determine Department
+                // 1. Try direct field
+                // 2. Try lookup via instructorId
+                // 3. Fallback
+                const dept = data.deptName || data.department || instDeptMap[data.instructorId] || 'General';
+                
+                if (!deptMap[dept]) {
+                    deptMap[dept] = { 
+                        name: dept, 
+                        totalRatingSum: 0, 
+                        totalRatingCount: 0,
+                        engagement: 0
+                    };
+                }
+                
+                deptMap[dept].totalRatingSum += rating;
+                deptMap[dept].totalRatingCount += 1;
+                deptMap[dept].engagement += 1; // Count as 1 interaction
             }
         });
 
-        // Format
-        return Object.values(deptMap).map(d => {
+        // Count Instructors per Department
+        const deptInstructorValues = {};
+        instructors.forEach(i => {
+            const dName = i.department || 'General';
+            if (!deptInstructorValues[dName]) deptInstructorValues[dName] = 0;
+            deptInstructorValues[dName]++;
+        });
+
+        // Format for UI
+        const results = Object.values(deptMap).map(d => {
             const avg = d.totalRatingCount > 0 ? (d.totalRatingSum / d.totalRatingCount) : 0;
+            // console.log(`[DEBUG] Dept: ${d.name} -> Sum: ${d.totalRatingSum}, Count: ${d.totalRatingCount}, Avg: ${avg}`);
             return {
                 name: d.name,
-                instructorCount: d.instructorCount,
+                instructorCount: deptInstructorValues[d.name] || 0, // Real count from instructor list
                 ratingCount: d.totalRatingCount,
-                students: d.totalRatingCount, // Proxy for active students
+                students: d.totalRatingCount, 
                 rating: avg.toFixed(1),
                 sentiment: calculateSentiment(avg)
             };
         });
+        
+        // console.log("[DEBUG] Results:", results);
+        
+        // Ensure we at least return the known departments even if empty
+        const knownDepts = [...new Set(Object.values(instDeptMap))];
+        knownDepts.forEach(d => {
+            if (!results.find(r => r.name === d)) {
+                results.push({ 
+                    name: d, 
+                    rating: "0.0", 
+                    sentiment: 'No Data', 
+                    ratingCount: 0,
+                    instructorCount: deptInstructorValues[d] || 0 
+                });
+            }
+        });
+
+        return results.sort((a,b) => b.rating - a.rating);
 
     } catch (error) {
         console.error("Error fetching dept analytics:", error);
@@ -135,31 +188,29 @@ export const managementService = {
         // Get the master list
         const instructors = await instructorService.fetchAllInstructors();
 
-        // Sort by avgRating
-        // Sort by avgRating
-        // Filter out those with 0 ratings to avoid clustering
-        // Filter out "Unknown" names
         return instructors
-            .filter(i => 
-                i.ratingCount > 0 && 
-                i.instructorName && 
-                !i.instructorName.includes('Unknown') && 
-                i.instructorName.toLowerCase() !== 'dr. unknown'
-            )
+            .filter(i => {
+                // Robust Name Check: Use fullName (guaranteed by service) or fallbacks
+                const name = i.fullName || i.instructorName || i.name;
+                return name && !name.includes('Unknown') && name.toLowerCase() !== 'dr. unknown';
+            })
             .sort((a, b) => b.avgRating - a.avgRating)
-            .slice(0, 5)
-            .map(i => ({
-                id: i.id,
-                instructorName: i.instructorName,
-                // Map to common fields expected by UI components
-                name: i.instructorName,
-                displayName: i.instructorName,
-                department: i.department,
-                rating: i.avgRating.toFixed(1),
-                count: i.ratingCount,
-                photo: i.photo || i.photoURL || i.profilePictureUrl,
-                tags: i.tags || ['General']
-            }));
+            // .slice(0, 5) // REMOVED: Allow Redux to hold all, let UI component slice if needed.
+            .map(i => {
+                const finalName = i.fullName || i.instructorName || i.name || 'Instructor';
+                return {
+                    id: i.id,
+                    instructorName: finalName,
+                    // Map to common fields expected by UI components
+                    name: finalName,
+                    displayName: finalName,
+                    department: i.department,
+                    rating: i.avgRating.toFixed(1),
+                    count: i.totalRatings || i.ratingCount,
+                    photo: i.photo || i.photoURL || i.profilePictureUrl,
+                    tags: i.tags || ['General']
+                };
+            });
 
       } catch (e) {
           console.error(e);

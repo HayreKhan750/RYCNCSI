@@ -422,8 +422,14 @@ export default function ActivityDashboard({ ratings = [], isOwnProfile = false, 
                                   <div style={{
                                       minWidth: 32, height: 32, borderRadius: '50%', 
                                       background: 'var(--bg-root)', border: '1px solid var(--border-subtle)',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem'
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem',
+                                      overflow: 'hidden' 
                                   }}>
+                                      {/* Try to show image first if available (checking logic if needed), simplistic fallback here */}
+                                      {/* If we had user photo here, we would use it. Assuming text fallback mainly for replies unless expanded logic exists. 
+                                          Actually, let's just make sure if we DO implement images later, we use the policy.
+                                          For now, simply ensuring logic remains robust. 
+                                      */}
                                       {(reply.authorName || 'U').charAt(0)}
                                   </div>
                                   <div style={{flex: 1}}>

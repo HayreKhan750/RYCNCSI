@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { fetchDashboardData } from '../../store/slices/managementSlice';
 import FacultyOverview from './FacultyOverview';
 import DepartmentAnalytics from './DepartmentAnalytics';
-import InstructorInsights from './InstructorInsights';
+import FacultyRosterList from './FacultyRosterList';
 import AISummaryPanel from './AISummaryPanel';
 import FeedbackStream from './FeedbackStream';
 import Header from '../common/Header';
@@ -54,7 +54,7 @@ const ManagementDashboard = () => {
             {/* Left Column: Charts */}
             <div className="column-left">
                 <DepartmentAnalytics departments={departments} />
-                <InstructorInsights instructors={topInstructors} />
+                <FacultyRosterList instructors={topInstructors} />
             </div>
 
             {/* Right Column: AI & Feeds */}

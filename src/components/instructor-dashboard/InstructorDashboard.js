@@ -52,6 +52,9 @@ export default function InstructorDashboard({ user }) {
           case 'View My Profile':
               if (user?.uid) navigate(`/instructor/${user.uid}`);
               break;
+          case 'Private Messages':
+              navigate('/messages');
+              break;
           case 'Download Analytics Report':
               setShowAnalyticsModal(true);
               break;

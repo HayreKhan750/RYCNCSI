@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addReply, deleteFeedback, deleteReply } from '../../store/slices/feedbackSlice';
+import { addReply, deleteFeedback, deleteReply, flagFeedback } from '../../store/slices/feedbackSlice';
 import { feedbackService } from '../../services/feedbackService';
 import PremiumModal from './PremiumModal';
 
@@ -25,6 +25,10 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
         id: null,
         parentId: null // for replies
     });
+    
+    // Flag State
+    const [flagModal, setFlagModal] = useState({ isOpen: false, id: null });
+    const [successModal, setSuccessModal] = useState({ isOpen: false, message: '' });
 
     // Fetch Replies on Load
     useEffect(() => {
@@ -74,7 +78,7 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
         const text = replyText[feedbackId];
         if (!text || !text.trim()) return;
         if (!user || !user.uid) {
-            alert("You must be logged in to reply.");
+            setSuccessModal({ isOpen: true, message: "You must be logged in to reply." });
             return;
         }
 
@@ -104,7 +108,7 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
         } catch (e) {
             console.error("Failed to submit reply", e);
             const msg = e.message || (typeof e === 'string' ? e : 'Unknown error');
-            alert("Failed to submit reply: " + msg);
+            setSuccessModal({ isOpen: true, message: "Failed to submit reply: " + msg });
         }
     };
 
@@ -129,7 +133,6 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
 
     const confirmDelete = async () => {
         const { type, id, parentId } = deleteModal;
-        console.log(`Attempting to delete ${type}:`, id, "Parent:", parentId);
         
         try {
             if (type === 'review') {
@@ -144,12 +147,34 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                 }));
             }
         } catch (e) {
-            console.error("Delete failed error object:", e);
-            const errMsg = e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e));
-            alert("Failed to delete: " + errMsg);
+            console.error("Delete failed:", e);
+            setSuccessModal({ isOpen: true, message: "Failed to delete item." });
         }
         
         setDeleteModal({ isOpen: false, type: null, id: null, parentId: null });
+    };
+
+    const promptFlag = (id) => {
+        setFlagModal({ isOpen: true, id });
+    };
+
+    const confirmFlag = async (reason) => {
+        if (!flagModal.id) return;
+        try {
+            await dispatch(flagFeedback({
+                feedbackId: flagModal.id,
+                userId: user?.uid,
+                reason: reason || 'Instructor Flagged', // Use input reason or default
+                details: 'Flagged via Instructor Dashboard'
+            })).unwrap();
+            
+            // Show Premium Success Modal instead of alert
+            setSuccessModal({ isOpen: true, message: "Content has been flagged for review." });
+        } catch (e) {
+            console.error("Flag failed:", e);
+            setSuccessModal({ isOpen: true, message: "Failed to flag content. Please try again." });
+        }
+        setFlagModal({ isOpen: false, id: null });
     };
 
     // Style Constants
@@ -371,14 +396,48 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                         </div>
 
                         {/* Content */}
-                        <div className="activity-content" style={{padding: '24px'}}>
-                           <p className="dept-name" style={{
-                               opacity:0.7, fontSize:'0.85rem', marginBottom:12, 
-                               textTransform:'uppercase', letterSpacing:'1px', fontWeight: 600, color: 'var(--primary)'
-                           }}>
-                              {review.courseTitle || review.courseId || 'General Course'}
-                           </p>
-                           
+                        <div className="activity-content" style={{padding: '24px', position: 'relative'}}>
+                           {/* Sentiment Badge logic */}
+                           {(() => {
+                               let label = 'CONSTRUCTIVE';
+                               let bg = '#fffbeb'; // amber-50
+                               let color = '#b45309'; // amber-700
+                               let border = '#fcd34d'; // amber-300
+                               let icon = '🔧';
+
+                               if (review.rating >= 4) {
+                                   label = 'POSITIVE';
+                                   bg = '#ecfdf5'; // emerald-50
+                                   color = '#047857'; // emerald-700
+                                   border = '#6ee7b7'; // emerald-300
+                                   icon = '😃';
+                               } else if (review.rating <= 2) {
+                                   label = 'CRITICAL';
+                                   bg = '#fef2f2'; // red-50
+                                   color = '#b91c1c'; // red-700
+                                   border = '#fca5a5'; // red-300
+                                   icon = '⚠️';
+                               }
+
+                               return (
+                                   <div style={{
+                                       position: 'absolute',
+                                       top: '-12px',
+                                       right: '24px',
+                                       zIndex: 10
+                                   }}>
+                                       <span style={{
+                                           display: 'inline-flex', alignItems: 'center', gap: 6,
+                                           padding: '4px 12px', borderRadius: '50px',
+                                           background: bg, color: color, border: `1px solid ${border}`,
+                                           fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase'
+                                       }}>
+                                           <span>{icon}</span> {label}
+                                       </span>
+                                   </div>
+                               );
+                           })()}
+
                            <div className="activity-comment" style={{
                                background:'var(--bg-root)', padding:'20px', borderRadius:'16px', 
                                fontStyle:'italic', borderLeft:'4px solid var(--primary)',
@@ -480,7 +539,13 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                            )}
                            
                            {isInstructorView && (
-                                <button style={{...btnBaseStyle, marginLeft: 'auto'}} title="Options">⚙️</button>
+                                <button 
+                                    style={{...btnBaseStyle, marginLeft: 'auto'}} 
+                                    title="Flag as Inappropriate"
+                                    onClick={() => promptFlag(review.id)}
+                                >
+                                    🚩
+                                </button>
                            )}
                         </div>
 
@@ -582,6 +647,30 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                 type="danger"
                 confirmText="Delete"
                 onConfirm={confirmDelete}
+            />
+
+            {/* Premium Flag Modal - With Input */}
+            <PremiumModal 
+                isOpen={flagModal.isOpen}
+                onClose={() => setFlagModal({ isOpen: false, id: null })}
+                title="Flag Content"
+                message="Please provide a reason for flagging this content (optional)."
+                type="input"
+                inputPlaceholder="e.g. Inappropriate language, Spam..."
+                confirmText="Flag Content"
+                cancelText="Cancel"
+                onConfirm={confirmFlag}
+            />
+
+            {/* Success/Alert Modal */}
+            <PremiumModal
+                isOpen={successModal.isOpen}
+                onClose={() => setSuccessModal({ isOpen: false, message: '' })}
+                title="Notification"
+                message={successModal.message}
+                type="alert"
+                confirmText="OK"
+                onConfirm={() => setSuccessModal({ isOpen: false, message: '' })}
             />
         </div>
     );

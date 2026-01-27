@@ -109,10 +109,22 @@ export const authService = {
               // Explicit Strict Schema
               instructorId: uid, // 1:1 Mapping
               userId: uid,
+              
+              // Standardized Name Fields (Cover all cases)
               fullName: baseData.fullName || baseData.name,
+              displayName: baseData.fullName || baseData.name,
+              instructorName: baseData.fullName || baseData.name,
+              name: baseData.fullName || baseData.name,
+
+              // Standardized Department
               departmentId: baseData.departmentId || baseData.department,
+              department: baseData.department || baseData.departmentId,
+              
               campusId: baseData.campusId || 'main', // Required field
+              
+              // Standardized Image Fields
               profilePictureUrl: baseData.profilePictureUrl || '',
+              photoURL: baseData.profilePictureUrl || '',
               
               courses: [],
               ratingStats: { average: 0, totalRatings: 0, distribution: {} },
@@ -327,16 +339,26 @@ export const authService = {
              },
              createdAt: serverTimestamp()
           });
-      } else if (role === 'instructor' && instSnap.empty) {
            // New Instructor via Google (Rare)
            // Create STRICT ID doc
            await setDoc(doc(db, 'instructors', user.uid), {
               instructorId: user.uid,
               userId: user.uid,
+              
+              // Standardized Name Fields
               fullName: user.displayName,
+              displayName: user.displayName,
+              instructorName: user.displayName,
+              name: user.displayName,
+
               departmentId: dept,
+              department: dept,
+              
               campusId: 'main',
+              
               profilePictureUrl: user.photoURL,
+              photoURL: user.photoURL,
+
               courses: [],
               ratingStats: { average: 0, totalRatings: 0, distribution: {} },
               createdAt: serverTimestamp()

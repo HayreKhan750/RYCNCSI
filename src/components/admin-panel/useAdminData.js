@@ -34,7 +34,7 @@ export function useAdminData() {
 
   // Actions
   const deleteUser = async (uid) => {
-    if(!window.confirm("Delete this user permanently?")) return;
+    // Confirmation handled by UI component (AdminUsers)
     dispatch(deleteUserAction(uid));
   };
 
@@ -43,7 +43,7 @@ export function useAdminData() {
   };
 
   const deleteRating = async (id) => {
-    if(!window.confirm("Delete this rating?")) return;
+    // Confirmation handled by UI component (AdminContent)
     dispatch(deleteRatingAction(id));
   };
 
@@ -70,6 +70,7 @@ export function useAdminData() {
     updateUserStatus: (uid, status, details) => dispatch(updateUserStatusAction({ uid, status, details })),
     updateUserProfile: (uid, data) => dispatch(updateUserProfileAction({ uid, data })),
     banUser: (uid, reason) => dispatch(banUserAction({ uid, reason })),
+    updateUserProfile: (uid, data) => dispatch(updateUserProfileAction({ uid, data })),
     refresh: () => dispatch(fetchDashboardData()) 
   };
 }

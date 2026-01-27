@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import UploadProfileImage from '../common/UploadProfileImage';
 
-export default function EditProfileModal({ profile, onSave, onClose }) {
+export default function EditProfileModal({ profile, onSave, onClose, email, currentPhotoURL }) {
   const [formData, setFormData] = useState({
     name: '',
     department: '',
-    bio: ''
+    bio: '',
+    photoURL: ''
   });
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -22,11 +23,12 @@ export default function EditProfileModal({ profile, onSave, onClose }) {
             bio: profile.bio || '',
             photoURL: profile.profilePictureUrl || profile.photoURL || ''
         });
-        setPreviewUrl(profile.profilePictureUrl || profile.photoURL || '');
+        // Use the passed prop as fallback if profile lacks URL
+        setPreviewUrl(profile.profilePictureUrl || profile.photoURL || currentPhotoURL || '');
     }
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'unset'; };
-  }, [profile]);
+  }, [profile, currentPhotoURL]);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -66,7 +68,7 @@ export default function EditProfileModal({ profile, onSave, onClose }) {
             department: formData.department,
             bio: formData.bio,
             photoURL: formData.photoURL
-        });
+        }, imageFile); // Pass imageFile
         handleClose();
     } catch (err) {
         console.error(err);
@@ -268,7 +270,7 @@ export default function EditProfileModal({ profile, onSave, onClose }) {
                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                                <polyline points="22,6 12,13 2,6"></polyline>
                            </svg>
-                           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{profile?.email}</span>
+                           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{email || profile?.email || 'No Email'}</span>
                        </div>
 
                    </div>
@@ -394,3 +396,4 @@ export default function EditProfileModal({ profile, onSave, onClose }) {
     document.body
   );
 }
+

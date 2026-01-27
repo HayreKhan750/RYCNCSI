@@ -56,49 +56,114 @@ export default function VisualCharts({ data, compact = false }) {
       );
   }
 
+  // State for timeframe
+  const [timeframe, setTimeframe] = React.useState('3M');
+
+  // Calculate Spline Path (Smooth Curve)
+  const getPath = (points, isArea = false) => {
+      if (points.length === 0) return '';
+      
+      const format = (n) => n.toFixed(2);
+      
+      // Control point logic for smooth bezier
+      const controlPoint = (current, previous, next, reverse) => {
+          const p = previous || current;
+          const n = next || current;
+          const smoothing = 0.2;
+          const o = {
+              length: Math.sqrt(Math.pow(n[0] - p[0], 2) + Math.pow(n[1] - p[1], 2)),
+              angle: Math.atan2(n[1] - p[1], n[0] - p[0])
+          };
+          const angle = o.angle + (reverse ? Math.PI : 0);
+          const length = o.length * smoothing;
+          const x = current[0] + Math.cos(angle) * length;
+          const y = current[1] + Math.sin(angle) * length;
+          return [x, y];
+      };
+
+      const dataPoints = points.map((d, i) => {
+          const x = (i / (points.length - 1)) * 100;
+          const y = 50 - (d.value * 8); // Scale
+          return [x, y];
+      });
+
+      const d = dataPoints.reduce((acc, point, i, a) => {
+          if (i === 0) return `M ${format(point[0])},${format(point[1])}`;
+          const [cpsX, cpsY] = controlPoint(a[i - 1], a[i - 2], point);
+          const [cpeX, cpeY] = controlPoint(point, a[i - 1], a[i + 1], true);
+          return `${acc} C ${format(cpsX)},${format(cpsY)} ${format(cpeX)},${format(cpeY)} ${format(point[0])},${format(point[1])}`;
+      }, '');
+
+      if (isArea) {
+         return `${d} L 100,50 L 0,50 Z`;
+      }
+      return d;
+  };
+
   return (
     <div className="glass-card chart-wrapper" style={{display:'block', height:'auto', padding:30}}>
-       <h2 style={{marginTop:0, marginBottom:30, fontSize:'1.5rem'}}>Performance Analytics</h2>
+       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:30}}>
+           <h2 style={{marginTop:0, fontSize:'1.5rem', background: 'linear-gradient(90deg, #fff, #cbd5e1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Performance Analytics</h2>
+           <select 
+              value={timeframe} 
+              onChange={(e) => setTimeframe(e.target.value)}
+              className="chart-select"
+              style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  color: 'white', padding: '8px 16px', borderRadius: 12, outline: 'none', cursor: 'pointer',
+                  fontSize: '0.9rem', fontWeight: 500
+              }}
+           >
+               <option value="3M">Last 3 Months</option>
+               <option value="6M">Last 6 Months</option>
+               <option value="1Y">Last Year</option>
+           </select>
+       </div>
        
        <div style={{display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 40}}>
           
           {/* Line Chart */}
           <div>
-              <h4 style={{opacity:0.7, marginBottom:20}}>Rating Trend</h4>
-              <div style={{height: 200, position:'relative', borderLeft:'1px solid rgba(255,255,255,0.1)', borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
+              <h4 style={{opacity:0.7, marginBottom:20, textTransform: 'uppercase', letterSpacing:1, fontSize:'0.8rem'}}>Engagement Trends</h4>
+              <div style={{height: 220, position:'relative', borderRadius: 16, background: 'rgba(255,255,255,0.02)', padding: 10}}>
                  <svg viewBox="0 0 100 50" preserveAspectRatio="none" style={{width:'100%', height:'100%', overflow:'visible'}}>
                      <defs>
                         <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
                             <stop offset="0%" stopColor="#00f3ff" />
                             <stop offset="100%" stopColor="#bc13fe" />
                         </linearGradient>
+                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#bc13fe" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#bc13fe" stopOpacity="0" />
+                        </linearGradient>
                      </defs>
+                     
+                     {/* Horizontal Guide Lines */}
+                     <line x1="0" y1="10" x2="100" y2="10" stroke="rgba(255,255,255,0.05)" strokeWidth="0.1" />
+                     <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(255,255,255,0.05)" strokeWidth="0.1" />
+                     <line x1="0" y1="40" x2="100" y2="40" stroke="rgba(255,255,255,0.05)" strokeWidth="0.1" />
+
                      {trend.length > 1 && (
-                         <polyline
-                             points={trend.map((d, i) => {
-                                 const x = (i / (trend.length - 1)) * 100;
-                                 const y = 50 - (d.value * 10);
-                                 return `${x},${y}`;
-                             }).join(' ')}
-                             fill="none"
-                             stroke="url(#lineGradient)"
-                             strokeWidth="2"
-                             strokeLinecap="round"
-                             filter="drop-shadow(0 0 4px rgba(0, 243, 255, 0.5))"
-                         />
+                         <>
+                             <path d={getPath(trend, true)} fill="url(#areaGradient)" />
+                             <path d={getPath(trend)} fill="none" stroke="url(#lineGradient)" strokeWidth="1.5" strokeLinecap="round" filter="drop-shadow(0 0 8px rgba(188, 19, 254, 0.4))" />
+                         </>
                      )}
+                     
                      {trend.map((d, i) => (
                          <circle 
                             key={i} 
                             cx={(i / (trend.length - 1)) * 100} 
-                            cy={50 - (d.value * 10)} 
-                            r="2" 
-                            fill="#fff" 
+                            cy={50 - (d.value * 8)} 
+                            r="1.5" 
+                            fill="#0f172a" 
+                            stroke="#fff"
+                            strokeWidth="0.5"
                          />
                      ))}
                  </svg>
               </div>
-              <div style={{display:'flex', justifyContent:'space-between', marginTop:10, fontSize:'0.7rem', opacity:0.5}}>
+              <div style={{display:'flex', justifyContent:'space-between', marginTop:15, fontSize:'0.75rem', opacity:0.6, padding: '0 10px'}}>
                   <span>{trend[0]?.label}</span>
                   <span>{trend[trend.length-1]?.label}</span>
               </div>

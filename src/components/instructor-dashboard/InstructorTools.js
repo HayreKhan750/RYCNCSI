@@ -3,6 +3,7 @@ import React from 'react';
 export default function InstructorTools({ onAction }) {
   const tools = [
       { icon: '💬', label: 'Respond to Reviews', desc: 'Engage with your students' },
+      { icon: '✉️', label: 'Private Messages', desc: 'Chat with students' },
       { icon: '👤', label: 'View My Profile', desc: 'See what students see' },
       { icon: '📊', label: 'Download Analytics Report', desc: 'Detailed performance data' },
       { icon: '📚', label: 'Manage My Courses', desc: 'Update content & materials' }
