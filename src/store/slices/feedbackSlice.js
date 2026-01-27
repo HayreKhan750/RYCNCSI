@@ -223,37 +223,14 @@ const feedbackSlice = createSlice({
       })
       // Toggle Like
       .addCase(toggleLike.fulfilled, (state, action) => {
-          const { feedbackId, userId, isLike } = action.payload;
+          const { feedbackId, userId, isLike, likesCount, dislikesCount } = action.payload;
           const feedback = state.byId[feedbackId];
           
           if (feedback) {
-              // Initialize arrays if missing
-              if (!feedback.likedBy) feedback.likedBy = [];
-              if (!feedback.dislikedBy) feedback.dislikedBy = [];
-
-              if (isLike) {
-                  if (feedback.likedBy.includes(userId)) {
-                      // Toggle off
-                      feedback.likedBy = feedback.likedBy.filter(id => id !== userId);
-                  } else {
-                      // Toggle on (and remove from disliked)
-                      feedback.likedBy.push(userId);
-                      feedback.dislikedBy = feedback.dislikedBy.filter(id => id !== userId);
-                  }
-              } else {
-                  if (feedback.dislikedBy.includes(userId)) {
-                      // Toggle off
-                      feedback.dislikedBy = feedback.dislikedBy.filter(id => id !== userId);
-                  } else {
-                      // Toggle on (and remove from liked)
-                      feedback.dislikedBy.push(userId);
-                      feedback.likedBy = feedback.likedBy.filter(id => id !== userId);
-                  }
-              }
+              feedback.likesCount = likesCount;
+              feedback.dislikesCount = dislikesCount; // Set directly
               
-              // Update counts
-              feedback.likes = feedback.likedBy.length;
-              feedback.dislikes = feedback.dislikedBy.length;
+              // Still need to update userReactions for local UI state
           }
 
           // Update local reaction state

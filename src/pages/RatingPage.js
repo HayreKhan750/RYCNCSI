@@ -7,7 +7,7 @@ import { selectInstructorById } from '../store/selectors/instructorSelectors';
 import { selectFeedbacksByStudentId } from '../store/selectors/feedbackSelectors';
 import StarRating from '../components/rating/StarRating';
 import TagSelector from '../components/rating/TagSelector';
-import ReviewList from '../components/rating/ReviewList';
+import ReviewList from '../components/common/ReviewList';
 import Header from '../components/common/Header';
 import '../components/student-dashboard/StudentDashboard.css';
 import '../styles/RatingPage.css';

@@ -66,6 +66,10 @@ export const feedbackService = {
       }
 
       const finalQuery = query(q, ...constraints);
+      // Force Server Fetch to ensure reaction counts are up-to-date
+      // const snap = await getDocs(finalQuery); 
+      // Using a basic getDocs usually attempts server, but we can try to be explicit if needed.
+      // However, Firestore default is usually fine. Let's ensure we are not suppressing errors.
       const snap = await getDocs(finalQuery);
       
       return snap.docs.map(d => serializeFirestoreData({
@@ -282,7 +286,9 @@ export const feedbackService = {
         return { 
             feedbackId, 
             userId, 
-            isLike: previousType === type ? null : isLike 
+            isLike: previousType === type ? null : isLike,
+            likesCount: newLikes,
+            dislikesCount: newDislikes
         };
       });
   },
@@ -312,7 +318,11 @@ export const feedbackService = {
       const snapshot = await getDocs(q);
       const reactions = {};
       snapshot.docs.forEach(d => {
-          reactions[d.data().feedbackId] = d.data().type;
+          // Ensure we capture valid reactions
+          const data = d.data();
+          if (data && data.feedbackId && data.type) {
+              reactions[data.feedbackId] = data.type;
+          }
       });
       return reactions;
   },
@@ -321,6 +331,7 @@ export const feedbackService = {
       if (!userId) return [];
       const q = query(collection(db, 'flags'), where('flaggedBy', '==', userId));
       const snapshot = await getDocs(q);
+      // Debug: console.log("Fetched user flags", snapshot.size);
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   },
 

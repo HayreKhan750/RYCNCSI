@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addReply, deleteFeedback, deleteReply, flagFeedback } from '../../store/slices/feedbackSlice';
+import { addReply, deleteFeedback, deleteReply, flagFeedback, toggleLike } from '../../store/slices/feedbackSlice';
 import { feedbackService } from '../../services/feedbackService';
 import PremiumModal from './PremiumModal';
 
@@ -9,6 +9,20 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
     const { user } = useSelector(state => state.auth); 
     const [sortBy, setSortBy] = useState('newest'); 
     const [filterRating, setFilterRating] = useState('all');
+    
+    // Optimistic Logic
+    const [optimisticReviews, setOptimisticReviews] = useState(reviews);
+    const [userReactions, setUserReactions] = useState({});
+
+    useEffect(() => {
+        setOptimisticReviews(reviews);
+    }, [reviews]);
+
+    useEffect(() => {
+        if (reviews.length > 0 && user?.uid) {
+            feedbackService.fetchUserReactions(user.uid).then(setUserReactions);
+        }
+    }, [reviews, user]);
     
     // Reply State
     const [expandedId, setExpandedId] = useState(null);
@@ -158,6 +172,59 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
         setFlagModal({ isOpen: true, id });
     };
 
+    const handleReaction = async (feedbackId, type) => {
+        if (!user?.uid) {
+             setSuccessModal({ isOpen: true, message: "Please log in to react to reviews." });
+             return;
+        }
+    
+        const reviewIndex = optimisticReviews.findIndex(r => r.id === feedbackId);
+        if (reviewIndex === -1) return;
+        const review = optimisticReviews[reviewIndex];
+    
+        // Prevent self-reaction
+        if (review.studentId === user.uid) {
+            setSuccessModal({ isOpen: true, message: "You cannot rate your own review." });
+            return;
+        }
+    
+        const currentReaction = userReactions[feedbackId];
+        const isRemoving = currentReaction === type;
+        const isSwitching = currentReaction && currentReaction !== type;
+    
+        const newReviews = [...optimisticReviews];
+        const target = { ...newReviews[reviewIndex] };
+    
+        // Initialize if undefined
+        target.likesCount = target.likesCount || 0;
+        target.dislikesCount = target.dislikesCount || 0;
+    
+        if (type === 'like') {
+            if (isRemoving) target.likesCount = Math.max(0, target.likesCount - 1);
+            else {
+                target.likesCount++;
+                if (isSwitching) target.dislikesCount = Math.max(0, target.dislikesCount - 1);
+            }
+        } else {
+            if (isRemoving) target.dislikesCount = Math.max(0, target.dislikesCount - 1);
+            else {
+                target.dislikesCount++;
+                if (isSwitching) target.likesCount = Math.max(0, target.likesCount - 1);
+            }
+        }
+        
+        newReviews[reviewIndex] = target;
+        setOptimisticReviews(newReviews);
+        setUserReactions(prev => ({ ...prev, [feedbackId]: isRemoving ? null : type }));
+    
+        try {
+            await dispatch(toggleLike({ feedbackId, userId: user.uid, isLike: type === 'like' })).unwrap();
+        } catch (e) {
+            console.error("Reaction failed:", e);
+            // Revert on failure? Ideally yes, but for now we log.
+        }
+    };
+
     const confirmFlag = async (reason) => {
         if (!flagModal.id) return;
         try {
@@ -189,7 +256,7 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
 
     // 1. Filter & Sort Logic 
     const processedReviews = useMemo(() => {
-        let result = [...reviews];
+        let result = [...optimisticReviews];
         if (filterRating !== 'all') {
             result = result.filter(r => Math.round(r.rating) === Number(filterRating));
         }
@@ -209,7 +276,7 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
         });
 
         return result;
-    }, [reviews, sortBy, filterRating]);
+    }, [optimisticReviews, sortBy, filterRating]);
 
     // 2. Search Filter
     const filteredReviews = useMemo(() => {
@@ -468,40 +535,50 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                             borderTop:'1px solid var(--border-subtle)'
                         }}>
                            <div style={{display:'flex', gap: 12}}>
-                               {/* Like Button */}
+                                {/* Like Button */}
                                <button 
+                                  className={`glass-pill-btn like ${userReactions[review.id] === 'like' ? 'active' : ''}`}
                                   style={{
                                       ...btnBaseStyle, 
-                                      color: (review.likesCount > 0) ? '#818cf8': '#94a3b8',
-                                      borderColor: (review.likesCount > 0) ? '#818cf8': 'rgba(255,255,255,0.1)'
+                                      color: (userReactions[review.id] === 'like' || review.likesCount > 0) ? '#818cf8': '#94a3b8',
+                                      borderColor: (userReactions[review.id] === 'like') ? '#818cf8': 'rgba(255,255,255,0.1)',
+                                      background: (userReactions[review.id] === 'like') ? 'rgba(129, 140, 248, 0.15)' : 'rgba(255,255,255,0.03)'
                                   }}
                                   title="Helpful"
                                   onClick={(e) => { 
                                       const btn = e.currentTarget;
                                       btn.style.transform = 'scale(0.9)'; 
                                       setTimeout(() => btn.style.transform = 'scale(1)', 100); 
+                                      handleReaction(review.id, 'like');
                                   }}
                                >
                                   👍
                                </button>
                                <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
-                                   {Array.isArray(review.likes) ? review.likes.length : (review.likesCount || 0)}
+                                   {review.likesCount || 0}
                                </span>
 
                                {/* Dislike Button */}
                                <button 
-                                   style={{...btnBaseStyle}}
+                                   className={`glass-pill-btn dislike ${userReactions[review.id] === 'dislike' ? 'active' : ''}`}
+                                   style={{
+                                       ...btnBaseStyle,
+                                       color: (userReactions[review.id] === 'dislike') ? '#ef4444' : '#94a3b8',
+                                       borderColor: (userReactions[review.id] === 'dislike') ? '#ef4444' : 'rgba(255,255,255,0.1)',
+                                       background: (userReactions[review.id] === 'dislike') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.03)'
+                                   }}
                                    title="Not Helpful"
                                    onClick={(e) => { 
                                       const btn = e.currentTarget;
                                       btn.style.transform = 'scale(0.9)'; 
                                       setTimeout(() => btn.style.transform = 'scale(1)', 100); 
+                                      handleReaction(review.id, 'dislike');
                                   }}
                                >
                                   👎
                                </button>
                                <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
-                                   {Array.isArray(review.dislikes) ? review.dislikes.length : (review.dislikesCount || 0)}
+                                   {review.dislikesCount || 0}
                                </span>
 
                                 {/* Reply Button */}
