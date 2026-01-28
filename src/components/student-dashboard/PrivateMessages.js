@@ -25,7 +25,46 @@ export default function PrivateMessages({ user }) {
         .finally(() => setLoading(false));
   };
 
-  // 2. Load Thread when a partner is selected
+  // 2. Load Thread & Deep Linking
+  useEffect(() => {
+      // Handle Deep Linking from URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const partnerIdParam = searchParams.get('partnerId');
+
+      if (partnerIdParam && user?.uid && !activePartner) {
+          // Check if already in conversations
+          const existing = conversations.find(c => c.userId === partnerIdParam);
+          if (existing) {
+              setActivePartner(existing);
+          } else {
+              // Not in list? Create temporary partner object (fetch name if possible)
+              // For now, minimal stub or fetch from service
+              // Ideally fetch from 'users' collection to get name/photo
+              import('../../services/instructorService').then(async ({ instructorService }) => {
+                 try {
+                     const profile = await instructorService.fetchInstructorProfile(partnerIdParam);
+                     if (profile && !profile.error) {
+                         const tempPartner = {
+                             userId: partnerIdParam,
+                             name: profile.profile.instructorName || profile.profile.fullName || 'Instructor',
+                             photo: profile.profile.profilePictureUrl || profile.profile.photoURL,
+                             isTemp: true
+                         };
+                         setActivePartner(tempPartner);
+                         // Optional: Add to conversations list temporarily so it appears in sidebar
+                         setConversations(prev => [tempPartner, ...prev]);
+                     }
+                 } catch (e) {
+                     console.error("Failed to fetch partner details", e);
+                     // Fallback
+                     setActivePartner({ userId: partnerIdParam, name: 'Instructor', isTemp: true });
+                 }
+              });
+          }
+      }
+  }, [conversations, user, activePartner]); // Run when conversations load
+
+  // Load Thread when a partner is selected
   useEffect(() => {
       if (activePartner && user?.uid) {
           const interval = setInterval(() => {

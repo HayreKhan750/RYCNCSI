@@ -28,7 +28,10 @@ export function useStudentProfile(user) {
     }
 
     const loadData = async () => {
-      setLoading(true);
+      // SWR: If we already have a profile for this ID, don't flash spinner
+      const isCached = profile && (profile.uid === user.uid || profile.id === user.uid || profile.studentId === user.uid);
+      if (!isCached) setLoading(true);
+      
       setError(null);
       try {
           // Parallel Fetching

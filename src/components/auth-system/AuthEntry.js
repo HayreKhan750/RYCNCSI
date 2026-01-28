@@ -13,7 +13,9 @@ import './AuthSystem.css';
 export default function AuthEntry() {
   const [view, setView] = useState('login'); // login, signup, forgot, verify
   const [showSplash, setShowSplash] = useState(true);
-  const { user, loading, initialized } = useSelector((state) => state.auth);
+  const { user, authStatus } = useSelector((state) => state.auth);
+  const initialized = authStatus === 'hydrated' || authStatus === 'unauthenticated';
+  const loading = authStatus === 'checking' || authStatus === 'idle';
   const navigate = useNavigate();
 
   // Check auth state on mount (Synced with Redux)
@@ -36,12 +38,11 @@ export default function AuthEntry() {
            setTimeout(() => {
                // Safety: If role is student but email is admin, force admin/management
                // This is a UI-side safety net until the session refreshes
-               const isManagementEmail = user.email.includes('admin') || user.email.includes('management');
-               
-               if (user.role === 'MANAGEMENT' || isManagementEmail) {
-                   navigate('/management/dashboard');
-               } else if (user.role === 'admin') {
+               // Fix: prioritize admin role check to prevent incorrect redirect
+               if (user.role === 'admin') {
                    navigate('/admin');
+               } else if (user.role === 'MANAGEMENT' || user.email.includes('management')) {
+                   navigate('/management/dashboard');
                } else if (user.role === 'instructor') {
                    navigate('/instructor/dashboard');
                } else { 

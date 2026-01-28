@@ -16,14 +16,19 @@ export default function useInstructorProfile(routeInstructorId) {
 
   useEffect(() => {
     const targetId = routeInstructorId || user?.uid;
+    
+    // Check if we already have this data to avoid "Loading..." flash
+    const isCached = profile && (profile.id === targetId || profile.userId === targetId || profile.uid === targetId);
+
     if (targetId) {
-        setIsInitializing(true);
+        if (!isCached) setIsInitializing(true);
+        
         dispatch(fetchInstructorProfile(targetId))
             .finally(() => setIsInitializing(false));
     } else {
         setIsInitializing(false);
     }
-  }, [dispatch, routeInstructorId, user]);
+  }, [dispatch, routeInstructorId, user]); // Note: We rely on 'profile' from closure value at effect run time which is acceptable here
 
   // Calculate Stats
   const stats = useMemo(() => {
@@ -180,13 +185,20 @@ export default function useInstructorProfile(routeInstructorId) {
       }
   };
 
+  // Stale-While-Revalidate Logic
+  // If we already have the correct profile loaded, don't show a spinner (background refresh).
+  // Only show spinner if we have NO profile, or the profile ID doesn't match the target.
+  const targetId = routeInstructorId || user?.uid;
+  const isProfileMatch = profile && (profile.id === targetId || profile.userId === targetId || profile.uid === targetId);
+  const showLoading = (loading && !isProfileMatch) || (isInitializing && !isProfileMatch);
+
   return {
     instructorKey,
     myCourses,
     myRatings: myRatings || [],
     feedbacks: myRatings || [], // Alias for compatibility
     profile,
-    loading: loading || isInitializing,
+    loading: showLoading,
     error,
     stats: stats,
     badges,

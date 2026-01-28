@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { addReply, deleteFeedback, deleteReply, flagFeedback, toggleLike } from '../../store/slices/feedbackSlice';
 import { feedbackService } from '../../services/feedbackService';
 import PremiumModal from './PremiumModal';
 
-const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) => {
+const ReviewList = ({ reviews = [], instructorId, isInstructorView = false, showInstructorInfo = false }) => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { user } = useSelector(state => state.auth); 
     const [sortBy, setSortBy] = useState('newest'); 
     const [filterRating, setFilterRating] = useState('all');
@@ -94,6 +96,15 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
         if (!user || !user.uid) {
             setSuccessModal({ isOpen: true, message: "You must be logged in to reply." });
             return;
+        }
+
+        // Check if user is the feedback author trying to be the first replier
+        const review = optimisticReviews.find(r => r.id === feedbackId);
+        const existingReplies = repliesMap[feedbackId] || [];
+        
+        if (review && review.studentId === user.uid && existingReplies.length === 0) {
+             setSuccessModal({ isOpen: true, message: "You cannot be the first to reply to your own feedback. Please wait for an instructor or another user to reply first." });
+             return;
         }
 
         try {
@@ -338,7 +349,7 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                 background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '50px',
                 backdropFilter: 'none', WebkitBackdropFilter: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
             }}>
-                <div className="search-wrapper" style={{flex: '1', minWidth: '200px', maxWidth: '400px', position: 'relative'}}>
+                <div className="search-wrapper" style={{flex: '1', minWidth: '200px', maxWidth: '250px', position: 'relative'}}>
                     <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, color: 'var(--text-primary)'}}>🔍</span>
                     <input 
                         type="text" 
@@ -425,11 +436,15 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                                   background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   fontSize: '1.2rem', marginRight: 12, color: 'white'
                               }}>
-                                  {(review.studentName || 'A').charAt(0)}
+                                  {showInstructorInfo 
+                                    ? (review.instructorName || 'I').charAt(0) 
+                                    : (review.studentName || 'S').charAt(0)}
                               </div>
                               <div>
                                   <h4 style={{margin:0, fontSize:'1.1rem', color:'var(--text-primary)'}}>
-                                      {review.studentName || 'Anonymous Student'}
+                                      {showInstructorInfo 
+                                        ? (review.instructorName || 'Instructor') 
+                                        : (review.studentName || 'Anonymous Student')}
                                   </h4>
                                   <span className="activity-date" style={{opacity: 0.5, fontSize:'0.85rem', color:'var(--text-secondary)'}}>
                                       {timeAgo(review.createdAt || review.timestamp)}
@@ -446,18 +461,30 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                                   {review.rating} <span style={{fontSize:'1rem'}}>★</span>
                                </div>
                                
-                               {/* DELETE REVIEW BUTTON */}
+                               {/* EDIT & DELETE ACTIONS (Owner) */}
                                {isMyKey && (
-                                   <button 
-                                       onClick={() => promptDeleteReview(review.id)}
-                                       title="Delete Review"
-                                       style={{
-                                           background: 'none', border:'none', cursor:'pointer',
-                                           color: '#ef4444', opacity: 0.7, fontSize: '1rem'
-                                       }}
-                                   >
-                                       🗑️
-                                   </button>
+                                   <div style={{display:'flex', gap:8}}>
+                                       <button 
+                                           onClick={() => navigate(`/rate/${review.instructorId}`)}
+                                           title="Edit Review"
+                                           style={{
+                                               background: 'none', border:'none', cursor:'pointer',
+                                               color: 'var(--primary)', opacity: 0.8, fontSize: '1rem'
+                                           }}
+                                       >
+                                           ✏️
+                                       </button>
+                                       <button 
+                                           onClick={() => promptDeleteReview(review.id)}
+                                           title="Delete Review"
+                                           style={{
+                                               background: 'none', border:'none', cursor:'pointer',
+                                               color: '#ef4444', opacity: 0.7, fontSize: '1rem'
+                                           }}
+                                       >
+                                           🗑️
+                                       </button>
+                                   </div>
                                )}
                            </div>
                         </div>
@@ -535,51 +562,54 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                             borderTop:'1px solid var(--border-subtle)'
                         }}>
                            <div style={{display:'flex', gap: 12}}>
-                                {/* Like Button */}
-                               <button 
-                                  className={`glass-pill-btn like ${userReactions[review.id] === 'like' ? 'active' : ''}`}
-                                  style={{
-                                      ...btnBaseStyle, 
-                                      color: (userReactions[review.id] === 'like' || review.likesCount > 0) ? '#818cf8': '#94a3b8',
-                                      borderColor: (userReactions[review.id] === 'like') ? '#818cf8': 'rgba(255,255,255,0.1)',
-                                      background: (userReactions[review.id] === 'like') ? 'rgba(129, 140, 248, 0.15)' : 'rgba(255,255,255,0.03)'
-                                  }}
-                                  title="Helpful"
-                                  onClick={(e) => { 
-                                      const btn = e.currentTarget;
-                                      btn.style.transform = 'scale(0.9)'; 
-                                      setTimeout(() => btn.style.transform = 'scale(1)', 100); 
-                                      handleReaction(review.id, 'like');
-                                  }}
-                               >
-                                  👍
-                               </button>
-                               <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
-                                   {review.likesCount || 0}
-                               </span>
+                                {/* Like/Dislike Buttons - HIDDEN for Owner */}
+                               {!isMyKey && (
+                                   <>
+                                       <button 
+                                          className={`glass-pill-btn like ${userReactions[review.id] === 'like' ? 'active' : ''}`}
+                                          style={{
+                                              ...btnBaseStyle, 
+                                              color: (userReactions[review.id] === 'like' || review.likesCount > 0) ? '#818cf8': '#94a3b8',
+                                              borderColor: (userReactions[review.id] === 'like') ? '#818cf8': 'rgba(255,255,255,0.1)',
+                                              background: (userReactions[review.id] === 'like') ? 'rgba(129, 140, 248, 0.15)' : 'rgba(255,255,255,0.03)'
+                                          }}
+                                          title="Helpful"
+                                          onClick={(e) => { 
+                                              const btn = e.currentTarget;
+                                              btn.style.transform = 'scale(0.9)'; 
+                                              setTimeout(() => btn.style.transform = 'scale(1)', 100); 
+                                              handleReaction(review.id, 'like');
+                                          }}
+                                       >
+                                          👍
+                                       </button>
+                                       <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
+                                           {review.likesCount || 0}
+                                       </span>
 
-                               {/* Dislike Button */}
-                               <button 
-                                   className={`glass-pill-btn dislike ${userReactions[review.id] === 'dislike' ? 'active' : ''}`}
-                                   style={{
-                                       ...btnBaseStyle,
-                                       color: (userReactions[review.id] === 'dislike') ? '#ef4444' : '#94a3b8',
-                                       borderColor: (userReactions[review.id] === 'dislike') ? '#ef4444' : 'rgba(255,255,255,0.1)',
-                                       background: (userReactions[review.id] === 'dislike') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.03)'
-                                   }}
-                                   title="Not Helpful"
-                                   onClick={(e) => { 
-                                      const btn = e.currentTarget;
-                                      btn.style.transform = 'scale(0.9)'; 
-                                      setTimeout(() => btn.style.transform = 'scale(1)', 100); 
-                                      handleReaction(review.id, 'dislike');
-                                  }}
-                               >
-                                  👎
-                               </button>
-                               <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
-                                   {review.dislikesCount || 0}
-                               </span>
+                                       <button 
+                                           className={`glass-pill-btn dislike ${userReactions[review.id] === 'dislike' ? 'active' : ''}`}
+                                           style={{
+                                               ...btnBaseStyle,
+                                               color: (userReactions[review.id] === 'dislike') ? '#ef4444' : '#94a3b8',
+                                               borderColor: (userReactions[review.id] === 'dislike') ? '#ef4444' : 'rgba(255,255,255,0.1)',
+                                               background: (userReactions[review.id] === 'dislike') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.03)'
+                                           }}
+                                           title="Not Helpful"
+                                           onClick={(e) => { 
+                                              const btn = e.currentTarget;
+                                              btn.style.transform = 'scale(0.9)'; 
+                                              setTimeout(() => btn.style.transform = 'scale(1)', 100); 
+                                              handleReaction(review.id, 'dislike');
+                                          }}
+                                       >
+                                          👎
+                                       </button>
+                                       <span style={{display:'flex', alignItems:'center', fontSize:'0.9rem', fontWeight:600}}>
+                                           {review.dislikesCount || 0}
+                                       </span>
+                                   </>
+                               )}
 
                                 {/* Reply Button */}
                                 <button 
@@ -606,10 +636,11 @@ const ReviewList = ({ reviews = [], instructorId, isInstructorView = false }) =>
                                 )}
                            </div>
 
-                           {!isInstructorView && (
+                           {!isInstructorView && !isMyKey && (
                                <button 
                                   style={{...btnBaseStyle, marginLeft: 'auto'}}
                                   title="Report"
+                                  onClick={() => promptFlag(review.id)}
                                >
                                   🚩
                                </button>

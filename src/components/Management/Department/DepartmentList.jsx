@@ -6,9 +6,18 @@ import '../Management.css';
 
 import { generateExecutiveReport } from '../../../utils/AppReportGenerator';
 
+import { fetchDashboardData } from '../../../store/slices/managementSlice';
+
 const DepartmentList = () => {
     const navigate = useNavigate();
-    const { departments, stats } = useSelector(state => state.management);
+    const dispatch = useDispatch();
+    const { departments, stats, lastUpdated, loading } = useSelector(state => state.management);
+
+    useEffect(() => {
+        if (!lastUpdated || departments.length === 0) {
+            dispatch(fetchDashboardData());
+        }
+    }, [dispatch, lastUpdated, departments.length]);
 
     const handleExport = () => {
         generateExecutiveReport(stats, departments);

@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import ConfirmationModal from '../ConfirmationModal';
 
-export default function AdminContent({ ratings, logs, onDeleteRating, updateRatingStatus, flagRating, view = 'ratings' }) {
+export default function AdminContent({ ratings, logs, reports, onDeleteRating, updateRatingStatus, flagRating, resolveReport, view = 'ratings' }) {
   const [filter, setFilter] = useState('all'); // 'all' | 'flagged' | 'pending' | 'reviewed'
   const [search, setSearch] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { type: 'rating' | 'report', id: string, feedbackId?: string }
 
   const filteredRatings = useMemo(() => {
     return ratings.filter(r => {
@@ -94,6 +96,68 @@ export default function AdminContent({ ratings, logs, onDeleteRating, updateRati
           </div>
       )}
 
+      {view === 'reports' && (
+          <div className="adm-glass adm-table-container">
+             <table className="adm-table">
+                 <thead>
+                     <tr>
+                         <th>Status</th>
+                         <th>Reason</th>
+                         <th>Details</th>
+                         <th>Flagged By</th>
+                         <th>Actions</th>
+                     </tr>
+                 </thead>
+                 <tbody>
+                     {(reports || []).map(report => (
+                         <tr key={report.id}>
+                             <td>
+                                <span className={`status-badge ${report.status === 'open' ? 'danger' : 'success'}`}>
+                                    {report.status || 'OPEN'}
+                                </span>
+                             </td>
+                             <td style={{fontWeight:'bold'}}>{report.reason}</td>
+                             <td style={{opacity:0.8, maxWidth: '300px', overflow:'hidden', textOverflow:'ellipsis'}}>
+                                {report.details || '-'}
+                             </td>
+                             <td style={{fontSize:'0.9rem'}}>
+                                <div style={{display:'flex', flexDirection:'column'}}>
+                                   <span style={{fontWeight:'bold', color: report.role === 'instructor' ? '#fbbf24' : 'inherit'}}>
+                                     {report.role ? report.role.charAt(0).toUpperCase() + report.role.slice(1) : 'User'}
+                                   </span>
+                                   <span style={{fontSize:'0.8rem', opacity:0.6}}>{report.name || report.flaggedBy}</span>
+                                </div>
+                             </td>
+                             <td>
+                                 {report.status === 'open' ? (
+                                    <div style={{display:'flex', gap:'8px'}}>
+                                      <button 
+                                        className="adm-btn success" 
+                                        onClick={() => resolveReport(report.id, 'dismissed')}
+                                        title="Dismiss / Reject Flag"
+                                      >
+                                        Dismiss
+                                      </button>
+                                      <button 
+                                        className="adm-btn danger" 
+                                        onClick={() => setDeleteConfirm({ type: 'report', id: report.id, feedbackId: report.feedbackId })}
+                                        title="Delete Content & Resolve"
+                                      >
+                                        Delete Content
+                                      </button>
+                                    </div>
+                                 ) : (
+                                    <span style={{opacity:0.5, fontSize:'0.8rem'}}>Resolved: {report.resolution}</span>
+                                 )}
+                             </td>
+                         </tr>
+                     ))}
+                     {(!reports || reports.length === 0) && <tr><td colSpan="5" style={{textAlign:'center', padding:20}}>No reports found</td></tr>}
+                 </tbody>
+             </table>
+          </div>
+      )}
+
       {view === 'logs' && (
           <div className="adm-glass adm-table-container">
              <table className="adm-table">
@@ -118,6 +182,24 @@ export default function AdminContent({ ratings, logs, onDeleteRating, updateRati
              </table>
           </div>
       )}
+      <ConfirmationModal
+        isOpen={!!deleteConfirm}
+        title="Delete Content?"
+        message="Are you sure you want to permanently delete this content? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onCancel={() => setDeleteConfirm(null)}
+        onConfirm={async () => {
+            if (deleteConfirm?.type === 'rating') {
+                await onDeleteRating(deleteConfirm.id);
+            } else if (deleteConfirm?.type === 'report') {
+                await onDeleteRating(deleteConfirm.feedbackId);
+                await resolveReport(deleteConfirm.id, 'content_deleted');
+            }
+            setDeleteConfirm(null);
+        }}
+      />
     </div>
   );
 }

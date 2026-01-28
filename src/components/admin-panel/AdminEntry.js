@@ -7,6 +7,7 @@ import AdminUsers from './AdminUsers';
 import AdminRegisterUser from './AdminRegisterUser';
 import AdminContent from './AdminContent';
 import AdminSettings from './AdminSettings';
+import AdminImporter from '../../pages/AdminImporter';
 import { useAdminData } from './useAdminData';
 import './AdminPanel.css';
 
@@ -20,6 +21,7 @@ export default function AdminEntry() {
     stats, 
     users, 
     ratings, 
+    reports,
     logs, 
     deleteUser, 
     approveInstructor, 
@@ -29,10 +31,19 @@ export default function AdminEntry() {
     registerUser,
     updateUserStatus,
     banUser,
-    updateUserProfile // Fix: Destructure this
+    updateUserProfile,
+    fetchReports,
+    resolveReport
   } = useAdminData();
 
   const [activePage, setActivePage] = useState('dashboard');
+
+  // Fetch Reports when page becomes 'reports'
+  React.useEffect(() => {
+      if (activePage === 'reports' && fetchReports) {
+          fetchReports('open');
+      }
+  }, [activePage, fetchReports]);
 
   // Access Control
   if (!user) return null; 
@@ -60,15 +71,21 @@ export default function AdminEntry() {
                  />;
           case 'register':
               return <div className="fade-in"><AdminRegisterUser onRegister={registerUser} /></div>;
+          case 'import':
+               // Dynamic import or direct component
+               return <div className="fade-in"><AdminImporter /></div>;
           case 'content':
           case 'logs': 
+          case 'reports': // Handle reports case
               return <AdminContent 
                         ratings={ratings} 
                         logs={logs} 
+                        reports={reports} // Pass reports
                         onDeleteRating={deleteRating} 
                         updateRatingStatus={updateRatingStatus}
                         flagRating={flagRating}
-                        view={activePage === 'logs' ? 'logs' : 'ratings'}
+                        resolveReport={resolveReport} // Pass resolve function
+                        view={activePage} // View matches page id (content, logs, reports)
                      />;
           case 'settings':
               return <div className="fade-in"><AdminSettings /></div>;

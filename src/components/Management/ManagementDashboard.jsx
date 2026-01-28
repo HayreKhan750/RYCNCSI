@@ -6,7 +6,7 @@ import FacultyOverview from './FacultyOverview';
 import DepartmentAnalytics from './DepartmentAnalytics';
 import FacultyRosterList from './FacultyRosterList';
 import AISummaryPanel from './AISummaryPanel';
-import FeedbackStream from './FeedbackStream';
+
 import Header from '../common/Header';
 import './Management.css';
 
@@ -14,11 +14,16 @@ const ManagementDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const { stats, departments, topInstructors, recentFeedback, loading } = useSelector((state) => state.management);
+  /* Cache-First Strategy: prevent re-fetching if we have data */
+  const { stats, departments, topInstructors, loading, lastUpdated } = useSelector((state) => state.management);
 
   useEffect(() => {
-     dispatch(fetchDashboardData());
-  }, [dispatch]);
+     // Only fetch if we have no data. 
+     // This makes navigation instant (Image 1 fix).
+     if (!lastUpdated || !stats?.totalInstructors) {
+        dispatch(fetchDashboardData());
+     }
+  }, [dispatch, lastUpdated, stats?.totalInstructors]);
 
   /* 
      Ideally show skeleton here if loading && !stats.totalInstructors 
@@ -60,9 +65,6 @@ const ManagementDashboard = () => {
             {/* Right Column: AI & Feeds */}
             <div className="column-right">
                <AISummaryPanel stats={stats} />
-               <div style={{ flex: 1, minHeight: '400px' }}>
-                   <FeedbackStream feedback={recentFeedback} />
-               </div>
             </div>
         </section>
       </main>

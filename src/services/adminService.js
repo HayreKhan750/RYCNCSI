@@ -20,15 +20,67 @@ import { auditService } from './auditService';
 
 export const adminService = {
   // Fetch Reports
-  fetchReports: async (status = 'pending') => {
-      const q = query(collection(db, 'reports'), where('status', '==', status));
-      const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Fetch Reports (Flags)
+  fetchReports: async (status = 'open') => {
+      try {
+        const q = query(collection(db, 'flags'), where('status', '==', status), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        
+        // Hydrate with User Details
+        const hydratedReports = await Promise.all(snap.docs.map(async d => {
+            const data = d.data();
+            let flaggedByInfo = { name: 'Unknown', role: 'Unknown' };
+            
+            if (data.flaggedBy) {
+                try {
+                    const uSnap = await getDoc(doc(db, 'users', data.flaggedBy));
+                    if (uSnap.exists()) {
+                        const uData = uSnap.data();
+                        flaggedByInfo = { 
+                            name: uData.displayName || uData.name || uData.email || 'Unknown',
+                            role: uData.role || 'student' 
+                        };
+                    }
+                } catch (e) {
+                    console.warn("Failed to fetch flagger info", e);
+                }
+            }
+            
+            return { id: d.id, ...data, ...flaggedByInfo };
+        }));
+
+        return hydratedReports;
+      } catch (error) {
+          console.warn("Fetch Reports Error (Likely Index Missing):", error);
+          // Fallback without sort if index is missing
+          const q = query(collection(db, 'flags'), where('status', '==', status));
+          const snap = await getDocs(q);
+          // Same hydration logic for fallback
+          const hydratedReports = await Promise.all(snap.docs.map(async d => {
+            const data = d.data();
+            let flaggedByInfo = { name: 'Unknown', role: 'Unknown' };
+            
+            if (data.flaggedBy) {
+                try {
+                    const uSnap = await getDoc(doc(db, 'users', data.flaggedBy));
+                    if (uSnap.exists()) {
+                        const uData = uSnap.data();
+                        flaggedByInfo = { 
+                            name: uData.displayName || uData.name || uData.email || 'Unknown',
+                            role: uData.role || 'student' 
+                        };
+                    }
+                } catch (e) {}
+            }
+            return { id: d.id, ...data, ...flaggedByInfo };
+        }));
+        return hydratedReports;
+      }
   },
 
   // Resolve Report
   resolveReport: async (reportId, resolution) => {
-      const ref = doc(db, 'reports', reportId);
+      const ref = doc(db, 'flags', reportId);
       await updateDoc(ref, {
           status: 'resolved',
           resolution,
@@ -90,24 +142,42 @@ export const adminService = {
 
 
           // 4. Serialize Data
+          // Helper to safely convert timestamps
+          const serialize = (doc) => {
+            const data = doc.data();
+            const result = { id: doc.id, ...data };
+            
+            // Convert common timestamps to strings/numbers
+            ['createdAt', 'updatedAt', 'bannedAt', 'suspendedAt', 'lastDeepScan', 'timestamp'].forEach(key => {
+                if (result[key] && typeof result[key].toDate === 'function') {
+                    result[key] = result[key].toDate().toISOString();
+                } else if (result[key] && result[key].seconds) {
+                     // Handle raw object {seconds, nanoseconds}
+                     result[key] = new Date(result[key].seconds * 1000).toISOString();
+                }
+            });
+            return result;
+          };
+
           // Use optional chaining for safety if fetch failed/returned empty
-          const recentStudents = studentSnap?.docs?.map(d => ({id: d.id, ...d.data()})) || [];
+          const recentStudents = studentSnap?.docs?.map(d => serialize(d)) || [];
           
           // CRITICAL FIX: Use userId as the primary ID for instructors to ensure Actions (Edit/Delete) target the User UID, not the Instructor Doc ID
           const recentInstructors = instSnap?.docs?.map(d => {
-             const data = d.data();
+             const sData = serialize(d); // Serialized data
              return {
-                 id: data.userId || d.id, // Prefer userId (UID), fallback to doc ID
+                 ...sData,
+                 id: sData.userId || d.id, // Prefer userId (UID), fallback to doc ID
                  instructorDocId: d.id,
-                 ...data, 
                  role: 'instructor'
              };
           }) || [];
           
-          const users = [...recentStudents, ...recentInstructors].sort((a,b) => b.createdAt - a.createdAt).slice(0, 20);
+          // Sort safe (strings compare fine for ISO)
+          const users = [...recentStudents, ...recentInstructors].sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 20);
 
-          const ratings = feedSnap?.docs?.map(d => ({id: d.id, ...d.data()})) || [];
-          const logs = logsSnap?.docs?.map(d => ({id: d.id, ...d.data()})) || [];
+          const ratings = feedSnap?.docs?.map(d => serialize(d)) || [];
+          const logs = logsSnap?.docs?.map(d => serialize(d)) || [];
 
           // Calculate Global Avg Rating
           const validRatings = ratings.map(r => Number(r.rating || r.ratingValue || 0)).filter(r => r > 0);
@@ -227,17 +297,45 @@ export const adminService = {
           status: 'active' 
       });
       
-      // If Instructor, create the instructor node immediately too
+      // If Instructor, create the instructor node immediately too with ROBUST SCHEMA
       if (userData.role === 'instructor') {
+         // Standardize Names
+         const masterName = userData.name || userData.displayName || 'Instructor';
+         const photo = userData.profilePictureUrl || userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(masterName)}&background=random`;
+         
          await addDoc(collection(db, 'instructors'), {
-            userId: docRef.id, // Link to the new user doc
-            email: userData.email,
-            fullName: userData.name,
-            displayName: userData.name,
+            // IDs & Core Info
+            userId: docRef.id, // Synced ID
+            instructorId: docRef.id, // Synced ID
+            email: userData.email, // Explicit Email
+            
+            // Standardized Name Fields (All aliases)
+            fullName: masterName,
+            displayName: masterName,
+            instructorName: masterName,
+            name: masterName,
+
+            // Department
             department: userData.department || 'General',
             departmentId: (userData.department || 'general').toLowerCase().replace(/\s+/g, ''),
-            bio: userData.bio || '',
+            
+            // Bio & Details
+            bio: userData.bio || `Instructor in ${userData.department || 'General'}`,
+            campusId: 'main',
+            
+            // Standardized Image Fields
+            photoURL: photo,
+            profilePictureUrl: photo,
+
+            // Metadata
+            courses: [],
+            stats: { rating: 0, totalReviews: 0 },
+            ratingStats: { average: 0, totalRatings: 0, sentimentScore: 0, distribution: {} },
+            engagementScore: 0,
+            tags: [],
+            
             createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
             status: 'pending'
          });
       }
@@ -355,9 +453,14 @@ export const adminService = {
           
           if (instSnap.empty) {
               // initialize placeholder instructor profile
+              // initialize placeholder instructor profile with ROBUST SCHEMA
                const baseName = userSnap.exists() ? (userSnap.data().displayName || email.split('@')[0]) : email.split('@')[0];
+               const photo = userSnap.exists() ? (userSnap.data().photoURL || userSnap.data().profilePictureUrl) : null;
+               
                await addDoc(collection(db, 'instructors'), {
+                  // IDs & Core Info
                   userId: uid,
+                  instructorId: uid, // Sync IDs
                   email,
                   
                   // Standardized Name Fields (Cover all cases)
@@ -367,17 +470,24 @@ export const adminService = {
                   name: baseName,
 
                   // Standardized Image Fields
-                  photoURL: userSnap.exists() ? userSnap.data().photoURL : null,
-                  profilePictureUrl: userSnap.exists() ? userSnap.data().photoURL : null,
+                  photoURL: photo,
+                  profilePictureUrl: photo,
 
                   // Standardized Department
                   department: 'General',
                   departmentId: 'general',
 
-                  bio: 'New Instructor',
+                  bio: 'Instructor',
+                  campusId: 'main',
+
                   courses: [],
                   stats: { rating: 0, totalReviews: 0 },
-                  createdAt: serverTimestamp()
+                  ratingStats: { average: 0, totalRatings: 0, sentimentScore: 0, distribution: {} },
+                  engagementScore: 0,
+                  tags: [],
+
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp()
               });
           }
       }
@@ -433,6 +543,44 @@ export const adminService = {
               if (data.profilePictureUrl !== masterPhoto) { updates.profilePictureUrl = masterPhoto; needsFix = true; }
               if (data.photoURL !== masterPhoto) { updates.photoURL = masterPhoto; needsFix = true; }
 
+              // 4. ID Standardization (The "Simple" Fix)
+              // Ensure userId always exists and matches instructorId
+              let targetUid = data.userId || data.instructorId;
+              
+              if (!data.userId && data.instructorId) {
+                  updates.userId = data.instructorId;
+                  needsFix = true;
+              }
+              if (!data.instructorId && data.userId) {
+                  updates.instructorId = data.userId;
+                  needsFix = true;
+              }
+              
+              // 5. Email Sync (Critical Fix)
+              if (!data.email || data.email === 'N/A' || !data.userId) {
+                  if (targetUid) {
+                      try {
+                          const userDocSnap = await getDoc(doc(db, 'users', targetUid));
+                          if (userDocSnap.exists()) {
+                              const uData = userDocSnap.data();
+                              
+                              if (uData.email) {
+                                  updates.email = uData.email;
+                                  needsFix = true;
+                              }
+                              // While we're here, sync names if completely missing
+                              if (!data.fullName && uData.displayName) {
+                                  updates.fullName = uData.displayName;
+                                  updates.instructorName = uData.displayName;
+                                  needsFix = true;
+                              }
+                          }
+                      } catch (err) {
+                          console.log("Deep scan user lookup failed", err);
+                      }
+                  }
+              }
+
               if (needsFix) {
                   updates.updatedAt = serverTimestamp();
                   updates.lastDeepScan = serverTimestamp(); // Mark as scanned
@@ -441,7 +589,7 @@ export const adminService = {
                   await updateDoc(docSnap.ref, updates);
                   
                   report.fixed++;
-                  report.details.push(`Fixed ${masterName}: Added missing aliases/synced fields.`);
+                  report.details.push(`Fixed ${masterName}: Synced ID/Email/Schema.`);
               }
           }
           

@@ -32,11 +32,11 @@ const MessageModal = ({ isOpen, onClose, instructorName = 'Instructor', instruct
             });
             
             setStatus('success');
-            setTimeout(() => {
-                onClose();
-                setMessage('');
-                setStatus('idle');
-            }, 2000);
+            onClose();
+            // Navigate immediately
+            if (window.location.pathname !== '/student/messages') {
+                    window.location.href = `/student/messages?partnerId=${instructorId}`;
+            }
         } catch (error) {
             console.error("Message send failed details:", error);
             // Log the specific error code if available

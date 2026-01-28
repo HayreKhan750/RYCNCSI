@@ -15,7 +15,7 @@ export default function AdminLayout({ children, activePage, onNavigate, themeMod
     { id: 'dashboard', label: 'Overview', icon: '📊' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'register', label: 'Register', icon: '➕' },
-    { id: 'content', label: 'Content & Flags', icon: '🛡️' },
+    { id: 'reports', label: 'Reports', icon: '🚩' },
     { id: 'logs', label: 'Audit Logs', icon: '📜' },
     { id: 'import', label: 'Data Migration', icon: '📥' }, // New Item
     { id: 'settings', label: 'Settings', icon: '⚙️' },

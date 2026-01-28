@@ -14,6 +14,7 @@ export default function AdminEditUserModal({ isOpen, onClose, user, onSave }) {
     if (user) {
       setFormData({
         name: user.name || user.displayName || '',
+        email: user.email || user.contactEmail || user.userInfo?.email || '', // Populate Email
         role: user.role || 'student',
         department: user.department || '',
         bio: user.bio || ''
@@ -87,67 +88,94 @@ export default function AdminEditUserModal({ isOpen, onClose, user, onSave }) {
             <button onClick={handleClose} style={{background:'none', border:'none', fontSize:'1.5rem', cursor:'pointer', color:'var(--text-secondary)'}}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-            <div className="adm-form-group">
-                <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Full Name</label>
-                <input 
-                    type="text" 
-                    value={formData.name} 
-                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                    className="adm-input" 
-                    required 
-                />
-            </div>
-
-            <div className="adm-form-group" style={{marginTop: 15}}>
-                <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Role</label>
-                <select 
-                    value={formData.role} 
-                    onChange={(e) => setFormData({...formData, role: e.target.value})} 
-                    className="adm-select"
-                >
-                    <option value="student">Student</option>
-                    <option value="instructor">Instructor</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </div>
-
-            {formData.role === 'instructor' && (
-                <div className="adm-form-group" style={{marginTop: 15}}>
-                    <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Department</label>
+        <form onSubmit={handleSubmit} style={{display:'flex', flexDirection:'column', gap: 20}}>
+            
+            <div style={{display:'flex', flexDirection:'column', gap: 20}}>
+                {/* Full Width Name for Alignment */}
+                <div className="adm-form-group">
+                    <label style={{display:'block', marginBottom: 8, fontSize:'0.85rem', color:'var(--text-secondary)', fontWeight:500}}>Full Name</label>
                     <input 
                         type="text" 
-                        value={formData.department} 
-                        onChange={(e) => setFormData({...formData, department: e.target.value})} 
+                        value={formData.name} 
+                        onChange={(e) => setFormData({...formData, name: e.target.value})} 
                         className="adm-input" 
+                        required 
+                        style={{width: '94%'}} /* Ensure visual alignment with textarea */
                     />
                 </div>
-            )}
 
-            <div className="adm-form-group" style={{marginTop: 15}}>
-                <label style={{display:'block', marginBottom: 8, fontSize:'0.9rem', color:'var(--text-secondary)'}}>Bio</label>
+                {/* Full Width Email */}
+                <div className="adm-form-group">
+                    <label style={{display:'block', marginBottom: 8, fontSize:'0.85rem', color:'var(--text-secondary)', fontWeight:500}}>Email Address</label>
+                    <input 
+                        type="email" 
+                        value={formData.email} 
+                        onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                        className="adm-input"
+                        placeholder="user@example.com"
+                        style={{width: '94%'}}
+                    />
+                </div>
+
+                {/* Grid for Role & Department */}
+                <div style={{display:'grid', gridTemplateColumns: '1fr 1fr', gap: 20}}>
+                    <div className="adm-form-group">
+                        <label style={{display:'block', marginBottom: 8, fontSize:'0.85rem', color:'var(--text-secondary)', fontWeight:500}}>Role</label>
+                        <select 
+                            value={formData.role} 
+                            onChange={(e) => setFormData({...formData, role: e.target.value})} 
+                            className="adm-select"
+                            style={{width:'100%'}}
+                        >
+                            <option value="student">Student</option>
+                            <option value="instructor">Instructor</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    <div className="adm-form-group">
+                        <label style={{display:'block', marginBottom: 8, fontSize:'0.85rem', color:'var(--text-secondary)', fontWeight:500}}>Department / Faculty</label>
+                        <input 
+                            type="text" 
+                            value={formData.department} 
+                            onChange={(e) => setFormData({...formData, department: e.target.value})} 
+                            className="adm-input" 
+                            placeholder={formData.role === 'student' ? 'Major' : 'Department'}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Full Width Bio */}
+            <div className="adm-form-group">
+                <label style={{display:'block', marginBottom: 8, fontSize:'0.85rem', color:'var(--text-secondary)', fontWeight:500}}>Bio / Profile Summary</label>
                 <textarea 
                     value={formData.bio} 
                     onChange={(e) => setFormData({...formData, bio: e.target.value})} 
                     className="adm-input" 
-                    rows={3}
+                    rows={4}
+                    style={{resize:'vertical', minHeight: 100}}
                 />
             </div>
 
-            <div style={{marginTop: 30, display:'flex', gap:12}}>
+            {/* Action Buttons */}
+            <div style={{marginTop: 10, display:'flex', gap:12, paddingTop: 20, borderTop: '1px solid var(--border-subtle)'}}>
                 <button 
                     type="button" 
                     onClick={handleClose}
                     style={{
                         flex: 1,
                         padding: '12px',
-                        borderRadius: '12px',
+                        borderRadius: '10px',
                         border: '1px solid var(--border-subtle)',
                         background: 'transparent',
                         color: 'var(--text-secondary)',
                         fontWeight: '600',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
                     }}
+                    onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
                 >
                     Cancel
                 </button>
@@ -156,14 +184,17 @@ export default function AdminEditUserModal({ isOpen, onClose, user, onSave }) {
                     style={{
                         flex: 1,
                         padding: '12px',
-                        borderRadius: '12px',
+                        borderRadius: '10px',
                         border: 'none',
-                        background: 'var(--primary-gradient)',
+                        background: 'var(--primary-gradient)', // Uses global theme gradient
                         color: 'white',
                         fontWeight: '600',
                         cursor: 'pointer',
-                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)',
+                        transition: 'all 0.2s'
                     }}
+                    onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+                    onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
                     Save Changes
                 </button>

@@ -4,13 +4,28 @@ import AdminEditUserModal from './AdminEditUserModal';
 
 export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdateStatus, onUpdateProfile }) {
   const [filter, setFilter] = useState('student'); // 'student' | 'instructor'
+  const [searchTerm, setSearchTerm] = useState('');
   const [actionOpen, setActionOpen] = useState(null);
   
   // Modal States
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', type: 'warning', onConfirm: null });
   const [editModal, setEditModal] = useState({ open: false, user: null });
 
-  const filteredUsers = users.filter(u => u.role === filter);
+  // Robust Search & Filtering
+  const filteredUsers = users.filter(u => {
+      const matchRole = u.role === filter;
+      if (!matchRole) return false;
+      
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+          (u.name || '').toLowerCase().includes(term) ||
+          (u.displayName || '').toLowerCase().includes(term) ||
+          (u.email || '').toLowerCase().includes(term) ||
+          (u.contactEmail || '').toLowerCase().includes(term) ||
+          (u.department || '').toLowerCase().includes(term)
+      );
+  });
 
   const handleActionClick = (id) => {
       setActionOpen(actionOpen === id ? null : id);
@@ -64,7 +79,13 @@ export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdate
               </button>
           </div>
           
-          <input type="text" placeholder="Search users..." className="adm-search" />
+          <input 
+            type="text" 
+            placeholder="Search users..." 
+            className="adm-search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
       </div>
 
       <div className="adm-glass adm-table-container" style={{minHeight: 400}}>
@@ -74,7 +95,6 @@ export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdate
                      <th>User</th>
                      <th>Email</th>
                      <th>Status</th>
-                     <th>Joined</th>
                      <th>Actions</th>
                  </tr>
              </thead>
@@ -98,7 +118,7 @@ export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdate
                                  </div>
                              </div>
                          </td>
-                         <td>{user.email}</td>
+                         <td>{user.email || user.contactEmail || user.userInfo?.email || 'N/A'}</td>
                          <td>
                              {user.isBanned ? (
                                  <span className="status-badge danger">Banned</span>
@@ -109,9 +129,6 @@ export default function AdminUsers({ users, onDelete, onApprove, onBan, onUpdate
                              ) : (
                                  <span className="status-badge success">Active</span>
                              )}
-                         </td>
-                         <td style={{opacity:0.7}}>
-                            {user.createdAt?.seconds ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'Unknown'}
                          </td>
                          <td style={{position:'relative'}}>
                              <button className="adm-btn" onClick={() => handleActionClick(user.id)}>Actions ▼</button>

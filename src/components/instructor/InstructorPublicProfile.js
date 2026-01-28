@@ -6,8 +6,12 @@ import useInstructorProfile from '../../hooks/useInstructorProfile';
 import DashboardHero from './DashboardHero';
 import ReviewList from '../common/ReviewList';
 import Header from '../common/Header';
+
 import EditProfileModal from './EditProfileModal';
 import MessageModal from './MessageModal';
+import AIInsightCard from './AIInsightCard';
+import { TrendingUp } from 'lucide-react';
+import { useMemo } from 'react';
 import './InstructorDashboard.css';
 
 const InstructorPublicProfile = () => {
@@ -26,12 +30,31 @@ const InstructorPublicProfile = () => {
         updateProfile 
     } = useInstructorProfile(targetId);
 
+    // Calculate Trend Data (Ported from InstructorDashboard)
+    const trendPath = useMemo(() => {
+         const validFeedbacks = feedbacks || [];
+         if (validFeedbacks.length < 2) return null;
+         
+         const sorted = [...validFeedbacks].sort((a,b) => (a.createdAt || 0) - (b.createdAt || 0)); // Sort by date
+         
+         const points = sorted.map((f, i) => {
+             const rating = f.rating || f.ratingValue || 0;
+             const x = (i / (sorted.length - 1)) * 500;
+             const y = 200 - ((rating / 5) * 200);
+             return `${x},${y}`;
+         }).join(' L ');
+         return `M ${points}`;
+    }, [feedbacks]);
+
     const [activeTab, setActiveTab] = useState('overview'); 
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isMessageOpen, setIsMessageOpen] = useState(false);
 
     // Edit Check: Can edit if it's my own profile
     const canEdit = user?.uid && (user.uid === profile?.userId || user.uid === profile?.id || user.uid === targetId);
+    
+    // Hide back button if viewing own profile (acts as dashboard)
+    const isOwnProfile = user?.uid === targetId;
 
     if (loading) return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -54,9 +77,9 @@ const InstructorPublicProfile = () => {
     return (
         <div className="instructor-dashboard-container pb-20">
              {/* Conditionally render header based on if it's a student viewing or instructor previewing */}
-             <Header title="Instructor Profile" />
+             <Header title="Instructor Profile" showBack={!isOwnProfile} />
 
-             <div className="dashboard-content max-w-5xl mx-auto w-full">
+             <div className="dashboard-content max-w-[1280px] mx-auto w-full px-6">
                 {/* 1. HERO */}
                 <DashboardHero profile={profile} stats={stats} badges={badges} />
 
@@ -74,13 +97,6 @@ const InstructorPublicProfile = () => {
                     >
                         Reviews ({stats?.reviewCount || 0})
                     </button>
-                    {/* Courses Tab (Future) */}
-                    <button 
-                         className="profile-tab-item disabled"
-                         title="Coming Soon"
-                    >
-                        Courses
-                    </button>
                 </div>
 
                 {/* 3. CONTENT AREA */}
@@ -91,89 +107,59 @@ const InstructorPublicProfile = () => {
                     transition={{ duration: 0.3 }}
                 >
                     {activeTab === 'overview' && (
-                        <div className="profile-layout-grid">
-                            {/* LEFT: About */}
-                            <div className="profile-left-col">
-                                <section className="premium-card profile-card">
-                                    <h3 className="profile-section-title">About Me</h3>
-                                    <p className="profile-bio-text">
-                                        {profile.bio || "No biography provided yet."}
-                                    </p>
-                                    
-                                    {/* Traits / Tags */}
-                                    <div className="profile-tags-row">
-                                        {['Responsive', 'Clear Explanations', 'Subject Expert'].map((tag, i) => (
-                                            <span key={i} className="profile-tag-pill">
-                                                #{tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </section>
-
-                                {/* Teaching Stats (Visual) */}
-                                <section>
-                                    <h3 className="profile-section-title">Teaching Impact</h3>
-                                    <div className="impact-stats-grid">
-                                        <div className="impact-stat-card">
-                                            <div className="impact-val indigo">{stats?.courseCount || 0}</div>
-                                            <div className="impact-label">Courses</div>
-                                        </div>
-                                        <div className="impact-stat-card">
-                                            <div className="impact-val emerald">{stats?.totalStudents || 0}</div>
-                                            <div className="impact-label">Students</div>
-                                        </div>
-                                        <div className="impact-stat-card">
-                                            <div className="impact-val amber">{stats?.avgRating ? Number(stats.avgRating).toFixed(1) : "N/A"}</div>
-                                            <div className="impact-label">Avg Rating</div>
-                                        </div>
-                                         <div className="impact-stat-card">
-                                            <div className="impact-val rose">{stats?.responseRate || '100%'}</div>
-                                            <div className="impact-label">Response Rate</div>
-                                        </div>
-                                    </div>
-                                </section>
-                            </div>
-
-                            {/* RIGHT: Contact / Details */}
-                            <div className="profile-right-col">
-                                <div className="premium-card connect-card">
-                                    <div className="connect-content">
-                                        <h3 className="connect-title">Connect</h3>
-                                        <p className="connect-text">
-                                            Have questions about a course? Send <br/>a direct message.
-                                        </p>
-                                        <button 
-                                            className="btn-message-instructor"
-                                            onClick={() => setIsMessageOpen(true)}
-                                        >
-                                            Message Instructor
-                                        </button>
-                                    </div>
-                                    {/* Deco */}
-                                    <div className="deco-circle top-right"></div>
-                                    <div className="deco-circle bottom-left"></div>
+                        <div className="profile-layout-grid-premium">
+                            {/* TOP: About Me */}
+                            <div className="premium-card profile-card" style={{gridColumn: '1 / -1', marginBottom: '1.5rem'}}>
+                                <h3 className="profile-section-title">About Me</h3>
+                                <p className="profile-bio-text">
+                                    {profile.bio || "No biography provided yet."}
+                                </p>
+                                <div className="profile-tags-row">
+                                    {stats?.topTags?.slice(0,3).map((tag, i) => (
+                                        <span key={i} className="profile-tag-pill">#{tag}</span>
+                                    ))}
                                 </div>
+                            </div>
+                            
+                            {/* SPLIT ROW: AI + GRAPH */}
+                            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', width: '100%' }}>
                                 
-                                <div className="premium-card info-card">
-                                    <h3 className="info-card-title">Information</h3>
-                                    <div className="info-rows">
-                                        <div className="info-row">
-                                            <span className="info-label">Department</span>
-                                            <span className="info-val">{profile.department || "General"}</span>
-                                        </div>
-                                        <div className="info-row">
-                                            <span className="info-label">Joined</span>
-                                            <span className="info-val">
-                                                {profile.joinedAt 
-                                                    ? new Date(profile.joinedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) 
-                                                    : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) : 'Recently')}
-                                            </span>
-                                        </div>
-                                        <div className="info-row">
-                                            <span className="info-label">Language</span>
-                                            <span className="info-val">{profile.languages?.join(', ') || "English"}</span>
-                                        </div>
-                                    </div>
+                                {/* 1. AI Insights */}
+                                <div className="grid-area-stats" style={{ flex: 1, minWidth: '350px' }}>
+                                   <AIInsightCard topTraits={stats?.topTags?.slice(0,3)} />
+                                </div>
+
+                                <div className="bento-panel glass-effect p-6" style={{ flex: 1, minWidth: '350px', display: 'flex', flexDirection: 'column' }}>
+                                     <div className="panel-title-premium mb-4" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                                         <span>Performance Trajectory</span>
+                                         <TrendingUp size={18} color="#4ade80" />
+                                     </div>
+                                     <div className="iep-chart-container" style={{position: 'relative', height: '250px', width: '100%', flex: 1}}>
+                                        {/* Simple SVG Chart (Reused Style) */}
+                                        <svg width="100%" height="100%" viewBox="0 0 500 200" preserveAspectRatio="none">
+                                            <defs>
+                                                <linearGradient id="gradDash" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                    <stop offset="0%" stopColor="#818cf8" stopOpacity={0.4} />
+                                                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            {/* Grid Lines */}
+                                            <line x1="0" y1="150" x2="500" y2="150" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                                            <line x1="0" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                                            <line x1="0" y1="50" x2="500" y2="50" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+
+                                            {trendPath ? (
+                                                <>
+                                                    <path d={`${trendPath} L 500 200 L 0 200 Z`} fill="url(#gradDash)" />
+                                                    <path d={trendPath} fill="none" stroke="#818cf8" strokeWidth="3" strokeLinecap="round" />
+                                                </>
+                                            ) : (
+                                                <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fill="#64748b">
+                                                    Not enough data yet for trajectory
+                                                </text>
+                                            )}
+                                        </svg>
+                                     </div>
                                 </div>
                             </div>
                         </div>
@@ -189,6 +175,7 @@ const InstructorPublicProfile = () => {
                              />
                          </div>
                     )}
+
                 </motion.div>
                 
                 {/* 4. MODALS */}
@@ -206,7 +193,8 @@ const InstructorPublicProfile = () => {
                     instructorName={profile?.fullName?.split(' ')[0]}
                     instructorId={targetId}
                 />
-             </div>
+            </div>
+
 
              {/* Floating Edit Button (Mobile/Secondary) */}
              {canEdit && (

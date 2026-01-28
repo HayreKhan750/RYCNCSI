@@ -63,9 +63,9 @@ body {
 }
 
 .dashboard-content {
-  max-width: 1150px; /* Constrain width for premium centered look */
+  max-width: 1280px; /* Match standard 1280px */
   margin: 0 auto;
-  padding: 2rem 4rem; /* More horizontal breathing room */
+  padding: 2rem 24px; /* Match Header padding (24px) */
   display: flex;
   flex-direction: column;
   gap: 2.5rem; 

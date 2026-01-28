@@ -48,8 +48,8 @@ export const messageService = {
       // Optimally, use a composite index on participants.
       const q = query(
           collection(db, 'messages'), 
-          where('participants', 'array-contains', userId),
-          orderBy('createdAt', 'desc')
+          where('participants', 'array-contains', userId)
+          // Removed orderBy to avoid composite index requirement. Sorting is done client-side.
       );
       
       const snap = await getDocs(q);

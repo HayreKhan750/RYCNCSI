@@ -14,7 +14,8 @@ export default function AdminPanel() {
   const { 
       stats, 
       users, 
-      ratings, 
+      ratings,
+      reports, 
       logs, 
       loading, 
       refresh,
@@ -23,6 +24,8 @@ export default function AdminPanel() {
       deleteRating, 
       updateRatingStatus, 
       flagRating,
+      resolveReport,
+      fetchReports,
       updateUserStatus,
       updateUserProfile
   } = useAdminData();
@@ -66,6 +69,15 @@ export default function AdminPanel() {
           Feedback ({ratings?.length || 0})
         </button>
         <button
+          className={`admin-tab ${activeTab === 'reports' ? 'active' : ''}`}
+          onClick={() => {
+              setActiveTab('reports');
+              if (fetchReports) fetchReports('open');
+          }}
+        >
+          Reports ({reports?.length || 0})
+        </button>
+        <button
           className={`admin-tab ${activeTab === 'logs' ? 'active' : ''}`}
           onClick={() => setActiveTab('logs')}
         >
@@ -87,17 +99,7 @@ export default function AdminPanel() {
         )}
 
         {activeTab === 'users' && (
-           /* We can reuse AdminContent or a specific User Table component. 
-              For now, let's assume we need a User Table. 
-              I'll render a custom User Table here or use AdminContent if it supports it.
-              The previous AdminPanel had inline User Table. Let's create a clean one here or better yet,
-              check if AdminUsers.js exists (it did in the file search). */
            <div className="users-section">
-               {/* Integrating logic directly or importing AdminUsers if I had read it. 
-                   Since I didn't read AdminUsers.js, I will inline a clean version here using the 'users' data 
-                   or leave a placeholder to read it. 
-                   Actually, let's use the 'users' array from the hook.
-               */}
                <div className="adm-glass adm-table-container">
                  <table className="adm-table">
                    <thead>
@@ -150,6 +152,15 @@ export default function AdminPanel() {
              onDeleteRating={deleteRating}
              updateRatingStatus={updateRatingStatus}
              flagRating={flagRating}
+          />
+        )}
+
+        {activeTab === 'reports' && (
+          <AdminContent 
+             reports={reports || []}
+             view="reports"
+             resolveReport={resolveReport}
+             onDeleteRating={deleteRating} // Reuse delete for "Delete Content" action
           />
         )}
 

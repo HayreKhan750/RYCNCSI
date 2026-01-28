@@ -65,20 +65,38 @@ export const studentService = {
                 }
             });
 
-            // 2. Try Instructors Collection (for IDs not found in Users)
-            const missingIds = instructorIds.filter(id => !instructorMap[id]);
-            if (missingIds.length > 0) {
+            // 2. Try Instructors Collection (for IDs not found in Users OR missing photo)
+            const idsWithMissingInfo = instructorIds.filter(id => !instructorMap[id] || !instructorMap[id].photo);
+            
+            if (idsWithMissingInfo.length > 0) {
                 const instSnapshots = await Promise.all(
-                    missingIds.map(id => getDoc(doc(db, 'instructors', id)))
+                    idsWithMissingInfo.map(id => getDoc(doc(db, 'instructors', id)))
                 );
                 
                 instSnapshots.forEach(d => {
                     if (d.exists()) {
-                        instructorMap[d.id] = {
+                        const existing = instructorMap[d.id];
+                        const newData = {
                             name: d.data().instructorName || d.data().name || 'Instructor',
-                            photo: d.data().photo || d.data().photoURL,
+                            photo: d.data().photo || d.data().photoURL || d.data().profilePictureUrl, // Added profilePictureUrl
                             dept: d.data().department
                         };
+
+                        if (!existing) {
+                             instructorMap[d.id] = newData;
+                        } else {
+                             // Merge: prioritized existing name if robust, but definitely take photo if existing is missing
+                             if (!existing.photo && newData.photo) {
+                                 existing.photo = newData.photo;
+                             }
+                             if (!existing.dept && newData.dept) {
+                                 existing.dept = newData.dept;
+                             }
+                             // If the existing name is generic, take the instructor name
+                             if (existing.name === 'Instructor' && newData.name !== 'Instructor') {
+                                 existing.name = newData.name;
+                             }
+                        }
                     }
                 });
             }
@@ -115,9 +133,15 @@ export const studentService = {
             instructorId: r.instructorId,
             instructorName: r.instructorName,
             deptName: r.deptName,
+            photoURL: r.instructorPhoto || r.photoURL, // Ensure photo is passed
             count: 0,
             lastRating: r.rating || 0,
           };
+          // Update photo if we found a better one in a later rating iteration (hydrated)
+          if (!existing.photoURL && (r.instructorPhoto || r.photoURL)) {
+              existing.photoURL = r.instructorPhoto || r.photoURL;
+          }
+          
           existing.count += 1;
           existing.lastRating = r.rating || existing.lastRating; 
           instMap.set(key, existing);

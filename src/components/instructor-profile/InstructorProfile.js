@@ -151,7 +151,7 @@ export default function InstructorProfile({ user: propUser }) {
           </div>
 
           {/* RIGHT COLUMN: Stats & Details */}
-          <div className="profile-right-col">
+              <div className="profile-right-col">
               
               {/* Quick Stats */}
               <div className="premium-card">

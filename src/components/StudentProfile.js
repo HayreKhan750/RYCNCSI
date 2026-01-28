@@ -33,7 +33,8 @@ export default function StudentProfile({ showHeader = true }) {
   const [activeTab, setActiveTab] = useState('activity');
   const [showEditModal, setShowEditModal] = useState(false);
 
-  if (loading) return <div className="loading-screen">Loading profile...</div>;
+  // Non-blocking loader: Only show full spinner if we have NO profile data
+  if (loading && !profile) return <div className="loading-screen">Loading profile...</div>;
   if (!profile && !loading) return <div className="error-screen">Profile not found.</div>;
   
   // --- UNIFIED PREMIUM HERO COMPONENT ---
@@ -163,7 +164,7 @@ export default function StudentProfile({ showHeader = true }) {
       {showHeader && <Header user={user} isDark={isDarkMode} title={isOwnProfile ? "My Profile" : `${profile?.name}'s Profile`} showBack={!isOwnProfile} />}
       
       {/* Unified Hero Container */}
-      <div style={{maxWidth: '1200px', margin: '0 auto', padding: '0 20px'}}>
+      <div style={{maxWidth: '1280px', margin: '0 auto', padding: '0 24px'}}>
           {renderProfileHero(isOwnProfile)}
       </div>
 

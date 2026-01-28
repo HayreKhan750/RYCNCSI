@@ -11,7 +11,7 @@ import PerformanceAnalytics from './PerformanceAnalytics';
 import AIInsightCard from './AIInsightCard';
 import RecentFeedbackPanel from './RecentFeedbackPanel';
 import DashboardHero from './DashboardHero'; // Premium Hero
-import PrivateMessages from '../student-dashboard/PrivateMessages';
+
 import { TrendingUp } from 'lucide-react'; 
 import './InstructorDashboard.css';
 
@@ -119,7 +119,7 @@ const InstructorDashboard = () => {
         <div className="instructor-dashboard-container" data-theme={mode}>
             <Header title="Instructor Portal" />
 
-            <div className="dashboard-content-premium">
+            <div className="dashboard-content">
                 
                 {/* 0. WELCOME HEADER (Floating) */}
                 <div className="dashboard-welcome-section" style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end'}}>
@@ -158,7 +158,7 @@ const InstructorDashboard = () => {
                 <div style={{
                     display:'flex', gap: 30, marginBottom: 25, borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 0
                 }}>
-                    {['Overview', 'Reviews', 'Messages'].map(tab => (
+                    {['Overview', 'Reviews'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => {
@@ -278,14 +278,7 @@ const InstructorDashboard = () => {
                     </div>
                 )}
 
-                {/* 3. MESSAGES TAB (Private Connection) */}
-                {activeTab === 'messages' && (
-                     <div className="bento-panel glass-effect" style={{padding: '0', overflow:'hidden', borderRadius: '24px'}}>
-                         <div style={{padding: '20px'}}>
-                            <PrivateMessages user={user} />
-                         </div>
-                     </div>
-                )}
+
                 {/* MODAL RENDERER */}
                 {isEditOpen && (
                     <EditProfileModal 

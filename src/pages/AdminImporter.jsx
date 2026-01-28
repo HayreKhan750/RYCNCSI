@@ -458,9 +458,9 @@ function LogsPanel({ logs, done }) {
   return (
     <div className="logs-container">
         {logs.map((log, i) => (
-          <div key={i} className="log-entry">> {log}</div>
+          <div key={i} className="log-entry">{">"} {log}</div>
         ))}
-        {done && <div className="log-success">> OPERATION COMPLETE</div>}
+        {done && <div className="log-success">{">"} OPERATION COMPLETE</div>}
     </div>
   );
 }

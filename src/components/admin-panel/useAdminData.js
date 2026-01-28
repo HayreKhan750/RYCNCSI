@@ -9,7 +9,9 @@ import {
   registerUser as registerUserAction,
   updateUserStatus as updateUserStatusAction,
   updateUserProfile as updateUserProfileAction,
-  banUser as banUserAction
+  banUser as banUserAction,
+  fetchReports as fetchReportsAction,
+  resolveReport as resolveReportAction
 } from '../../store/slices/adminSlice';
 import { 
   selectAdminStats, 
@@ -25,6 +27,7 @@ export function useAdminData() {
   const stats = useSelector(selectAdminStats);
   const users = useSelector(selectAdminUsers);
   const ratings = useSelector(selectAdminRatings);
+  const reports = useSelector((state) => state.admin.reports);
   const logs = useSelector(selectAdminLogs);
   const loading = useSelector(selectAdminLoading);
 
@@ -59,18 +62,20 @@ export function useAdminData() {
     loading, 
     stats, 
     users, 
-    ratings, 
+    ratings,
+    reports, // Expose reports
     logs, 
     deleteUser, 
     approveInstructor, 
     deleteRating, 
     updateRatingStatus, 
     flagRating, 
-  registerUser: (data) => dispatch(registerUserAction(data)),
+    fetchReports: (status) => dispatch(fetchReportsAction(status)),
+    resolveReport: (id, resolution) => dispatch(resolveReportAction({ reportId: id, resolution })), 
+    registerUser: (data) => dispatch(registerUserAction(data)),
     updateUserStatus: (uid, status, details) => dispatch(updateUserStatusAction({ uid, status, details })),
     updateUserProfile: (uid, data) => dispatch(updateUserProfileAction({ uid, data })),
     banUser: (uid, reason) => dispatch(banUserAction({ uid, reason })),
-    updateUserProfile: (uid, data) => dispatch(updateUserProfileAction({ uid, data })),
     refresh: () => dispatch(fetchDashboardData()) 
   };
 }

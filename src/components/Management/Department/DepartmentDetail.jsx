@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchDashboardData } from '../../../store/slices/managementSlice';
 import Header from '../../common/Header';
 import FeedbackStream from '../FeedbackStream'; // Reuse
 import FacultyRosterList from '../FacultyRosterList'; // Renamed from InstructorInsights to break cache
@@ -14,7 +15,14 @@ const DepartmentDetail = () => {
     
     // In real app, fetch specific dept details here (incidents, trends)
     // For now, filter from global store
-    const { departments, topInstructors, recentFeedback } = useSelector(state => state.management);
+    const dispatch = useDispatch();
+    const { departments, topInstructors, recentFeedback, lastUpdated } = useSelector(state => state.management);
+
+    useEffect(() => {
+        if (!lastUpdated || departments.length === 0) {
+            dispatch(fetchDashboardData());
+        }
+    }, [dispatch, lastUpdated, departments.length]);
     
     const deptStats = departments.find(d => d.name === decodedName);
     const deptInstructors = topInstructors.filter(i => {

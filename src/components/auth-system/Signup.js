@@ -9,7 +9,8 @@ import { instructorService } from '../../services/instructorService';
 export default function Signup({ onNavigate }) {
   const dispatch = useDispatch();
   const { status, error } = useSelector((state) => state.auth);
-  const loading = status === 'loading';
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const loading = status === 'loading' || isSubmitting;
   
   const [formData, setFormData] = useState({
     name: '',
@@ -47,10 +48,24 @@ export default function Signup({ onNavigate }) {
       alert("Passwords do not match");
       return;
     }
+    if (formData.password.length < 6) {
+        alert("Password must be at least 6 characters long");
+        return;
+    }
+    
+    setIsSubmitting(true);
     dispatch(clearError());
-    const resultAction = await dispatch(registerUser({ ...formData, file: photo }));
-    if (registerUser.fulfilled.match(resultAction)) {
-        onNavigate('verify'); 
+    
+    try {
+        const resultAction = await dispatch(registerUser({ ...formData, file: photo }));
+        if (registerUser.fulfilled.match(resultAction)) {
+            onNavigate('verify'); 
+        } else {
+            console.error(resultAction.payload);
+            setIsSubmitting(false); // Reset on failure
+        }
+    } catch (err) {
+        setIsSubmitting(false);
     }
   };
 

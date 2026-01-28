@@ -38,7 +38,7 @@ export default function ReviewersDirectory() {
         return b.reviewCount - a.reviewCount;
     });
 
-  if (loading) {
+  if (loading && (!topReviewers || topReviewers.length === 0)) {
       return (
           <div className="premium-container" style={{padding: '40px 20px', maxWidth: '1200px', margin: '0 auto'}}>
               <div style={{textAlign: 'center', marginBottom: 40}}>

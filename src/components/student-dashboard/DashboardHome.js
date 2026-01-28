@@ -71,11 +71,6 @@ export default function DashboardHome({ user, navigateTo }) {
           <h3>Reviews & Activity</h3>
           <p>Manage your reviews, feedback, and replies in one place.</p>
         </div>
-        <div className="nav-card glass-card" onClick={() => navigateTo('messages')}>
-          <div className="icon">✉️</div>
-          <h3>Private Messages</h3>
-          <p>Check messages from your instructors.</p>
-        </div>
       </div>
 
       {/* Widgets */}

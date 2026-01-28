@@ -6,12 +6,14 @@ export const fetchDashboardData = createAsyncThunk(
   'management/fetchDashboard',
   async (_, { rejectWithValue }) => {
     try {
-      const stats = await managementService.fetchDashboardStats();
-      const departments = await managementService.fetchDepartmentAnalytics();
-      const topInstructors = await managementService.fetchTopInstructors();
-      const recentFeedback = await managementService.fetchRecentFeedback();
+      // Parallel Fetch for Speed
+      const [stats, departments, topInstructors] = await Promise.all([
+          managementService.fetchDashboardStats(),
+          managementService.fetchDepartmentAnalytics(),
+          managementService.fetchTopInstructors()
+      ]);
 
-      return { stats, departments, topInstructors, recentFeedback };
+      return { stats, departments, topInstructors, recentFeedback: [] };
     } catch (error) {
       return rejectWithValue(error.message);
     }
