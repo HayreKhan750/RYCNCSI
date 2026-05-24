@@ -98,6 +98,63 @@ export default function AdminDashboard({ stats, ratings, users }) {
           engagementThisMonth: realEngagement, // Using total for now
           totalDepartments: stats?.totalDepartments || deptStats.length
       };
+      
+      // Simulate real-time scanning for premium effect
+      setTimeout(() => {
+          generatePremiumIntelligenceReport(reportStats, deptStats, ratings);
+          setScanning(false);
+          showModal("Intelligence Ready", "Deep-analysis executive report has been generated and downloaded.", "success");
+      }, 1500);
+  };
+
+  return (
+    <div className="admin-dashboard fade-in">
+      {/* 1. Header Section (Intelligence) */}
+      <div className="admin-header-row">
+          <div className="admin-title-group">
+              <h2 className="admin-page-title">System Intelligence</h2>
+              <p className="admin-page-subtitle">Real-time oversight of CNCS academic performance</p>
+          </div>
+          
+          <div className="admin-actions">
+              <button 
+                  onClick={handleExportReport} 
+                  disabled={scanning}
+                  className={`btn-admin-premium ${scanning ? 'scanning' : ''}`}
+              >
+                  <span className="btn-icon">{scanning ? '⌛' : '🛰️'}</span>
+                  {scanning ? 'Analyzing System...' : 'Generate Executive Intelligence'}
+              </button>
+          </div>
+      </div>
+
+      {/* NEW: Real-time System Monitor - Billion Dollar Polish */}
+      <div className="system-monitor-grid">
+          <div className="monitor-card glass-panel">
+              <div className="monitor-header">
+                  <div className="monitor-dot pulse"></div>
+                  <span>LIVE FEEDBACK STREAM</span>
+              </div>
+              <div className="monitor-value">{realEngagement}</div>
+              <div className="monitor-label">Total Signals Processed</div>
+          </div>
+          <div className="monitor-card glass-panel">
+              <div className="monitor-header">
+                  <div className="monitor-dot pulse-cyan"></div>
+                  <span>GLOBAL SATISFACTION</span>
+              </div>
+              <div className="monitor-value">{realAvg}</div>
+              <div className="monitor-label">System-wide Avg Rating</div>
+          </div>
+          <div className="monitor-card glass-panel">
+              <div className="monitor-header">
+                  <div className="monitor-dot pulse-purple"></div>
+                  <span>ACADEMIC SCOPE</span>
+              </div>
+              <div className="monitor-value">{realDeptCount}</div>
+              <div className="monitor-label">Departments Monitored</div>
+          </div>
+      </div>
 
       // Transform departments for PDF
       const reportDepts = deptStats.map(d => ({

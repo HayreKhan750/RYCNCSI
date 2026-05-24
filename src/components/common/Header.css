@@ -1,15 +1,17 @@
 /* Base Header Styles */
 .glass-header {
-  display: block; /* Changed from flex to block to allow inner container to center */
-  height: 64px;
-  padding: 0 16px; /* Reduced side padding slightly */
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Premium Subtle Border */
+  display: block; 
+  height: 72px; /* Increased from 64px */
+  padding: 0 16px;
+  background: rgba(15, 23, 42, 0.75); /* More opaque */
+  backdrop-filter: blur(24px); /* Increased blur */
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: sticky;
   top: 0;
   z-index: 100;
   width: 100%;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .header-inner-container {
@@ -55,24 +57,28 @@
 }
 
 .logo-icon {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
-  color: #000;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  background: var(--primary-gradient); /* Use brand gradient */
+  color: white;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 1.1rem;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  font-size: 1.2rem;
+  box-shadow: 0 0 15px rgba(79, 70, 229, 0.4);
 }
 
 .logo-text {
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: -0.5px;
-  color: #f1f5f9;
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+  color: white;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Header Title (Legacy) */

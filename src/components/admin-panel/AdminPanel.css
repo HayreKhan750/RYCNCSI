@@ -182,10 +182,82 @@
 .stat-val { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.03em; margin: 16px 0 8px; }
 .stat-label { font-size: 0.875rem; color: var(--adm-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
 
-/* Tables */
-.adm-table-container {
-  overflow-x: auto;
-  border-radius: 16px;
+/* System Monitor - Billion Dollar Polish */
+.system-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.monitor-card {
+  padding: 32px;
+  text-align: center;
+  border: 1px solid var(--adm-border-dark);
+  background: linear-gradient(135deg, rgba(24, 24, 27, 0.4) 0%, rgba(9, 9, 11, 0.6) 100%);
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--adm-text-secondary);
+  margin-bottom: 20px;
+}
+
+.monitor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--adm-success);
+}
+
+.monitor-dot.pulse { animation: monitor-pulse 2s infinite; }
+.monitor-dot.pulse-cyan { background: #06b6d4; animation: monitor-pulse-cyan 2s infinite; }
+.monitor-dot.pulse-purple { background: #a855f7; animation: monitor-pulse-purple 2s infinite; }
+
+@keyframes monitor-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes monitor-pulse-cyan {
+  0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+}
+
+@keyframes monitor-pulse-purple {
+  0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+}
+
+.monitor-value {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+  margin-bottom: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.monitor-label {
+  font-size: 0.85rem;
+  color: var(--adm-text-secondary);
+  font-weight: 500;
+}
+
+@media (max-width: 1024px) {
+  .system-monitor-grid { grid-template-columns: 1fr; }
 }
 
 .adm-table {
@@ -242,11 +314,36 @@
 .adm-btn:hover { background: rgba(255,255,255,0.1); }
 .light .adm-btn:hover { background: rgba(0,0,0,0.05); }
 
-.adm-btn.primary {
+.btn-admin-premium {
+  padding: 14px 28px;
   background: var(--adm-accent);
-  border-color: var(--adm-accent);
   color: white;
-  box-shadow: 0 0 20px -5px var(--adm-accent-glow);
+  border: none;
+  border-radius: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+}
+
+.btn-admin-premium:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 35px -5px rgba(99, 102, 241, 0.5);
+  background: #4f46e5;
+}
+
+.btn-admin-premium.scanning {
+  background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
+  background-size: 200% 100%;
+  animation: scanning-shimmer 2s infinite linear;
+}
+
+@keyframes scanning-shimmer {
+  0% { background-position: 0% 0%; }
+  100% { background-position: -200% 0%; }
 }
 .adm-btn.primary:hover {
   background: #4f46e5;

@@ -89,11 +89,12 @@ Business logic is decoupled from UI in specialized service modules:
 *   `aiService`: Integration for sentiment analysis and insight generation.
 *   `managementService`: High-level statistical aggregation for dashboards.
 
-## 7. UI/UX Design Philosophy
-
-*   **Premium Modern**: Utilization of glassmorphism, sophisticated gradients, and noise textures.
-*   **Responsive Motion**: `framer-motion` drives unrelated component transitions for a native-app feel.
-*   **Dark/Light Mode**: First-class support for theming via Redux `themeSlice`.
+## 8. Billion-Dollar Features (Roadmap)
+*   **AI Executive Summary**: Personalised insights for students and instructors based on sentiment analysis of hundreds of reviews.
+*   **Real-time Reputation Engine**: Dynamic "Engagement Score" that rewards constructive feedback and active participation.
+*   **Academic Predictor**: AI-driven course recommendations matching a student's preferred teaching style.
+*   **Enterprise Moderation**: Advanced reporting and audit system with automated flag detection.
+*   **Global Search & Discovery**: High-performance filtering and ranking system for instructors and courses.
 
 ---
 *Updated for RYCNCSI System v2.0*

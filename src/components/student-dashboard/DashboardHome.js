@@ -3,9 +3,10 @@ import useDashboardData from './useDashboardData';
 import TopInstructors from '../student/TopInstructors';
 import PopularReviewers from '../student/PopularReviewers';
 import SkeletonLoader from '../common/SkeletonLoader';
+import PerformanceChart from '../common/PerformanceChart';
 
 export default function DashboardHome({ user, navigateTo }) {
-  const { stats, topInstructors, activeReviewers, recentActivity, loading } = useDashboardData(user);
+  const { stats, topInstructors, activeReviewers, recentActivity, aiInsight, engagementTrend, loading } = useDashboardData(user);
 
   if (loading) return (
     <div className="dashboard-home">
@@ -58,6 +59,30 @@ export default function DashboardHome({ user, navigateTo }) {
           </div>
         </div>
       </div>
+
+      {/* AI Insight Section - Billion Dollar Polish */}
+      {aiInsight && (
+        <div className="ai-insight-card glass-card">
+          <div className="ai-badge">AI INSIGHT</div>
+          <div className="ai-content">
+            <div className="ai-icon">{aiInsight.icon}</div>
+            <div className="ai-text">
+              <h4>{aiInsight.title}</h4>
+              <p>{aiInsight.text}</p>
+            </div>
+          </div>
+          <div className="ai-visual">
+            <div className="pulse-ring"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Engagement Analytics */}
+      <PerformanceChart 
+        data={engagementTrend} 
+        title="Academic Engagement Trend" 
+        subtitle="Your activity impact on the CNCS community"
+      />
 
       {/* Quick Navigation */}
       <div className="quick-nav">
