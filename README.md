@@ -1,71 +1,102 @@
-# Getting Started with Create React App
+# 🎓 AcademicPulse
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+### AI-Powered Instructor Rating & Academic Intelligence Platform
 
-## Available Scripts
+[![Vercel Deployment](https://img.shields.io/badge/Deploy-Vercel-black?style=for-the-badge&logo=vercel)](https://academicpulse.vercel.app)
+[![Firebase Backend](https://img.shields.io/badge/Backend-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com)
+[![React 19](https://img.shields.io/badge/Frontend-React%2019-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 
-In the project directory, you can run:
+**AcademicPulse** (formerly AcademicPulse) is a "billion-dollar" enterprise-grade academic feedback ecosystem. It moves beyond static surveys into a real-time, data-driven performance analytics platform, leveraging AI to bridge the gap between students, faculty, and university management.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🚀 Architectural Evolution: v1 vs v2
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+This repository represents the **v2.0 Evolution** of our academic intelligence infrastructure.
 
-### `npm test`
+| Feature | v1 (Monolith) | v2 (AcademicPulse) |
+| :--- | :--- | :--- |
+| **Architecture** | Simple CRUD | Serverless Service-Oriented (SSOA) |
+| **State Management** | Local State / Prop Drilling | Redux Toolkit (Memoized Selectors) |
+| **AI Integration** | None | Real-time Sentiment & Toxicity Analysis |
+| **Security** | Basic Auth | 4-Tier RBAC + Firestore Security Rules |
+| **Performance** | Standard Lists | Virtualized Lists + Atomic Transactions |
+| **Analytics** | Static Tables | Predictive Analytics + Executive PDF Reports |
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🔥 Key Features
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 🧠 AI-Driven Insights
+- **Sentiment Analysis**: Automated scoring of every review to track instructor performance trends.
+- **Toxicity Detection**: Instant flagging of offensive content via serverless Cloud Functions.
+- **Pedagogical Tagging**: AI extracts teaching styles (e.g., "Inspirational", "Tough Grader") for better discoverability.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 🛡️ Enterprise-Grade Security
+- **4-Tier RBAC**: Specialized portals for **Students**, **Instructors**, **Management**, and **Admins**.
+- **Defense-in-Depth**: Multi-layered security enforced at the application, service, and database levels.
+- **Immutable Audit Logs**: Traceable history of all administrative actions.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### ⚡ High-Performance Engine
+- **Atomic Transactions**: Race-condition prevention for concurrent rating submissions.
+- **List Virtualization**: Silky-smooth performance even with thousands of reviews.
+- **Optimistic UI**: Zero-latency feedback loop for user interactions (Likes/Dislikes/Ratings).
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## 🛠️ Tech Stack
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **Frontend**: React 19, Redux Toolkit, Framer Motion, Tailwind CSS, Lucide Icons.
+- **Backend**: Firebase (Firestore, Auth, Cloud Functions, Hosting, Storage).
+- **AI/ML**: Natural Language Processing (Sentiment/Toxicity) via Cloud Functions.
+- **Reporting**: jsPDF, AutoTable for executive-grade PDF generation.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 📦 Getting Started
 
-## Learn More
+### Prerequisites
+- Node.js 18+
+- Firebase Project
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/HayreKhan750/academic-pulse.git
+   cd academic-pulse
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Create a `.env` file with your Firebase configuration:
+   ```env
+   REACT_APP_FIREBASE_API_KEY=your_api_key
+   REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+   REACT_APP_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   REACT_APP_FIREBASE_MESSAGING_ID=your_messaging_id
+   REACT_APP_FIREBASE_APP_ID=your_app_id
+   ```
+4. Start the development server:
+   ```bash
+   npm start
+   ```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## 📈 Portfolio Highlights (CV-Ready)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+**AcademicPulse — AI-Powered Instructor Rating Platform**
+- Built a full-stack academic feedback ecosystem serving Students, Instructors, Management, and Admins with strict RBAC enforced via Firestore Rules.
+- Engineered an AI pipeline via Firebase Cloud Functions for automated sentiment scoring, toxicity detection, and pedagogical tag extraction.
+- Implemented atomic transactions and deterministic document IDs to prevent race conditions in concurrent rating submissions.
+- Designed a denormalized Firestore schema with composite indexes for O(log N) query performance and list virtualization for DOM efficiency.
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# RYCNCSI
+---
+*Built with ❤️ for the future of education.*

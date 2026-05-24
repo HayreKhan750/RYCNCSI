@@ -31,6 +31,8 @@ const RatingPage = () => {
   const [ratingValue, setRatingValue] = useState(0);
   const [selectedTags, setSelectedTags] = useState([]);
   const [feedback, setFeedback] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('general');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [existingRating, setExistingRating] = useState(null);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'alert' });
 
@@ -57,6 +59,8 @@ const RatingPage = () => {
               setRatingValue(found.ratingValue);
               setSelectedTags(found.tags || []);
               setFeedback(found.feedback || '');
+              setSelectedCourse(found.courseId || 'general');
+              setIsAnonymous(found.isAnonymous || found.anonymous || false);
           }
       }
   }, [myFeedbacks, instructorId]);
@@ -84,9 +88,11 @@ const RatingPage = () => {
       studentName: user.displayName,
       ratingValue,
       rating: ratingValue,
-      courseId: 'general',
+      courseId: selectedCourse,
       tags: selectedTags,
       feedback,
+      anonymous: isAnonymous,
+      isAnonymous: isAnonymous,
       timestamp: Date.now()
     };
 
@@ -172,6 +178,33 @@ const RatingPage = () => {
             {existingRating ? "Edit Your Rating" : "Rate this Instructor"}
           </h2>
           
+          <div className="form-group">
+            <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>Which course did you take with this instructor?</label>
+            <select 
+              className="premium-input"
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              style={{
+                  width: '100%',
+                  padding: '16px',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-root)',
+                  color: 'var(--text-primary)',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  cursor: 'pointer'
+              }}
+            >
+              <option value="general">General Feedback</option>
+              {instructor.courses?.map((course, idx) => (
+                <option key={idx} value={course.id || course.code || course}>
+                  {course.title || course.name || course.code || course}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="form-group">
             <label style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>Overall Rating</label>
             <div style={{ background: 'var(--bg-root)', padding: '16px', borderRadius: '16px', display: 'inline-block', border: '1px solid var(--border-subtle)' }}>
@@ -271,6 +304,20 @@ const RatingPage = () => {
                     {feedback.length} chars
                  </div>
             </div>
+          </div>
+
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+            <input 
+              type="checkbox" 
+              id="anonymous" 
+              checked={isAnonymous} 
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+            />
+            <label htmlFor="anonymous" style={{ fontSize: '1rem', fontWeight: '500', color: 'var(--text-primary)', cursor: 'pointer' }}>
+              Submit Anonymously
+            </label>
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}> (Your name will be hidden from everyone)</span>
           </div>
 
           <div style={{display:'flex', gap:'10px', marginTop:'16px'}}>

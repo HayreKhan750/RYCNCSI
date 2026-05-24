@@ -12,6 +12,7 @@ import ThemeProvider from './components/common/ThemeProvider';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import FoulLanguageModal from './components/modals/FoulLanguageModal';
 import GrantManagement from './components/GrantManagement'; // Dev tool (Eager Load)
+const PublicLeaderboard = lazy(() => import('./pages/PublicLeaderboard'));
 const AuthEntry = lazy(() => import('./components/auth-system/AuthEntry'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -74,6 +75,7 @@ export default function App() {
               <Route path="/" element={<AuthEntry />} />
               <Route path="/login" element={<AuthEntry />} />
               <Route path="/signup" element={<AuthEntry />} />
+              <Route path="/leaderboard" element={<PublicLeaderboard />} />
               
               {/* Protected Routes - Wrapped in AuthGuard logic via ProtectedRoute usually, but we check hydration globally above now.
                   We still keep ProtectedRoute for the Redux 'isAuthenticated' boolean check which logically follows hydration.

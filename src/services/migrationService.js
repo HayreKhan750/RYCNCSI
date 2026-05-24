@@ -73,7 +73,7 @@ export const migrationService = {
         // 1. Create/Update User Entry (Unified Auth)
         const userPayload = {
           uid: uid,
-          email: data.email || `${data.id}@rycncsi.edu`, // Fallback email
+          email: data.email || `${data.id}@academicpulse.edu`, // Fallback email
           displayName: data.name || data.instructorName,
           name: data.name || data.instructorName,
           role: 'instructor',

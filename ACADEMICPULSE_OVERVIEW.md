@@ -1,7 +1,7 @@
-# RYCNCSI - System Overview & Architecture Guide
+# AcademicPulse - System Overview & Architecture Guide
 
 ## 1. Introduction
-**RYCNCSI** (Rate Your CNCS Instructor) is a modern, enterprise-grade web application designed to facilitate feedback and engagement between students and instructors at the College of Natural and Computational Sciences (CNCS). It provides a premium, data-driven platform for rating instructors, analyzing teaching performance, and managing academic interactions.
+**AcademicPulse** is a modern, enterprise-grade web application designed to facilitate feedback and engagement between students and instructors. It provides a premium, data-driven platform for rating instructors, analyzing teaching performance, and managing academic interactions.
 
 ## 2. Technology Stack
 
@@ -97,4 +97,4 @@ Business logic is decoupled from UI in specialized service modules:
 *   **Global Search & Discovery**: High-performance filtering and ranking system for instructors and courses.
 
 ---
-*Updated for RYCNCSI System v2.0*
+*Updated for AcademicPulse System v2.0*

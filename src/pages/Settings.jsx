@@ -20,7 +20,7 @@ export default function Settings() {
         </div>
         <div className="profile-info">
           <h2>Settings</h2>
-          <p className="profile-email">Customize your Rate Your CNCS Instructors experience.</p>
+          <p className="profile-email">Customize your AcademicPulses experience.</p>
         </div>
       </div>
 

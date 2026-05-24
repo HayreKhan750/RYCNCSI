@@ -102,7 +102,7 @@ export default function Header({
                 onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
             >
                 <div className="logo-icon">⚡</div>
-                <span className="logo-text">CNCS Rate</span>
+                <span className="logo-text">AcademicPulse</span>
             </div>
             </div>
 
@@ -114,7 +114,7 @@ export default function Header({
                         {user?.role === 'MANAGEMENT' && 'MANAGEMENT PORTAL'}
                         {user?.role === 'student' && 'STUDENT PORTAL'}
                         {user?.role === 'admin' && 'ADMIN PORTAL'}
-                        {!user && (title || 'CNCS RATE')}
+                        {!user && (title || 'ACADEMICPULSE')}
                     </div>
                 )}
             </div>

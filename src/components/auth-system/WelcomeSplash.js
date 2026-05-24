@@ -37,7 +37,7 @@ export default function WelcomeSplash({ onFinish }) {
             opacity:0, letterSpacing: '-0.02em',
             animation: 'fadeInUp 0.8s ease forwards 0.5s'
         }}>
-            CNCS Rate
+            AcademicPulse
         </h1>
         <div style={{
             width: 40, height: 4, background:'linear-gradient(90deg, #3b82f6, #ec4899)', borderRadius:2, marginTop:24,

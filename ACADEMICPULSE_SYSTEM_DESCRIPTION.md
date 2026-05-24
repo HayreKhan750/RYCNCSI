@@ -1,4 +1,4 @@
-# RYCNCSI: REAL-TIME INSTRUCTOR RATING SYSTEM
+# AcademicPulse: REAL-TIME INSTRUCTOR RATING SYSTEM
 ## TECHNICAL BLUEPRINT & SYSTEM ARCHITECTURE
 
 ---
@@ -6,10 +6,10 @@
 ### 1️⃣ SYSTEM OVERVIEW
 
 #### Core Mission
-RYCNCSI (Rate Your CNCS Instructor) is an enterprise-grade academic feedback ecosystem designed for the College of Natural and Computational Sciences. It serves as a transparent bridge between the student body and faculty, moving beyond static surveys into a real-time, data-driven performance analytics platform.
+AcademicPulse (AcademicPulse) is an enterprise-grade academic feedback ecosystem designed for the College of Natural and Computational Sciences. It serves as a transparent bridge between the student body and faculty, moving beyond static surveys into a real-time, data-driven performance analytics platform.
 
 #### Problem Solved
-Traditional academic evaluations are often delayed, private, and non-actionable. RYCNCSI solves this by providing:
+Traditional academic evaluations are often delayed, private, and non-actionable. AcademicPulse solves this by providing:
 - **Instant Transparency**: Students see instructor performance before enrolling.
 - **Actionable Analytics**: Instructors receive immediate, categorised feedback to improve teaching methods.
 - **Administrative Oversight**: Management can identify systemic pedagogical gaps or star performers via AI-driven summaries.
@@ -99,7 +99,7 @@ Components *never* talk to Firebase directly. They use the **Service Layer abstr
 ### 3️⃣ BACKEND ARCHITECTURE
 
 #### Service-Oriented Design
-RYCNCSI employs a **Serverless Service-Oriented Architecture (SSOA)**. Rather than a monolithic backend, the system logic is distributed across lightweight, decoupled modules in `src/services/` that interface with Firebase's BaaS (Backend-as-a-Service).
+AcademicPulse employs a **Serverless Service-Oriented Architecture (SSOA)**. Rather than a monolithic backend, the system logic is distributed across lightweight, decoupled modules in `src/services/` that interface with Firebase's BaaS (Backend-as-a-Service).
 
 #### Core Backend Services
 - **Authentication Service (`authService.js`)**:
@@ -152,7 +152,7 @@ Security is enforced at two levels:
 ### 4️⃣ DATABASE & DATA MODEL
 
 #### Schema Design Philosophy
-RYCNCSI uses **Cloud Firestore** as its primary NoSQL database. The schema is designed for **Scalability** and **Read Performance**, favoring denormalized data structures that allow complex UI views to be populated with a single query.
+AcademicPulse uses **Cloud Firestore** as its primary NoSQL database. The schema is designed for **Scalability** and **Read Performance**, favoring denormalized data structures that allow complex UI views to be populated with a single query.
 
 #### Core Collections & Fields
 
@@ -190,7 +190,7 @@ Data is denormalized to avoid expensive client-side joins:
 ### 5️⃣ CONCURRENCY CONTROL & DATA INTEGRITY
 
 #### Handling Concurrent Submissions
-In a high-traffic environment where multiple students may rate the same instructor simultaneously, RYCNCSI employs **Atomic Operations** and **Distributed Transactions** to ensure data consistency.
+In a high-traffic environment where multiple students may rate the same instructor simultaneously, AcademicPulse employs **Atomic Operations** and **Distributed Transactions** to ensure data consistency.
 
 #### Avoiding Race Conditions
 Race conditions typically occur when reading a value, modifying it, and writing it back. The system avoids this through:
@@ -257,12 +257,12 @@ The system enforces strict ordering through database-level `orderBy` clauses and
 ### 7️⃣ PERFORMANCE OPTIMIZATION TECHNIQUES
 
 #### Indexing Strategies
-To prevent the "O(N) search problem," RYCNCSI leverages **Firestore Composite Indexes**. This allows the system to execute complex queries (e.g., "Get all feedback for Instructor X, sorted by rating, filtered by department") in **O(log N)** time.
+To prevent the "O(N) search problem," AcademicPulse leverages **Firestore Composite Indexes**. This allows the system to execute complex queries (e.g., "Get all feedback for Instructor X, sorted by rating, filtered by department") in **O(log N)** time.
 - Standard fields (IDs, timestamps) use Single-Field Indexes.
 - Analytics views use **Composite Indexes** (combined keys) to satisfy multi-where-clause queries without needing manual client-side filtering.
 
 #### List Virtualization
-When viewing an instructor with hundreds of reviews, the browser can lag due to DOM overhead. RYCNCSI solves this via **`VirtualList.js`**:
+When viewing an instructor with hundreds of reviews, the browser can lag due to DOM overhead. AcademicPulse solves this via **`VirtualList.js`**:
 - **Concept**: Only the 10-20 reviews currently visible on the screen are rendered into the DOM.
 - **Benefit**: Memory usage remains constant regardless of the total number of reviews, keeping the application snappy on mobile devices.
 
@@ -329,7 +329,7 @@ For Management, the system calculates a **Risk Score**:
 ### 9️⃣ SECURITY & ACCESS CONTROL
 
 #### Multi-Layered Authentication
-RYCNCSI employs a **Defense-in-Depth** strategy for authentication:
+AcademicPulse employs a **Defense-in-Depth** strategy for authentication:
 1. **Identity Provider (IdP)**: Users authenticate via Firebase Auth.
 2. **Session Persistence**: JWT (JSON Web Tokens) are handled securely by the Firebase SDK, stored in `IndexedDB`.
 3. **MFA (Multi-Factor Authentication)**: High-privilege roles (Admin/Management) are prompted for a second factor (Email OTP or Authenticator) during login, as managed by the `authService`.
@@ -410,7 +410,7 @@ Every sensitive action (e.g., `BAN_USER`, `DELETE_FEEDBACK`, `CHANGE_ROLE`) trig
 ### 🔚 FINAL SECTION: MENTAL MODEL & SCALE
 
 #### The Complete Mental Model
-The RYCNCSI system is essentially a **Reactive Data Pipeline**.
+The AcademicPulse system is essentially a **Reactive Data Pipeline**.
 - Think of it as a set of **Listeners** and **Transformers**.
 - The "Source" is student feedback.
 - The "Transformer" is the Service/AI layer.
@@ -433,7 +433,7 @@ The system scales horizontally at every layer:
 2. **Atomic UI**: The component library is modular and documented. Adding a new feature (e.g., "Parent View" or "Course Analytics") is as simple as composing existing atomic elements.
 3. **Automated Auditing**: The immutable logging system ensures that as the system grows, administrative actions remain transparent and traceable, reducing the operational burden on the IT department.
 
-**Conclusion**: RYCNCSI is not just a rating site; it is a high-performance, AI-augmented infrastructure for academic excellence. It is built to be fast, secure, and infinitely scalable.
+**Conclusion**: AcademicPulse is not just a rating site; it is a high-performance, AI-augmented infrastructure for academic excellence. It is built to be fast, secure, and infinitely scalable.
 
 ---
 *Blueprint Documentation End*

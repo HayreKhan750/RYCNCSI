@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["http://localhost:3000", "https://rycncsi.web.app", "https://rycncsi.firebaseapp.com"],
+    "origin": ["http://localhost:3000", "https://rycncsi.web.app", "https://rycncsi.firebaseapp.com", "https://academicpulse.vercel.app", "https://rycncsi.vercel.app"],
     "method": ["GET"],
     "maxAgeSeconds": 3600
   }

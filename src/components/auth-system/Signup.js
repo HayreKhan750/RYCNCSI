@@ -53,6 +53,11 @@ export default function Signup({ onNavigate }) {
         return;
     }
     
+    if (!formData.email.endsWith('@aau.edu.et')) {
+        alert("Verification Error: Please use your official university email (@aau.edu.et) to sign up.");
+        return;
+    }
+    
     setIsSubmitting(true);
     dispatch(clearError());
     
@@ -72,7 +77,7 @@ export default function Signup({ onNavigate }) {
   return (
     <div className="auth-card" style={{maxWidth: 480}}>
       <h1 className="auth-title">Create Account</h1>
-      <p className="auth-subtitle">Join the CNCS community today</p>
+      <p className="auth-subtitle">Join the AcademicPulse community today</p>
 
       {error && <div className="auth-alert">⚠ {error}</div>}
 
